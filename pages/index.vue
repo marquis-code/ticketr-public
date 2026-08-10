@@ -198,8 +198,16 @@
             />
             <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
 
-            <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-xs font-medium text-gray-700">
-              {{ event.isVirtual ? '🌐 Virtual' : '📍 ' + event.location }}
+            <div class="mt-4 flex flex-col space-y-2 text-sm text-gray-500 font-medium px-5">
+              <div class="flex items-center gap-2">
+                <Calendar class="w-4 h-4 text-primary" />
+                <span>{{ new Date(event.startDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) }} • {{ event.startTime }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <Globe v-if="event.isVirtual" class="w-4 h-4 text-primary" />
+                <MapPin v-else class="w-4 h-4 text-primary" />
+                <span>{{ event.isVirtual ? 'Virtual' : event.location }}</span>
+              </div>
             </div>
 
             <div v-if="event.tiers && event.tiers.length" class="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-xs font-bold text-white">
@@ -209,10 +217,6 @@
 
           <!-- Content -->
           <div class="p-5 flex flex-col flex-grow">
-            <div class="text-xs text-primary font-semibold mb-2 flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              {{ formatDate(event.startDate) }}
-            </div>
             <h3 class="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors mb-2 line-clamp-1">
               {{ event.title }}
             </h3>
@@ -259,6 +263,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { Globe, MapPin, Calendar } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();

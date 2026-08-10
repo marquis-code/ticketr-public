@@ -5,7 +5,7 @@
       <div class="max-w-7xl mx-auto flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center space-x-3">
           <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center font-bold text-xl text-gray-900">
-            🎟️
+            <Ticket class="w-6 h-6 text-gray-900" />
           </div>
           <div>
             <span class="font-bold text-xl tracking-tight text-gray-900 block">Ticketr</span>
@@ -37,7 +37,8 @@
 
           <button type="submit" :disabled="searching || !emailInput" class="w-full btn-primary py-3 text-sm flex items-center justify-center gap-2">
             <span v-if="searching" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            <span>{{ searching ? 'Searching Orders...' : '🔍 Retrieve Tickets' }}</span>
+            <span v-if="!searching"><Search class="w-4 h-4" /></span>
+            <span>{{ searching ? 'Searching Orders...' : 'Retrieve Tickets' }}</span>
           </button>
         </form>
       </div>
@@ -83,8 +84,8 @@
                 <p class="text-xs text-gray-600 mb-4">{{ ticket.attendeeEmail }}</p>
               </div>
 
-              <NuxtLink :to="`/order/confirmation?reference=${order.paystackReference}`" class="btn-secondary text-xs !py-2 text-center w-full block">
-                View & Print E-Ticket 🎟️
+              <NuxtLink :to="`/order/confirmation?reference=${order.paystackReference}`" class="btn-secondary text-xs !py-2 text-center w-full flex items-center justify-center gap-1">
+                View & Print E-Ticket <Ticket class="w-4 h-4" />
               </NuxtLink>
             </div>
           </div>
@@ -96,6 +97,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { Ticket, Search } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 

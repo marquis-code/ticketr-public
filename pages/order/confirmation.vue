@@ -10,8 +10,8 @@
 
       <!-- Error State -->
       <div v-else-if="error" class="glass-card rounded-2xl p-8 text-center border-rose-500/40">
-        <div class="w-16 h-16 bg-rose-500/10 text-rose-400 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
-          ⚠️
+        <div class="w-16 h-16 bg-rose-500/10 text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle class="w-8 h-8" />
         </div>
         <h3 class="text-xl font-bold text-gray-900 mb-2">Payment Verification Error</h3>
         <p class="text-gray-600 text-sm mb-6">{{ error }}</p>
@@ -21,8 +21,8 @@
       <!-- Success Ticket Card -->
       <div v-else-if="orderData" class="space-y-6">
         <div class="text-center">
-          <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-3xl mb-3">
-            ✓
+          <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-3">
+            <CheckCircle class="w-8 h-8" />
           </div>
           <h2 class="text-2xl font-extrabold text-gray-900">Payment Confirmed!</h2>
           <p class="text-sm text-gray-600 mt-1">Order #{{ orderData.orderNumber }}</p>
@@ -59,11 +59,11 @@
             </div>
 
             <div class="flex gap-2 mt-4">
-              <a :href="`${config.public.apiBase}/tickets/${ticket._id}/pdf`" download class="flex-1 text-center bg-gray-900 text-white rounded-lg py-2 text-xs font-semibold hover:bg-gray-800 transition">
-                📥 Download PDF
+              <a :href="`${config.public.apiBase}/tickets/${ticket._id}/pdf`" download class="flex-1 flex items-center justify-center gap-1 bg-gray-900 text-white rounded-lg py-2 text-xs font-semibold hover:bg-gray-800 transition">
+                <Download class="w-4 h-4" /> Download PDF
               </a>
-              <button @click="downloadQRCode(ticket.qrCodeHash, ticket.ticketNumber)" class="flex-1 text-center bg-gray-100 text-gray-900 rounded-lg py-2 text-xs font-semibold hover:bg-gray-200 transition border border-gray-200">
-                📱 Save QR
+              <button @click="downloadQRCode(ticket.qrCodeHash, ticket.ticketNumber)" class="flex-1 flex items-center justify-center gap-1 bg-gray-100 text-gray-900 rounded-lg py-2 text-xs font-semibold hover:bg-gray-200 transition border border-gray-200">
+                <Smartphone class="w-4 h-4" /> Save QR
               </button>
             </div>
           </div>
@@ -82,6 +82,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
 import QRCode from 'qrcode';
+import { AlertTriangle, CheckCircle, Download, Smartphone } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();

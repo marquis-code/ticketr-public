@@ -42,7 +42,11 @@
             <div class="p-6 md:p-8 space-y-6">
               <div>
                 <span class="px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-3 inline-block">
-                  {{ eventData.event.isVirtual ? '🌐 Virtual Event' : '📍 ' + eventData.event.location }}
+                  <div class="flex items-center gap-1">
+                    <Globe v-if="eventData.event.isVirtual" class="w-3 h-3" />
+                    <MapPin v-else class="w-3 h-3" />
+                    <span>{{ eventData.event.isVirtual ? 'Virtual Event' : eventData.event.location }}</span>
+                  </div>
                 </span>
                 <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight mb-2">
                   {{ tenantSlug === 'thebig5' ? "THE BIG FIVES's" : eventData.event.title }}
@@ -51,7 +55,7 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl /60 border border-gray-200">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg">
-                    📅
+                    <Calendar class="w-5 h-5" />
                   </div>
                   <div>
                     <span class="text-xs text-gray-500 block uppercase font-medium">Date & Time</span>
@@ -61,7 +65,7 @@
 
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg">
-                    📍
+                    <MapPin class="w-5 h-5" />
                   </div>
                   <div>
                     <span class="text-xs text-gray-500 block uppercase font-medium">Location</span>
@@ -202,7 +206,8 @@
                 class="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-sm"
               >
                 <span v-if="submitting" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                <span>{{ submitting ? 'Processing Order...' : 'Pay with Paystack 🔒' }}</span>
+                <span>{{ submitting ? 'Processing Order...' : 'Pay with Paystack' }}</span>
+                <Lock v-if="!submitting" class="w-4 h-4" />
               </button>
 
               <p class="text-[11px] text-gray-500 text-center">
@@ -218,6 +223,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { Globe, MapPin, Calendar, Lock } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();
