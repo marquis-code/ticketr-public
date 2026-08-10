@@ -3,12 +3,12 @@ export function useSubdomain() {
   const reqUrl = useRequestURL();
 
   const hostname = reqUrl.hostname;
-  let tenantSlug: string | null = null;
+  let tenantSlug = null;
   let isAdminSubdomain = false;
 
   // Check query param first (for local dev)
   if (route.query.tenant) {
-    tenantSlug = route.query.tenant as string;
+    tenantSlug = route.query.tenant;
   } else if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
     const parts = hostname.split('.');
     if (parts.length > 2 && parts[0] !== 'www') {
@@ -27,7 +27,7 @@ export function useSubdomain() {
   // Local dev: support ?mode=admin&tenant=thebig5
   if (route.query.mode === 'admin' && route.query.tenant) {
     isAdminSubdomain = true;
-    tenantSlug = route.query.tenant as string;
+    tenantSlug = route.query.tenant;
   }
 
   return {
