@@ -31,8 +31,24 @@
         <div class="lg:col-span-2 space-y-6">
           <div class="glass-card rounded-2xl overflow-hidden">
             <div class="relative w-full h-[300px] sm:h-[450px] md:h-[600px] bg-slate-950">
+              <template v-if="eventData.event.carouselImages && eventData.event.carouselImages.length > 1">
+                <div class="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full w-full">
+                  <div
+                    v-for="(img, idx) in eventData.event.carouselImages"
+                    :key="idx"
+                    class="w-full flex-shrink-0 snap-center h-full relative"
+                  >
+                    <img :src="img" :alt="eventData.event.title" class="w-full h-full object-contain" />
+                  </div>
+                </div>
+                <!-- Carousel indicators -->
+                <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                  <div v-for="(_, i) in eventData.event.carouselImages" :key="'ind'+i" class="w-2 h-2 rounded-full bg-white/50"></div>
+                </div>
+              </template>
               <img
-                :src="eventData.event.bannerUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'"
+                v-else
+                :src="(eventData.event.carouselImages && eventData.event.carouselImages[0]) || eventData.event.bannerUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'"
                 :alt="eventData.event.title"
                 class="w-full h-full object-contain"
               />
@@ -98,9 +114,13 @@
                 :class="selectedQuantities[tier._id] > 0 ? 'bg-indigo-950/30 border-indigo-500/60' : '/40 border-gray-200'"
               >
                 <div class="flex items-center justify-between mb-2">
-                  <div>
-                    <h4 class="font-bold text-gray-900 text-base">{{ tier.name }}</h4>
-                    <span class="text-xs text-gray-600 block">{{ tier.capacity - tier.soldCount }} tickets remaining</span>
+                  <div class="flex gap-4">
+                    <img v-if="tier.templateImageUrl" :src="tier.templateImageUrl" class="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                    <div>
+                      <h4 class="font-bold text-gray-900 text-base">{{ tier.name }}</h4>
+                      <p v-if="tier.description" class="text-xs text-gray-500 line-clamp-2 mt-0.5">{{ tier.description }}</p>
+                      <span class="text-[11px] text-gray-400 block mt-1">{{ tier.capacity - tier.soldCount }} tickets remaining</span>
+                    </div>
                   </div>
                   <span class="text-lg font-extrabold text-primary">
                     {{ tier.price === 0 ? 'Free' : `₦${tier.price.toLocaleString()}` }}
