@@ -15,7 +15,7 @@
           <input
             v-model="form.email"
             type="email"
-            placeholder="admin@organization.edu"
+            placeholder="thebig5@ticketr.org"
             required
             class="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
           />
@@ -74,7 +74,7 @@ const tenantName = ref('');
 const submitting = ref(false);
 const errorMsg = ref('');
 const showPassword = ref(false);
-const form = ref({ email: '', password: '' });
+const form = ref({ email: 'thebig5@ticketr.org', password: '' });
 
 // Fetch tenant info
 onMounted(async () => {
