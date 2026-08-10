@@ -269,11 +269,11 @@ const resolveSubdomain = () => {
   const host = reqUrl.hostname;
   if (host && host !== 'localhost' && host !== '127.0.0.1') {
     const parts = host.split('.');
-    if (parts.length > 2) {
+    if (parts.length > 2 && parts[0] !== 'www') {
       return parts[0];
     }
   }
-  return 'ulsesa'; // Default fallback
+  return null; // Return null for the main ticketr.org domain
 };
 
 const activeSlug = ref(resolveSubdomain());
@@ -284,7 +284,9 @@ const adminUrl = computed(() => {
   return 'http://localhost:3001';
 });
 
-const { data, pending: loading } = await useFetch(`${config.public.apiBase}/events/tenant/${activeSlug.value}`);
+const { data, pending: loading } = await useFetch(
+  activeSlug.value ? `${config.public.apiBase}/events/tenant/${activeSlug.value}` : null
+);
 
 const tenantInfo = computed(() => data.value?.tenant || null);
 const events = computed(() => data.value?.events || []);

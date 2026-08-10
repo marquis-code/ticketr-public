@@ -224,17 +224,19 @@ const resolveSubdomain = () => {
   const host = reqUrl.hostname;
   if (host && host !== 'localhost' && host !== '127.0.0.1') {
     const parts = host.split('.');
-    if (parts.length > 2) {
+    if (parts.length > 2 && parts[0] !== 'www') {
       return parts[0];
     }
   }
-  return 'ulsesa'; // Default fallback
+  return null;
 };
 
 const tenantSlug = ref(resolveSubdomain());
 const eventSlug = ref(route.params.slug);
 
-const { data, pending: loading } = await useFetch(`${config.public.apiBase}/events/tenant/${tenantSlug.value}/${eventSlug.value}`);
+const { data, pending: loading } = await useFetch(
+  tenantSlug.value ? `${config.public.apiBase}/events/tenant/${tenantSlug.value}/${eventSlug.value}` : null
+);
 
 const eventData = computed(() => data.value || null);
 const submitting = ref(false);
