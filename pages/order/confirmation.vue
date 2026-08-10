@@ -57,13 +57,19 @@
               <span>Status: <strong class="text-emerald-400 uppercase">{{ ticket.status }}</strong></span>
               <span>Issued by Ticketr</span>
             </div>
+
+            <div class="flex gap-2 mt-4">
+              <a :href="`${config.public.apiBase}/tickets/${ticket._id}/pdf`" download class="flex-1 text-center bg-gray-900 text-white rounded-lg py-2 text-xs font-semibold hover:bg-gray-800 transition">
+                📥 Download PDF
+              </a>
+              <button @click="downloadQRCode(ticket.qrCodeHash, ticket.ticketNumber)" class="flex-1 text-center bg-gray-100 text-gray-900 rounded-lg py-2 text-xs font-semibold hover:bg-gray-200 transition border border-gray-200">
+                📱 Save QR
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="flex items-center justify-center gap-4 pt-2">
-          <button @click="printTicket" class="btn-primary text-xs flex items-center gap-2">
-            🖨️ Print / Save Ticket PDF
-          </button>
           <NuxtLink to="/" class="btn-secondary text-xs">
             Back to Portal
           </NuxtLink>
@@ -92,8 +98,14 @@ function setCanvasRef(el, hash) {
   }
 }
 
-function printTicket() {
-  window.print();
+function downloadQRCode(hash, ticketNumber) {
+  const canvas = canvasRefs.value[hash];
+  if (!canvas) return;
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `QR-${ticketNumber.replace(/\//g, '-')}.png`;
+  a.click();
 }
 
 async function verifyOrder() {
