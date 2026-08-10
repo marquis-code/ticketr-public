@@ -369,6 +369,7 @@ function goToSlide(i) {
 }
 
 function resetAutoSlide() {
+  if (typeof window === 'undefined') return;
   if (slideInterval) clearInterval(slideInterval);
   slideInterval = setInterval(nextSlide, 5000);
 }
