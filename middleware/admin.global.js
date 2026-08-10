@@ -14,8 +14,20 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   if (isAdminSubdomain) {
-    // On admin subdomain but NOT on an /admin route => redirect to admin login
+    const token = localStorage.getItem('ticketr_admin_token');
+
+    // On admin subdomain but NOT on an /admin route => redirect appropriately
     if (!to.path.startsWith('/' + 'admin')) {
+      return navigateTo(token ? '/' + 'admin/dashboard' : '/' + 'admin/login', { redirectCode: 302 });
+    }
+
+    // Authenticated admin trying to access login page => redirect back to dashboard
+    if (token && to.path === '/' + 'admin/login') {
+      return navigateTo('/' + 'admin/dashboard', { redirectCode: 302 });
+    }
+
+    // Unauthenticated user trying to access secure admin pages => redirect to login
+    if (!token && to.path !== '/' + 'admin/login') {
       return navigateTo('/' + 'admin/login', { redirectCode: 302 });
     }
   } else {
