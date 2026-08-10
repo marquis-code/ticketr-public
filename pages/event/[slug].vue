@@ -13,7 +13,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-6 py-8 flex-grow w-full">
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex-grow w-full">
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-24">
         <div class="inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
@@ -43,7 +43,7 @@
                   {{ eventData.event.isVirtual ? '🌐 Virtual Event' : '📍 ' + eventData.event.location }}
                 </span>
                 <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
-                  {{ eventData.event.title }}
+                  {{ tenantSlug === 'ulsesa' ? "THE BIG FIVES's" : eventData.event.title }}
                 </h1>
               </div>
             </div>
@@ -84,7 +84,7 @@
 
         <!-- Right Column: Ticket Selector & Checkout Form -->
         <div class="space-y-6">
-          <div class="glass-card rounded-2xl p-6 md:p-8 border-primary/30 sticky top-24">
+          <div class="glass-card rounded-2xl p-4 md:p-8 border-primary/30 sticky top-24">
             <h2 class="text-xl font-bold text-gray-900 mb-4">Select Tickets</h2>
 
             <!-- Tiers List -->
@@ -154,15 +154,11 @@
                   </div>
                   <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Department / Association Code</label>
-                    <select
+                    <CustomDropdown
                       v-model="departmentCode"
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition bg-white"
-                    >
-                      <option value="" disabled>Select your department</option>
-                      <option v-for="dept in departments" :key="dept.code" :value="dept.code">
-                        {{ dept.name }} ({{ dept.code }})
-                      </option>
-                    </select>
+                      :options="departments"
+                      placeholder="Select your department"
+                    />
                     <span class="text-[11px] text-gray-500 mt-1 block">Used to generate structured ticket code (e.g. V/T01/EDM)</span>
                   </div>
                 </div>
@@ -182,12 +178,12 @@
                         <input v-model="attendee.email" type="email" placeholder="Attendee Email" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
                       </div>
                       <div>
-                        <select v-model="attendee.departmentCode" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none bg-white">
-                          <option value="">Same as billing contact</option>
-                          <option v-for="dept in departments" :key="dept.code" :value="dept.code">
-                            {{ dept.name }} ({{ dept.code }})
-                          </option>
-                        </select>
+                        <CustomDropdown
+                          v-model="attendee.departmentCode"
+                          :options="departments"
+                          :allowEmpty="true"
+                          emptyLabel="Same as billing contact"
+                        />
                       </div>
                     </div>
                   </div>
