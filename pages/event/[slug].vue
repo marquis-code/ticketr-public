@@ -250,6 +250,7 @@
 </template>
 
 <script setup>
+import { toast } from 'vue-sonner';
 import { ref, computed, onMounted } from 'vue';
 import { Globe, MapPin, Calendar, Lock } from 'lucide-vue-next';
 
@@ -396,7 +397,7 @@ async function processCheckout() {
 
     if (!res.ok) {
       const err = await res.json();
-      alert(err.message || 'Failed to initialize order');
+      toast.error(err.message || 'Failed to initialize order');
       return;
     }
 
@@ -405,11 +406,11 @@ async function processCheckout() {
     if (orderResult.authorizationUrl) {
       window.location.href = orderResult.authorizationUrl;
     } else {
-      alert('Order placed successfully!');
+      toast.success('Order placed successfully!');
     }
   } catch (err) {
     console.error('Checkout error:', err);
-    alert('An unexpected error occurred during checkout.');
+    toast.error('An unexpected error occurred during checkout.');
   } finally {
     submitting.value = false;
   }
