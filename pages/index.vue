@@ -186,7 +186,7 @@
         <NuxtLink
           v-for="event in filteredEvents"
           :key="event._id"
-          :to="`/event/${event.slug}?tenant=${activeSlug}`"
+          :href="getEventLink(event)"
           class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-primary/40 transition-all duration-300 group flex flex-col"
         >
           <!-- Event Banner -->
@@ -285,8 +285,23 @@ const adminUrl = computed(() => {
 });
 
 const { data, pending: loading } = await useFetch(
-  activeSlug.value ? `${config.public.apiBase}/events/tenant/${activeSlug.value}` : null
+  activeSlug.value ? `${config.public.apiBase}/events/tenant/${activeSlug.value}` : `${config.public.apiBase}/events/public/all`
 );
+
+const getEventLink = (event) => {
+  if (activeSlug.value) {
+    return `/event/${event.slug}?tenant=${activeSlug.value}`;
+  }
+  
+  const tenantSlug = event.tenant?.slug || 'ulsesa';
+  const host = reqUrl.hostname;
+  
+  if (host === 'localhost' || host === '127.0.0.1') {
+     return `/event/${event.slug}?tenant=${tenantSlug}`;
+  }
+  
+  return `https://${tenantSlug}.ticketr.org/event/${event.slug}`;
+};
 
 const tenantInfo = computed(() => data.value?.tenant || null);
 const events = computed(() => data.value?.events || []);
