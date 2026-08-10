@@ -1,7 +1,7 @@
 <template>
   <Toaster position="top-right" richColors />
-  <div>
-    <NuxtPage />
+  <div class="min-h-screen w-full flex flex-col bg-gray-50">
+    <NuxtPage class="flex-grow flex flex-col" />
   </div>
 </template>
 
