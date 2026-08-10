@@ -1,6 +1,6 @@
 <template>
-  <div class="flex-grow flex items-center justify-center p-6 w-full h-full">
-    <div class="w-full max-w-md bg-white border border-gray-200 rounded-xl p-8 shadow-xl mx-auto">
+  <div class="min-h-screen flex items-center justify-center p-6 w-full bg-gray-50">
+    <div class="w-full max-w-md bg-white border border-gray-200 rounded-xl p-8 shadow-xl mx-auto my-auto">
       <div class="text-center mb-8">
         <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-4">
           <Ticket class="w-7 h-7 text-white" />
