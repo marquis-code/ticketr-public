@@ -6,8 +6,8 @@
         <NuxtLink :to="`/?tenant=${tenantSlug}`" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition flex items-center gap-2">
           ← Back to Events
         </NuxtLink>
-        <span class="text-xs text-indigo-400 font-semibold px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
-          {{ eventData?.tenant?.name || 'CMultiTickets' }}
+        <span class="text-xs text-primary font-semibold px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+          {{ eventData?.tenant?.name || 'Ticketr' }}
         </span>
       </div>
     </header>
@@ -39,7 +39,7 @@
               <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
 
               <div class="absolute bottom-6 left-6 right-6">
-                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 backdrop-blur-md mb-3 inline-block">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-primary/20 text-primary border border-primary/30 backdrop-blur-md mb-3 inline-block">
                   {{ eventData.event.isVirtual ? '🌐 Virtual Event' : '📍 ' + eventData.event.location }}
                 </span>
                 <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
@@ -52,7 +52,7 @@
             <div class="p-6 md:p-8 space-y-6">
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl /60 border border-gray-200">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-lg">
+                  <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg">
                     📅
                   </div>
                   <div>
@@ -62,7 +62,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-lg">
+                  <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg">
                     📍
                   </div>
                   <div>
@@ -84,7 +84,7 @@
 
         <!-- Right Column: Ticket Selector & Checkout Form -->
         <div class="space-y-6">
-          <div class="glass-card rounded-2xl p-6 md:p-8 border-indigo-500/30 sticky top-24">
+          <div class="glass-card rounded-2xl p-6 md:p-8 border-primary/30 sticky top-24">
             <h2 class="text-xl font-bold text-gray-900 mb-4">Select Tickets</h2>
 
             <!-- Tiers List -->
@@ -100,7 +100,7 @@
                     <h4 class="font-bold text-gray-900 text-base">{{ tier.name }}</h4>
                     <span class="text-xs text-gray-600 block">{{ tier.capacity - tier.soldCount }} tickets remaining</span>
                   </div>
-                  <span class="text-lg font-extrabold text-indigo-300">
+                  <span class="text-lg font-extrabold text-primary">
                     {{ tier.price === 0 ? 'Free' : `₦${tier.price.toLocaleString()}` }}
                   </span>
                 </div>
@@ -120,7 +120,7 @@
                     <button
                       @click="updateQuantity(tier._id, 1, tier.maxPerPurchase)"
                       :disabled="(selectedQuantities[tier._id] || 0) >= Math.min(tier.maxPerPurchase, tier.capacity - tier.soldCount)"
-                      class="w-8 h-8 rounded-lg bg-indigo-600 text-gray-900 font-bold hover:bg-indigo-500 disabled:opacity-30 disabled:pointer-events-none transition"
+                      class="w-8 h-8 rounded-lg bg-primary text-white font-bold hover:bg-primary-700 disabled:opacity-30 disabled:pointer-events-none transition"
                     >
                       +
                     </button>
@@ -217,12 +217,47 @@ import { ref, computed, onMounted } from 'vue';
 const config = useRuntimeConfig();
 const route = useRoute();
 
-const tenantSlug = ref(route.query.tenant || 'nursing');
+const reqUrl = useRequestURL();
+
+const resolveSubdomain = () => {
+  if (route.query.tenant) return route.query.tenant;
+  const host = reqUrl.hostname;
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    const parts = host.split('.');
+    if (parts.length > 2) {
+      return parts[0];
+    }
+  }
+  return 'ulsesa'; // Default fallback
+};
+
+const tenantSlug = ref(resolveSubdomain());
 const eventSlug = ref(route.params.slug);
 
-const eventData = ref(null);
-const loading = ref(true);
+const { data, pending: loading } = await useFetch(`${config.public.apiBase}/events/tenant/${tenantSlug.value}/${eventSlug.value}`);
+
+const eventData = computed(() => data.value || null);
 const submitting = ref(false);
+
+useSeoMeta({
+  title: computed(() => eventData.value?.event?.title ? `${eventData.value.event.title} - ${eventData.value.tenant.name}` : 'Event Details | Ticketr'),
+  ogTitle: computed(() => eventData.value?.event?.title || 'Event Details'),
+  description: computed(() => eventData.value?.event?.description?.substring(0, 160) || 'Buy tickets for this event.'),
+  ogDescription: computed(() => eventData.value?.event?.description?.substring(0, 160) || 'Buy tickets for this event.'),
+  ogImage: computed(() => eventData.value?.event?.bannerUrl || eventData.value?.tenant?.logoUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'),
+  twitterCard: 'summary_large_image',
+});
+
+// Update favicon dynamically
+useHead({
+  link: [
+    {
+      rel: 'icon',
+      type: 'image/x-icon',
+      href: computed(() => eventData.value?.tenant?.logoUrl || '/favicon.ico')
+    }
+  ]
+});
 
 const selectedQuantities = ref({});
 const tierAttendees = ref({}); // { [tierId]: [{ name: '', email: '' }] }
@@ -266,20 +301,6 @@ const totalAmount = computed(() => {
     return sum + tier.price * qty;
   }, 0);
 });
-
-async function fetchEventDetails() {
-  loading.value = true;
-  try {
-    const res = await fetch(`${config.public.apiBase}/events/tenant/${tenantSlug.value}/${eventSlug.value}`);
-    if (res.ok) {
-      eventData.value = await res.json();
-    }
-  } catch (err) {
-    console.error('Error fetching event detail:', err);
-  } finally {
-    loading.value = false;
-  }
-}
 
 async function processCheckout() {
   submitting.value = true;
@@ -329,7 +350,4 @@ async function processCheckout() {
   }
 }
 
-onMounted(() => {
-  fetchEventDetails();
-});
 </script>

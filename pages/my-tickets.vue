@@ -4,12 +4,12 @@
     <header class="glass-card border-b border-gray-200/80 px-6 py-4">
       <div class="max-w-7xl mx-auto flex items-center justify-between">
         <NuxtLink to="/" class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center font-bold text-xl text-gray-900 shadow-lg shadow-indigo-500/20">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center font-bold text-xl text-gray-900">
             🎟️
           </div>
           <div>
-            <span class="font-bold text-xl tracking-tight text-gray-900 block">CMultiTickets</span>
-            <span class="text-xs text-indigo-400 font-medium">Find My E-Tickets</span>
+            <span class="font-bold text-xl tracking-tight text-gray-900 block">Ticketr</span>
+            <span class="text-xs text-primary font-medium">Find My E-Tickets</span>
           </div>
         </NuxtLink>
 
@@ -22,7 +22,7 @@
     <!-- Main Container -->
     <main class="max-w-4xl mx-auto px-6 py-12 flex-grow w-full space-y-8">
       <!-- Search Form -->
-      <div class="glass-card rounded-2xl p-8 border-indigo-500/30 text-center max-w-xl mx-auto">
+      <div class="glass-card rounded-2xl p-8 border-primary/30 text-center max-w-xl mx-auto">
         <h1 class="text-2xl font-extrabold text-gray-900 mb-2">Find My Purchased Tickets</h1>
         <p class="text-gray-600 text-xs mb-6">Enter the email address you used during ticket purchase to retrieve your active passes & QR codes.</p>
 
@@ -50,13 +50,13 @@
       <div v-else-if="orders.length > 0" class="space-y-6">
         <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
           <span>Your Orders & Tickets</span>
-          <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-0.5 rounded-full font-semibold">{{ orders.length }}</span>
+          <span class="text-xs bg-primary/20 text-primary border border-primary/30 px-2.5 py-0.5 rounded-full font-semibold">{{ orders.length }}</span>
         </h2>
 
         <div v-for="order in orders" :key="order._id" class="glass-card rounded-2xl p-6 border-gray-200">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-gray-200 mb-6 gap-2">
             <div>
-              <span class="text-xs text-indigo-400 font-semibold block">Order #{{ order.orderNumber }}</span>
+              <span class="text-xs text-primary font-semibold block">Order #{{ order.orderNumber }}</span>
               <h3 class="text-lg font-bold text-gray-900">{{ order.eventId?.title || 'Event Pass' }}</h3>
               <span class="text-xs text-gray-500">{{ new Date(order.paidAt || order.createdAt).toLocaleDateString() }}</span>
             </div>
@@ -71,7 +71,7 @@
             <div v-for="ticket in order.tickets" :key="ticket._id" class="/80 rounded-xl p-4 border border-gray-200 flex flex-col justify-between">
               <div>
                 <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs font-bold text-indigo-300">{{ ticket.ticketNumber }}</span>
+                  <span class="text-xs font-bold text-primary">{{ ticket.ticketNumber }}</span>
                   <span
                     :class="ticket.status === 'CHECKED_IN' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'"
                     class="px-2 py-0.5 rounded text-[10px] font-semibold border uppercase"

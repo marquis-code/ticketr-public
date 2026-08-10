@@ -21,7 +21,7 @@
       <!-- Success Ticket Card -->
       <div v-else-if="orderData" class="space-y-6">
         <div class="text-center">
-          <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-3xl mb-3 shadow-lg shadow-emerald-500/10">
+          <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-3xl mb-3">
             ✓
           </div>
           <h2 class="text-2xl font-extrabold text-gray-900">Payment Confirmed!</h2>
@@ -29,8 +29,8 @@
         </div>
 
         <!-- E-Ticket Render -->
-        <div v-for="ticket in orderData.tickets" :key="ticket._id" class="glass-card rounded-2xl overflow-hidden border-indigo-500/40 print:bg-white print:text-black">
-          <div class="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white text-center">
+        <div v-for="ticket in orderData.tickets" :key="ticket._id" class="glass-card rounded-2xl overflow-hidden border-primary/40 print:bg-white print:text-black">
+          <div class="bg-gradient-to-r from-primary to-primary-700 p-6 text-white text-center">
             <span class="text-xs font-semibold uppercase tracking-wider opacity-80 block">Official Event Pass</span>
             <h3 class="text-xl font-bold mt-1">{{ ticket.ticketNumber }}</h3>
           </div>
@@ -50,12 +50,12 @@
             <!-- QR Code Render -->
             <div class=" rounded-xl p-6 text-center border border-gray-200 my-4">
               <canvas :ref="el => setCanvasRef(el, ticket.qrCodeHash)" class="mx-auto w-48 h-48 rounded-lg bg-white p-2"></canvas>
-              <span class="text-[11px] text-indigo-400 font-medium block mt-3">Scan at entrance gate for admission</span>
+              <span class="text-[11px] text-primary font-medium block mt-3">Scan at entrance gate for admission</span>
             </div>
 
             <div class="flex items-center justify-between text-xs text-gray-600 pt-3 border-t border-gray-200">
               <span>Status: <strong class="text-emerald-400 uppercase">{{ ticket.status }}</strong></span>
-              <span>Issued by CMultiTickets</span>
+              <span>Issued by Ticketr</span>
             </div>
           </div>
         </div>

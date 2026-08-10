@@ -5,7 +5,11 @@
 @layer base {
   body {
     font-family: 'Satoshi', sans-serif;
-    @apply bg-white text-slate-900 antialiased min-h-screen selection:bg-[#0F4D3F] selection:text-white;
+    @apply bg-gray-50 text-gray-900 antialiased min-h-screen;
+  }
+
+  ::selection {
+    @apply bg-primary text-white;
   }
 
   h1, h2, h3, h4, h5, h6, .font-display {
@@ -14,22 +18,17 @@
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  @apply bg-white border border-gray-200 rounded-xl;
 }
 
 .glass-pill {
-  background: rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  @apply bg-gray-100 border border-gray-200 rounded-full;
 }
 
 .btn-primary {
-  @apply bg-[#0F4D3F] hover:bg-[#0c3d32] text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-[#0F4D3F]/25 transition-all duration-200 hover:shadow-[#0F4D3F]/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
+  @apply bg-primary hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none;
 }
 
 .btn-secondary {
-  @apply bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0;
+  @apply bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-semibold py-3 px-6 rounded-lg transition-all duration-200;
 }

@@ -15,7 +15,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'CMultiTickets - Modern Event Ticketing',
+      title: 'Ticketr - Modern Event Ticketing',
       meta: [
         { name: 'description', content: 'Book event tickets seamlessly for your institution or school.' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
