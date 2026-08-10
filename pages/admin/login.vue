@@ -62,10 +62,10 @@
     </div>
 
     <!-- Right Side: Image -->
-    <div class="hidden lg:block lg:w-1/2 relative bg-gray-900">
+    <div class="hidden lg:flex flex-1 relative bg-gray-900 min-h-screen w-full">
       <img src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop" alt="Exciting concert event" class="absolute inset-0 w-full h-full object-cover opacity-80" />
       <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/20 to-transparent"></div>
-      <div class="absolute bottom-12 left-12 right-12 text-white">
+      <div class="absolute bottom-12 left-12 right-12 text-white z-10">
         <h2 class="font-display text-4xl font-bold mb-4">Manage events like a pro.</h2>
         <p class="text-lg text-gray-200 max-w-lg">Everything you need to sell tickets, manage attendees, and track your revenue in real-time.</p>
       </div>

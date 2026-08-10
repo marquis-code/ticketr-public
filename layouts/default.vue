@@ -33,6 +33,10 @@
             My Tickets
           </NuxtLink>
 
+          <NuxtLink to="/admin/signup" class="text-sm font-semibold text-white bg-primary hover:bg-primary-700 px-4 py-2 rounded-lg transition hidden sm:inline-flex items-center gap-1.5 shadow-sm">
+            Host an Event
+          </NuxtLink>
+
           <!-- Mobile Menu Button -->
           <button @click="isMenuOpen = !isMenuOpen" class="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
             <Menu v-if="!isMenuOpen" class="w-6 h-6" />
@@ -59,6 +63,10 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
             </svg>
             My Tickets
+          </NuxtLink>
+
+          <NuxtLink to="/admin/signup" class="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-primary rounded-lg mt-2" @click="isMenuOpen = false">
+            Host an Event
           </NuxtLink>
         </div>
       </div>

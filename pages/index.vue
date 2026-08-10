@@ -41,7 +41,7 @@
               {{ heroSlides[currentSlide].subheading }}
             </p>
 
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
               <a href="#events" class="inline-flex items-center gap-2 bg-primary hover:bg-primary-700 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
                 Browse Events
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -50,6 +50,9 @@
               </a>
               <NuxtLink to="/my-tickets" class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
                 Find My Tickets
+              </NuxtLink>
+              <NuxtLink v-if="!tenantInfo" to="/admin/signup" class="inline-flex items-center gap-2 bg-gray-900/40 backdrop-blur-sm hover:bg-gray-900/60 border border-gray-700/50 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
+                Sign Up as Organizer
               </NuxtLink>
             </div>
           </div>
