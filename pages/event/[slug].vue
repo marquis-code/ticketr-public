@@ -216,8 +216,16 @@
             <!-- Summary & Pay Button -->
             <div class="space-y-4">
               <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-600">Total Amount:</span>
-                <span class="text-2xl font-extrabold text-gray-900">₦{{ totalAmount.toLocaleString() }}</span>
+                <span class="text-gray-600">Subtotal:</span>
+                <span class="font-bold text-gray-900">₦{{ subtotalAmount.toLocaleString() }}</span>
+              </div>
+              <div v-if="markupAmount > 0" class="flex items-center justify-between text-sm pt-2">
+                <span class="text-gray-600">Platform Fee:</span>
+                <span class="font-bold text-gray-900">₦{{ markupAmount.toLocaleString() }}</span>
+              </div>
+              <div class="flex items-center justify-between text-base pt-2 border-t border-gray-200">
+                <span class="text-gray-900 font-semibold">Total Amount:</span>
+                <span class="text-2xl font-extrabold text-primary">₦{{ totalAmount.toLocaleString() }}</span>
               </div>
 
               <button
@@ -335,12 +343,28 @@ function updateQuantity(tierId, delta, max) {
   }
 }
 
-const totalAmount = computed(() => {
+const subtotalAmount = computed(() => {
   if (!eventData.value?.event?.tiers) return 0;
   return eventData.value.event.tiers.reduce((sum, tier) => {
     const qty = selectedQuantities.value[tier._id] || 0;
     return sum + tier.price * qty;
   }, 0);
+});
+
+const markupAmount = computed(() => {
+  if (!eventData.value?.event || eventData.value.event.markupStrategy !== 'ADD_TO_FEE' || eventData.value.event.markupFee <= 0) return 0;
+  
+  if (eventData.value.event.markupFeeType === 'PERCENTAGE') {
+    return (eventData.value.event.markupFee / 100) * subtotalAmount.value;
+  }
+  // FLAT
+  // If the customer hasn't selected any tickets, don't charge the flat fee
+  if (subtotalAmount.value === 0) return 0; 
+  return eventData.value.event.markupFee;
+});
+
+const totalAmount = computed(() => {
+  return subtotalAmount.value + markupAmount.value;
 });
 
 async function processCheckout() {
