@@ -1,13 +1,7 @@
 export default defineNuxtRouteMiddleware((to) => {
-  let hostname = '';
-  if (import.meta.client) {
-    hostname = window.location.hostname;
-  } else {
-    try {
-      hostname = useRequestURL().hostname;
-    } catch (e) {}
-  }
+  if (!import.meta.client) return;
 
+  const hostname = window.location.hostname;
   let isAdminSubdomain = false;
 
   if (hostname && hostname.startsWith('admin-')) {
