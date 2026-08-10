@@ -107,10 +107,10 @@
 
                 <!-- Quantity Controls -->
                 <div class="flex items-center justify-between pt-3 border-t border-gray-200/60 mt-2">
-                  <span class="text-xs text-gray-500">Qty (Max {{ tier.maxPerPurchase }})</span>
+                  <span class="text-xs text-gray-500">Qty (Max {{ tier.capacity - tier.soldCount }})</span>
                   <div class="flex items-center gap-3">
                     <button
-                      @click="updateQuantity(tier._id, -1, tier.maxPerPurchase)"
+                      @click="updateQuantity(tier._id, -1, tier.capacity - tier.soldCount)"
                       :disabled="!selectedQuantities[tier._id]"
                       class="w-8 h-8 rounded-lg bg-gray-100 text-gray-700 font-bold hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition"
                     >
@@ -118,8 +118,8 @@
                     </button>
                     <span class="font-bold text-gray-900 text-sm w-4 text-center">{{ selectedQuantities[tier._id] || 0 }}</span>
                     <button
-                      @click="updateQuantity(tier._id, 1, tier.maxPerPurchase)"
-                      :disabled="(selectedQuantities[tier._id] || 0) >= Math.min(tier.maxPerPurchase, tier.capacity - tier.soldCount)"
+                      @click="updateQuantity(tier._id, 1, tier.capacity - tier.soldCount)"
+                      :disabled="(selectedQuantities[tier._id] || 0) >= (tier.capacity - tier.soldCount)"
                       class="w-8 h-8 rounded-lg bg-primary text-white font-bold hover:bg-primary-700 disabled:opacity-30 disabled:pointer-events-none transition"
                     >
                       +
