@@ -1,25 +1,6 @@
 <template>
-  <div class="min-h-screen   flex flex-col">
-    <header class="glass-card border-b border-gray-200 px-4 md:px-6 py-4">
-      <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 w-full md:w-auto">
-          <NuxtLink to="/" class="flex items-center space-x-3">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center font-bold text-lg text-gray-900">
-              ⚡
-            </div>
-            <span class="font-bold text-lg text-gray-900">Ticketr Admin</span>
-          </NuxtLink>
-
-          <nav class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-hide text-xs font-semibold">
-            <NuxtLink to="/admin/dashboard" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg">Dashboard</NuxtLink>
-            <NuxtLink to="/admin/events" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg">Events Management</NuxtLink>
-            <NuxtLink to="/admin/orders" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg">Orders & Financials</NuxtLink>
-            <NuxtLink to="/admin/scanner" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg">Gate Scanner</NuxtLink>
-            <NuxtLink to="/admin/settings" class="bg-primary text-white px-3 py-1.5 rounded-lg">Branding & Payouts</NuxtLink>
-          </nav>
-        </div>
-      </div>
-    </header>
+  <div>
+    
 
     <main class="max-w-4xl mx-auto px-4 md:px-6 py-8 flex-grow w-full space-y-6">
       <div>
@@ -177,6 +158,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: 'admin' });
+
 import { toast } from 'vue-sonner';
 import { ref, onMounted } from 'vue';
 

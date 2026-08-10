@@ -1,14 +1,7 @@
 <template>
-  <div class="min-h-screen flex flex-col">
+  <div>
     <!-- Navbar -->
-    <header class="glass-card border-b border-gray-200/80 px-4 md:px-6 py-4">
-      <div class="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <NuxtLink to="/admin/events" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition flex items-center gap-1">
-          <ArrowLeft class="w-4 h-4" /> Back to Events
-        </NuxtLink>
-        <span class="text-xs font-bold text-primary">Edit Event</span>
-      </div>
-    </header>
+    
 
     <main class="max-w-4xl mx-auto px-4 md:px-6 py-8 flex-grow w-full">
       <div v-if="loading" class="flex justify-center items-center py-20">
@@ -203,6 +196,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: 'admin' });
+
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowLeft, Edit3, Plus, Save, X, Check, Loader2 } from 'lucide-vue-next';

@@ -1,21 +1,7 @@
 <template>
-  <div class="min-h-screen bg-[#FAFAFA] flex flex-col font-sans">
+  <div>
     <!-- Navbar -->
-    <header class="bg-white/80 backdrop-blur-md border-b border-gray-200/60 px-6 py-4 sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <NuxtLink to="/" class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-violet-500 flex items-center justify-center shadow-sm">
-            <Ticket class="w-5 h-5 text-white" />
-          </div>
-          <span class="font-bold text-xl tracking-tight text-gray-900">Ticketr</span>
-        </NuxtLink>
-
-        <NuxtLink to="/" class="text-sm font-semibold text-gray-500 hover:text-gray-900 transition flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Back to Events
-        </NuxtLink>
-      </div>
-    </header>
+    
 
     <main class="flex-grow w-full max-w-5xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center">
       
@@ -159,6 +145,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: 'default' });
+
 import { ref } from 'vue';
 import { Ticket, Search, Mail, Calendar, QrCode } from 'lucide-vue-next';
 

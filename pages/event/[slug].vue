@@ -1,16 +1,7 @@
 <template>
-  <div class="min-h-screen   flex flex-col">
+  <div>
     <!-- Top Header -->
-    <header class="glass-card border-b border-gray-200/80 px-6 py-4">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <NuxtLink :to="`/?tenant=${tenantSlug}`" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition flex items-center gap-2">
-          ← Back to Events
-        </NuxtLink>
-        <span class="text-xs text-primary font-semibold px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
-          {{ eventData?.tenant?.name || 'Ticketr' }}
-        </span>
-      </div>
-    </header>
+    
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex-grow w-full">
@@ -250,6 +241,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: 'default' });
+
 import { toast } from 'vue-sonner';
 import { ref, computed, onMounted } from 'vue';
 import { Globe, MapPin, Calendar, Lock } from 'lucide-vue-next';

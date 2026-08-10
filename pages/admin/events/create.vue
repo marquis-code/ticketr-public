@@ -1,14 +1,7 @@
 <template>
-  <div class="min-h-screen   flex flex-col">
+  <div>
     <!-- Navbar -->
-    <header class="glass-card border-b border-gray-200/80 px-4 md:px-6 py-4">
-      <div class="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <NuxtLink to="/admin/dashboard" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition">
-          ← Cancel & Back to Dashboard
-        </NuxtLink>
-        <span class="text-xs font-bold text-primary">Event Creator Wizard</span>
-      </div>
-    </header>
+    
 
     <main class="max-w-4xl mx-auto px-4 md:px-6 py-8 flex-grow w-full">
       <div class="glass-card rounded-2xl p-8 border-primary/30">
@@ -201,6 +194,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: 'admin' });
+
 import { toast } from 'vue-sonner';
 import { ref } from 'vue';
 import { Send, Check } from 'lucide-vue-next';

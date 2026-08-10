@@ -1,17 +1,7 @@
 <template>
-  <div class="min-h-screen   flex flex-col">
+  <div>
     <!-- Top Bar -->
-    <header class="glass-card border-b border-gray-200 px-4 md:px-6 py-4">
-      <div class="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <NuxtLink to="/admin/dashboard" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition">
-          ← Dashboard
-        </NuxtLink>
-        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          Gate Check-in Scanner Active
-        </span>
-      </div>
-    </header>
+    
 
     <main class="max-w-xl mx-auto px-4 md:px-6 py-12 flex-grow w-full space-y-6">
       <div class="glass-card rounded-2xl p-8 border-primary/30 text-center">
@@ -69,6 +59,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: 'admin' });
+
 import { toast } from 'vue-sonner';
 import { ref } from 'vue';
 import { Search, CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next';
