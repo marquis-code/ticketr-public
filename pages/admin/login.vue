@@ -110,7 +110,7 @@ async function handleLogin() {
       localStorage.setItem('ticketr_admin_token', data.accessToken);
       localStorage.setItem('ticketr_admin_user', JSON.stringify(data.user));
       localStorage.setItem('ticketr_admin_tenant', tenantSlug || '');
-      useRouter().push('/admin/dashboard');
+      useRouter().push('/admin/admin');
     } else {
       const err = await res.json();
       errorMsg.value = err.message || 'Invalid credentials';

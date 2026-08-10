@@ -1,59 +1,94 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col">
-    <!-- Navbar -->
-    <header class="bg-white/80 backdrop-blur-md border-b border-gray-200/60 px-4 md:px-6 py-4 sticky top-0 z-40">
+  <div class="min-h-screen   flex flex-col">
+    <header class="glass-card border-b border-gray-200 px-4 md:px-6 py-4">
       <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 w-full md:w-auto">
-          <NuxtLink to="/admin/dashboard" class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center">
-              <Ticket class="w-6 h-6 text-white" />
+          <NuxtLink to="/" class="flex items-center space-x-3">
+            <img v-if="tenantLogo" :src="tenantLogo" alt="Logo" class="w-9 h-9 rounded-xl object-cover border border-gray-200" />
+            <div v-else class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center font-bold text-lg text-gray-900">
+              ⚡
             </div>
-            <span class="font-bold text-lg text-gray-900 block">{{ tenantName || 'Organizer Dashboard' }}</span>
+            <span class="font-bold text-lg text-gray-900">{{ tenantName || 'Ticketr Admin' }}</span>
           </NuxtLink>
+
           <nav class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-hide text-xs font-semibold">
-            <NuxtLink to="/admin/dashboard" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg transition whitespace-nowrap">Dashboard</NuxtLink>
-            <NuxtLink to="/admin/events" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg transition whitespace-nowrap">Events</NuxtLink>
-            <NuxtLink to="/admin/orders" class="bg-primary text-white px-3 py-1.5 rounded-lg whitespace-nowrap">Orders</NuxtLink>
+            <NuxtLink to="/admin/dashboard" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg">Dashboard</NuxtLink>
+            <NuxtLink to="/admin/events" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg">Events Management</NuxtLink>
+            <NuxtLink to="/admin/orders" class="bg-primary text-white px-3 py-1.5 rounded-lg">Orders & Financials</NuxtLink>
+            <NuxtLink to="/admin/scanner" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg">Gate Scanner</NuxtLink>
+            <NuxtLink to="/admin/settings" class="text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg">Branding & Payouts</NuxtLink>
           </nav>
         </div>
-        <button @click="logout" class="text-xs text-gray-500 hover:text-gray-900 px-3 py-2 flex items-center gap-1.5">
-          <LogOut class="w-3.5 h-3.5" /> Logout
-        </button>
       </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full space-y-6">
-      <h1 class="text-2xl font-extrabold text-gray-900">Orders & Financials</h1>
+      <div>
+        <h1 class="text-2xl font-extrabold text-gray-900">Orders & Financial Transactions</h1>
+        <p class="text-xs text-gray-600 mt-1">Audit ticket purchases, Paystack transaction references, and revenue logs.</p>
+      </div>
 
+      <!-- Orders Table -->
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div v-if="loading" class="text-center py-12 text-gray-500 text-sm">Loading orders...</div>
-        <div v-else-if="orders.length === 0" class="text-center py-12 text-gray-500 text-sm">No orders yet.</div>
-        <div v-else class="overflow-x-auto">
+        <div v-if="loading" class="text-center py-12 text-gray-500 text-sm">
+          Loading orders...
+        </div>
+
+        <div v-else-if="orders.length === 0" class="text-center py-12 text-gray-500 text-sm">
+          No orders placed yet.
+        </div>
+
+        <div v-else class="overflow-hidden border border-gray-200 rounded-xl bg-white shadow-sm">
           <table class="w-full text-left border-collapse whitespace-nowrap">
             <thead class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
               <tr>
-                <th class="px-6 py-4">Order #</th>
-                <th class="px-6 py-4">Customer</th>
-                <th class="px-6 py-4">Event</th>
-                <th class="px-6 py-4">Qty</th>
-                <th class="px-6 py-4">Amount</th>
-                <th class="px-6 py-4">Status</th>
-                <th class="px-6 py-4">Date</th>
+                <th class="py-4 px-4 md:px-6">Customer & Order</th>
+                <th class="py-4 px-4 md:px-6">Event</th>
+                <th class="py-4 px-4 md:px-6">Amount</th>
+                <th class="py-4 px-4 md:px-6">Reference</th>
+                <th class="py-4 px-4 md:px-6 text-right">Status</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 bg-white">
-              <tr v-for="order in orders" :key="order._id" class="hover:bg-gray-50 transition-colors duration-150">
-                <td class="px-6 py-4 font-mono text-xs text-gray-600">{{ order.orderNumber }}</td>
-                <td class="px-6 py-4 text-sm text-gray-900 font-medium">{{ order.customerEmail }}</td>
-                <td class="px-6 py-4 text-sm text-gray-600">{{ order.eventId?.title || '—' }}</td>
-                <td class="px-6 py-4 text-sm text-gray-900 font-semibold">{{ order.tickets?.length || 0 }}</td>
-                <td class="px-6 py-4 font-semibold text-gray-900">₦{{ (order.totalAmount || 0).toLocaleString() }}</td>
-                <td class="px-6 py-4">
-                  <span :class="order.status === 'PAID' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'" class="px-2.5 py-1 rounded-full text-[11px] font-semibold border">
-                    {{ order.status }}
+              <tr v-for="o in orders" :key="o._id" class="hover:bg-gray-50 transition-colors duration-150">
+                <td class="px-6 py-4 md:px-6">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+                      {{ o.customerName.charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <p class="font-bold text-gray-900 text-sm">{{ o.customerName }}</p>
+                      <p class="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                        <span class="font-mono text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{{ o.orderNumber }}</span>
+                        {{ o.customerEmail }}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 md:px-6">
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gray-50 border border-gray-100 text-xs font-medium text-gray-700">
+                    🎪 {{ o.eventId?.title || 'Unknown Event' }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 md:px-6">
+                  <span class="font-extrabold text-gray-900 text-sm">₦{{ o.totalAmount?.toLocaleString() }}</span>
+                </td>
+                <td class="px-6 py-4 md:px-6">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-[11px] text-gray-500 truncate max-w-[120px]" :title="o.paystackReference">
+                      {{ o.paystackReference }}
+                    </span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 md:px-6 text-right">
+                  <span
+                    :class="o.status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border shadow-sm"
+                  >
+                    <span class="w-1.5 h-1.5 rounded-full" :class="o.status === 'PAID' ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+                    {{ o.status }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-xs text-gray-500">{{ new Date(order.createdAt).toLocaleDateString() }}</td>
               </tr>
             </tbody>
           </table>
@@ -65,45 +100,54 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { Ticket, LogOut } from 'lucide-vue-next';
-
-definePageMeta({ layout: false });
 
 const config = useRuntimeConfig();
-const { tenantSlug } = useSubdomain();
 
 const orders = ref([]);
 const loading = ref(true);
+const tenantLogo = ref('');
 const tenantName = ref('');
 
-function logout() {
-  localStorage.removeItem('ticketr_admin_token');
-  localStorage.removeItem('ticketr_admin_user');
-  localStorage.removeItem('ticketr_admin_tenant');
-  useRouter().push('/admin/login');
+async function loadTenantDetails() {
+  const token = localStorage.getItem('ticketr_admin_token');
+  if (!token) return;
+  try {
+    const res = await fetch(`${config.public.apiBase}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.tenant) {
+        tenantLogo.value = data.tenant.logoUrl;
+        tenantName.value = data.tenant.name;
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-onMounted(async () => {
+async function loadOrders() {
   const token = localStorage.getItem('ticketr_admin_token');
-  if (!token) { useRouter().push('/admin/login'); return; }
+  if (!token) return;
 
+  loading.value = true;
   try {
-    const res = await fetch(`${config.public.apiBase}/orders/admin/my-orders`, {
+    const res = await fetch(`${config.public.apiBase}/orders/tenant`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.ok) orders.value = await res.json();
-
-    if (tenantSlug) {
-      const tenantRes = await fetch(`${config.public.apiBase}/events/tenant/${tenantSlug}`);
-      if (tenantRes.ok) {
-        const data = await tenantRes.json();
-        if (data.tenant) tenantName.value = data.tenant.name;
-      }
+    if (res.ok) {
+      orders.value = await res.json();
     }
   } catch (err) {
     console.error(err);
   } finally {
     loading.value = false;
   }
+}
+
+onMounted(() => {
+  loadTenantDetails();
+  loadOrders();
 });
 </script>
