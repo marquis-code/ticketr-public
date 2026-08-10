@@ -1,16 +1,17 @@
 export default defineNuxtRouteMiddleware((to) => {
-  // Get hostname from the request URL
-  const reqUrl = useRequestURL();
-  const hostname = reqUrl.hostname;
+  let hostname = '';
+  if (import.meta.client) {
+    hostname = window.location.hostname;
+  } else {
+    try {
+      hostname = useRequestURL().hostname;
+    } catch (e) {}
+  }
 
   let isAdminSubdomain = false;
 
-  if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    const parts = hostname.split('.');
-    // e.g. admin-thebig5.ticketr.org => parts = ['admin-thebig5', 'ticketr', 'org']
-    if (parts.length > 2 && parts[0].startsWith('admin-')) {
-      isAdminSubdomain = true;
-    }
+  if (hostname && hostname.startsWith('admin-')) {
+    isAdminSubdomain = true;
   }
 
   // Local dev support: ?mode=admin
