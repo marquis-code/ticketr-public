@@ -154,12 +154,15 @@
                   </div>
                   <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Department / Association Code</label>
-                    <input
+                    <select
                       v-model="departmentCode"
-                      type="text"
-                      placeholder="e.g. EDM, TVESA, ULSESA"
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 uppercase focus:outline-none focus:border-indigo-500 transition"
-                    />
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition bg-white"
+                    >
+                      <option value="" disabled>Select your department</option>
+                      <option v-for="dept in departments" :key="dept.code" :value="dept.code">
+                        {{ dept.name }} ({{ dept.code }})
+                      </option>
+                    </select>
                     <span class="text-[11px] text-gray-500 mt-1 block">Used to generate structured ticket code (e.g. V/T01/EDM)</span>
                   </div>
                 </div>
@@ -177,6 +180,14 @@
                       </div>
                       <div>
                         <input v-model="attendee.email" type="email" placeholder="Attendee Email" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
+                      </div>
+                      <div>
+                        <select v-model="attendee.departmentCode" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none bg-white">
+                          <option value="">Same as billing contact</option>
+                          <option v-for="dept in departments" :key="dept.code" :value="dept.code">
+                            {{ dept.name }} ({{ dept.code }})
+                          </option>
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -267,6 +278,14 @@ const customerName = ref('');
 const customerEmail = ref('');
 const departmentCode = ref('');
 
+const departments = [
+  { code: 'EDF', name: 'Educational Foundation' },
+  { code: 'EDM', name: 'Educational Management' },
+  { code: 'ADE', name: 'Adult Education' },
+  { code: 'TVESA', name: 'Technology and Vocational Education' },
+  { code: 'ULSESA', name: 'Science Education' },
+];
+
 function formatDate(dStr) {
   if (!dStr) return '';
   return new Date(dStr).toLocaleString('en-US', {
@@ -289,7 +308,7 @@ function updateQuantity(tierId, delta, max) {
   
   if (next > tierAttendees.value[tierId].length) {
     for (let i = tierAttendees.value[tierId].length; i < next; i++) {
-      tierAttendees.value[tierId].push({ name: '', email: '' });
+      tierAttendees.value[tierId].push({ name: '', email: '', departmentCode: '' });
     }
   } else if (next < tierAttendees.value[tierId].length) {
     tierAttendees.value[tierId].length = next;
