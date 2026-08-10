@@ -21,13 +21,14 @@ export default defineNuxtRouteMiddleware((to) => {
       return navigateTo(token ? '/' + 'admin/dashboard' : '/' + 'admin/login', { redirectCode: 302 });
     }
 
-    // Authenticated admin trying to access login page => redirect back to dashboard
-    if (token && to.path === '/' + 'admin/login') {
+    // Authenticated admin trying to access login/signup page => redirect back to dashboard
+    const isAuthRoute = to.path === '/admin/login' || to.path === '/admin/signup';
+    if (token && isAuthRoute) {
       return navigateTo('/' + 'admin/dashboard', { redirectCode: 302 });
     }
 
     // Unauthenticated user trying to access secure admin pages => redirect to login
-    if (!token && to.path !== '/' + 'admin/login') {
+    if (!token && !isAuthRoute) {
       return navigateTo('/' + 'admin/login', { redirectCode: 302 });
     }
   } else {
