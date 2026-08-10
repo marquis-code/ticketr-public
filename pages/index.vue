@@ -293,7 +293,7 @@ const getEventLink = (event) => {
     return `/event/${event.slug}?tenant=${activeSlug.value}`;
   }
   
-  const tenantSlug = event.tenant?.slug || 'ulsesa';
+  const tenantSlug = event.tenant?.slug || 'thebig5';
   const host = reqUrl.hostname;
   
   if (host === 'localhost' || host === '127.0.0.1') {

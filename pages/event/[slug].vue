@@ -43,7 +43,7 @@
                   {{ eventData.event.isVirtual ? '🌐 Virtual Event' : '📍 ' + eventData.event.location }}
                 </span>
                 <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
-                  {{ tenantSlug === 'ulsesa' ? "THE BIG FIVES's" : eventData.event.title }}
+                  {{ tenantSlug === 'thebig5' ? "THE BIG FIVES's" : eventData.event.title }}
                 </h1>
               </div>
             </div>
