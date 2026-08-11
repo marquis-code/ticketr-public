@@ -2,7 +2,7 @@
   <div>
     
 
-    <main class="w-full space-y-8">
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex-grow w-full space-y-8">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-900">Orders & Financial Transactions</h1>
         <p class="text-xs text-gray-600 mt-1">Audit ticket purchases, Paystack transaction references, and revenue logs.</p>

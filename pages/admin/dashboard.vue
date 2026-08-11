@@ -4,7 +4,7 @@
     
 
     <!-- Content Area -->
-    <main class="w-full space-y-8">
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex-grow w-full space-y-8">
       <!-- KPI Cards Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="glass-card rounded-2xl p-6 border-primary/20">

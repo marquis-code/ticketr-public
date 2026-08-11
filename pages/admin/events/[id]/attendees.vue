@@ -3,7 +3,7 @@
     <!-- Header -->
     
 
-    <main class="w-full space-y-8">
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex-grow w-full space-y-8">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-extrabold text-gray-900">{{ eventInfo?.title || 'Event Roster' }}</h1>
