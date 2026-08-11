@@ -177,34 +177,42 @@
                 </div>
               </div>
 
+              <!-- Use Billing Toggle -->
+              <div v-if="Object.values(selectedQuantities).reduce((a, b) => a + b, 0) > 0" class="flex items-center gap-2 mb-4 pt-2">
+                <input type="checkbox" id="useBilling" v-model="useBillingForTickets" class="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary focus:ring-2 cursor-pointer" />
+                <label for="useBilling" class="text-sm font-medium text-gray-700 cursor-pointer">Use Billing Contact Info for all tickets</label>
+              </div>
+
               <!-- Ticket Holders Info -->
-              <template v-for="(attendees, tierId) in tierAttendees" :key="tierId">
-                <div v-if="attendees.length > 0" class="pt-4 border-t border-gray-100">
-                  <h4 class="font-semibold text-gray-900 text-sm mb-3">Ticket Holders ({{ eventData?.event?.tiers?.find(t => t._id === tierId)?.name }})</h4>
-                  <div v-for="(attendee, index) in attendees" :key="index" class="p-3 bg-gray-50 border border-gray-100 rounded-lg mb-3">
-                    <div class="flex justify-between items-center mb-2">
-                      <p class="text-xs font-semibold text-gray-500">Ticket #{{ index + 1 }}</p>
-                      <button @click="copyBillingInfo(attendee)" type="button" class="text-[10px] text-primary font-medium hover:underline bg-primary-50 px-2 py-1 rounded">Copy Billing Info</button>
-                    </div>
-                    <div class="space-y-3">
-                      <div>
-                        <input v-model="attendee.name" type="text" placeholder="Attendee Name" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
+              <div v-if="!useBillingForTickets">
+                <template v-for="(attendees, tierId) in tierAttendees" :key="tierId">
+                  <div v-if="attendees.length > 0" class="pt-4 border-t border-gray-100">
+                    <h4 class="font-semibold text-gray-900 text-sm mb-3">Ticket Holders ({{ eventData?.event?.tiers?.find(t => t._id === tierId)?.name }})</h4>
+                    <div v-for="(attendee, index) in attendees" :key="index" class="p-3 bg-gray-50 border border-gray-100 rounded-lg mb-3">
+                      <div class="flex justify-between items-center mb-2">
+                        <p class="text-xs font-semibold text-gray-500">Ticket #{{ index + 1 }}</p>
+                        <button @click="copyBillingInfo(attendee)" type="button" class="text-[10px] text-primary font-medium hover:underline bg-primary-50 px-2 py-1 rounded">Copy Billing Info</button>
                       </div>
-                      <div>
-                        <input v-model="attendee.email" type="email" placeholder="Attendee Email" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
-                      </div>
-                      <div>
-                        <CustomDropdown
-                          v-model="attendee.departmentCode"
-                          :options="departments"
-                          :allowEmpty="true"
-                          emptyLabel="Same as billing contact"
-                        />
+                      <div class="space-y-3">
+                        <div>
+                          <input v-model="attendee.name" type="text" placeholder="Attendee Name" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
+                        </div>
+                        <div>
+                          <input v-model="attendee.email" type="email" placeholder="Attendee Email" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
+                        </div>
+                        <div>
+                          <CustomDropdown
+                            v-model="attendee.departmentCode"
+                            :options="departments"
+                            :allowEmpty="true"
+                            emptyLabel="Same as billing contact"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </template>
+                </template>
+              </div>
             </div>
 
             <!-- Summary & Pay Button -->
@@ -264,27 +272,24 @@
                 <h3 class="font-bold text-gray-900 text-sm mb-1">✅ Order Placed — Upload Proof of Payment</h3>
                 <p class="text-[11px] sm:text-xs text-gray-600">Your order has been reserved. Please transfer the total amount to the account below and upload your receipt.</p>
                 
-                <!-- Bank Account Details (shown again during upload) -->
-                <div v-if="eventData?.tenant?.primaryRemittanceAccount" class="bg-white p-4 sm:p-5 rounded-xl border-2 border-emerald-100 space-y-3 sm:space-y-4 shadow-sm">
-                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Bank Name</span> <strong class="text-sm sm:text-base text-gray-900">{{ eventData.tenant.primaryRemittanceAccount.bankName }}</strong></div>
-                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Account Number</span> 
-                    <div class="flex items-center gap-1 sm:gap-2">
-                      <strong class="text-base sm:text-lg text-primary font-mono bg-primary/10 px-2 sm:px-3 py-1 rounded-lg border border-primary/20">{{ eventData.tenant.primaryRemittanceAccount.accountNumber }}</strong>
-                      <button @click="copyToClipboard(eventData.tenant.primaryRemittanceAccount.accountNumber, 'Account Number')" class="p-1.5 sm:p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-lg transition" title="Copy Account Number"><Copy class="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
-                    </div>
-                  </div>
-                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Account Name</span> 
-                    <div class="flex items-center gap-1 sm:gap-2 text-right">
-                      <strong class="text-xs sm:text-sm text-gray-900 max-w-[120px] sm:max-w-none">{{ eventData.tenant.primaryRemittanceAccount.accountName }}</strong>
-                      <button @click="copyToClipboard(eventData.tenant.primaryRemittanceAccount.accountName, 'Account Name')" class="p-1.5 sm:p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-lg transition" title="Copy Account Name"><Copy class="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
-                    </div>
-                  </div>
-                </div>
+                <!-- Bank Account Details removed to prevent duplication -->
 
                 <div class="space-y-4">
                   <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">Receipt Image</label>
-                    <input type="file" ref="receiptInput" accept="image/*" @change="handleReceiptChange" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                    <div class="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-emerald-200 border-dashed rounded-xl bg-white hover:bg-emerald-50 transition relative">
+                      <div class="space-y-1 text-center">
+                        <UploadCloud class="mx-auto h-12 w-12 text-emerald-400" />
+                        <div class="flex text-sm text-gray-600 justify-center">
+                          <label for="file-upload" class="relative cursor-pointer bg-transparent rounded-md font-medium text-emerald-600 hover:text-emerald-700 focus-within:outline-none">
+                            <span>Upload a file</span>
+                            <input id="file-upload" type="file" ref="receiptInput" accept="image/*" @change="handleReceiptChange" class="sr-only" />
+                          </label>
+                          <p class="pl-1 hidden sm:block">or click here</p>
+                        </div>
+                        <p class="text-xs text-gray-500">PNG, JPG up to 10MB</p>
+                      </div>
+                    </div>
                   </div>
                   <div v-if="receiptPreviewUrl" class="rounded-lg overflow-hidden border border-gray-200 bg-white">
                     <img :src="receiptPreviewUrl" alt="Receipt Preview" class="w-full h-auto max-h-48 object-contain" />
@@ -348,7 +353,7 @@
 definePageMeta({ layout: 'default' });
 
 import { ref, computed, onMounted } from 'vue';
-import { Globe, MapPin, Calendar, Lock, Copy } from 'lucide-vue-next';
+import { Globe, MapPin, Calendar, Lock, Copy, UploadCloud } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();
@@ -403,6 +408,7 @@ const tierAttendees = ref({}); // { [tierId]: [{ name: '', email: '' }] }
 const customerName = ref('');
 const customerEmail = ref('');
 const departmentCode = ref('');
+const useBillingForTickets = ref(false);
 
 function copyBillingInfo(attendee) {
   attendee.name = customerName.value;
@@ -513,11 +519,21 @@ async function processCheckout() {
   try {
     const items = Object.entries(selectedQuantities.value)
       .filter(([_, qty]) => qty > 0)
-      .map(([tierId, quantity]) => ({ 
-        tierId, 
-        quantity,
-        attendees: tierAttendees.value[tierId] || []
-      }));
+      .map(([tierId, quantity]) => {
+        let attendees = tierAttendees.value[tierId] || [];
+        if (useBillingForTickets.value) {
+          attendees = Array.from({ length: quantity }, () => ({
+            name: customerName.value,
+            email: customerEmail.value,
+            departmentCode: departmentCode.value
+          }));
+        }
+        return { 
+          tierId, 
+          quantity,
+          attendees
+        };
+      });
 
     const payload = {
       tenantId: eventData.value.tenant.id,
