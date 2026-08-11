@@ -33,9 +33,9 @@
             My Tickets
           </NuxtLink>
 
-          <NuxtLink to="/admin/signup" class="text-sm font-semibold text-white bg-primary hover:bg-primary-700 px-4 py-2 rounded-lg transition hidden sm:inline-flex items-center gap-1.5 shadow-sm">
+          <a :href="`${config.public.adminUrl}/register`" class="text-sm font-semibold text-white bg-primary hover:bg-primary-700 px-4 py-2 rounded-lg transition hidden sm:inline-flex items-center gap-1.5 shadow-sm">
             Host an Event
-          </NuxtLink>
+          </a>
 
           <!-- Mobile Menu Button -->
           <button @click="isMenuOpen = !isMenuOpen" class="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
@@ -65,9 +65,9 @@
             My Tickets
           </NuxtLink>
 
-          <NuxtLink to="/admin/signup" class="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-primary rounded-lg mt-2" @click="isMenuOpen = false">
+          <a :href="`${config.public.adminUrl}/register`" class="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-primary rounded-lg mt-2" @click="isMenuOpen = false">
             Host an Event
-          </NuxtLink>
+          </a>
         </div>
       </div>
     </header>
@@ -83,4 +83,5 @@ import { ref } from 'vue';
 import { Menu, X } from 'lucide-vue-next';
 
 const isMenuOpen = ref(false);
+const config = useRuntimeConfig();
 </script>

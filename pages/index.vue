@@ -51,9 +51,9 @@
               <NuxtLink to="/my-tickets" class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
                 Find My Tickets
               </NuxtLink>
-              <NuxtLink v-if="!tenantInfo" to="/admin/signup" class="inline-flex items-center gap-2 bg-gray-900/40 backdrop-blur-sm hover:bg-gray-900/60 border border-gray-700/50 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
+              <a v-if="!tenantInfo" :href="`${config.public.adminUrl}/register`" class="inline-flex items-center gap-2 bg-gray-900/40 backdrop-blur-sm hover:bg-gray-900/60 border border-gray-700/50 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
                 Sign Up as Organizer
-              </NuxtLink>
+              </a>
             </div>
           </div>
         </div>

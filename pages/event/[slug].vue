@@ -4,7 +4,7 @@
     
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex-grow w-full">
+    <main class="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 py-6 md:py-8 flex-grow w-full">
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-24">
         <div class="inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
@@ -93,7 +93,7 @@
 
         <!-- Right Column: Ticket Selector & Checkout Form -->
         <div class="space-y-6">
-          <div class="glass-card rounded-2xl p-4 md:p-8 border-primary/30 sticky top-24">
+          <div class="glass-card rounded-2xl p-4  border-primary/30 sticky top-24">
             <h2 class="text-xl font-bold text-gray-900 mb-4">Select Tickets</h2>
 
             <!-- Tiers List -->
@@ -182,7 +182,10 @@
                 <div v-if="attendees.length > 0" class="pt-4 border-t border-gray-100">
                   <h4 class="font-semibold text-gray-900 text-sm mb-3">Ticket Holders ({{ eventData?.event?.tiers?.find(t => t._id === tierId)?.name }})</h4>
                   <div v-for="(attendee, index) in attendees" :key="index" class="p-3 bg-gray-50 border border-gray-100 rounded-lg mb-3">
-                    <p class="text-xs font-semibold text-gray-500 mb-2">Ticket #{{ index + 1 }}</p>
+                    <div class="flex justify-between items-center mb-2">
+                      <p class="text-xs font-semibold text-gray-500">Ticket #{{ index + 1 }}</p>
+                      <button @click="copyBillingInfo(attendee)" type="button" class="text-[10px] text-primary font-medium hover:underline bg-primary-50 px-2 py-1 rounded">Copy Billing Info</button>
+                    </div>
                     <div class="space-y-3">
                       <div>
                         <input v-model="attendee.name" type="text" placeholder="Attendee Name" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
@@ -219,33 +222,133 @@
                 <span class="text-2xl font-extrabold text-primary">₦{{ totalAmount.toLocaleString() }}</span>
               </div>
 
-              <button
-                @click="processCheckout"
-                :disabled="totalAmount <= 0 || !customerName || !customerEmail || submitting"
-                class="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-sm"
-              >
-                <span v-if="submitting" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                <span>{{ submitting ? 'Processing Order...' : 'Pay with Paystack' }}</span>
-                <Lock v-if="!submitting" class="w-4 h-4" />
-              </button>
+              <!-- Bank Account Details (shown upfront for Manual Transfer tenants) -->
+              <div v-if="isManualTransfer && eventData?.tenant?.primaryRemittanceAccount" class="p-4 sm:p-5 bg-amber-50 border border-amber-200 rounded-xl">
+                <h3 class="font-bold text-gray-900 text-sm mb-1">💳 Payment via Bank Transfer</h3>
+                <p class="text-[11px] sm:text-xs text-gray-600 mb-3">Transfer the total amount to the account below, then place your order and upload proof of payment.</p>
+                <div class="bg-white p-3 sm:p-4 rounded-lg border border-gray-200 space-y-2 sm:space-y-3">
+                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Bank Name</span> <strong class="text-xs sm:text-sm text-gray-900">{{ eventData.tenant.primaryRemittanceAccount.bankName }}</strong></div>
+                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Account Number</span> 
+                    <div class="flex items-center gap-1 sm:gap-2">
+                      <strong class="text-sm sm:text-base text-primary font-mono bg-primary/5 px-2 py-1 rounded">{{ eventData.tenant.primaryRemittanceAccount.accountNumber }}</strong>
+                      <button @click="copyToClipboard(eventData.tenant.primaryRemittanceAccount.accountNumber, 'Account Number')" class="p-1 sm:p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded transition" title="Copy Account Number"><Copy class="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Account Name</span> 
+                    <div class="flex items-center gap-1 sm:gap-2 text-right">
+                      <strong class="text-xs sm:text-sm text-gray-900 max-w-[120px] sm:max-w-none">{{ eventData.tenant.primaryRemittanceAccount.accountName }}</strong>
+                      <button @click="copyToClipboard(eventData.tenant.primaryRemittanceAccount.accountName, 'Account Name')" class="p-1 sm:p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded transition" title="Copy Account Name"><Copy class="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-              <p class="text-[11px] text-gray-500 text-center">
-                Instant structured ticket code & unique QR Code emailed upon checkout.
-              </p>
+              <!-- Place Order / Pay Button (before order is created) -->
+              <div v-if="!manualTransferState.isActive">
+                <button
+                  @click="processCheckout"
+                  :disabled="totalAmount <= 0 || !customerName || !customerEmail || submitting"
+                  class="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-sm"
+                >
+                  <span v-if="submitting" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>{{ submitting ? 'Processing Order...' : (isManualTransfer ? 'Place Order & Upload Receipt' : 'Pay with Paystack') }}</span>
+                  <Lock v-if="!submitting" class="w-4 h-4" />
+                </button>
+                <p class="text-[11px] text-gray-500 text-center mt-3">
+                  {{ isManualTransfer ? 'Your tickets will be sent once payment is verified by the organizer.' : 'Instant structured ticket code & unique QR Code emailed upon checkout.' }}
+                </p>
+              </div>
+
+              <!-- Receipt Upload (after order is created for manual transfer) -->
+              <div v-else class="p-4 sm:p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3 sm:space-y-4">
+                <h3 class="font-bold text-gray-900 text-sm mb-1">✅ Order Placed — Upload Proof of Payment</h3>
+                <p class="text-[11px] sm:text-xs text-gray-600">Your order has been reserved. Please transfer the total amount to the account below and upload your receipt.</p>
+                
+                <!-- Bank Account Details (shown again during upload) -->
+                <div v-if="eventData?.tenant?.primaryRemittanceAccount" class="bg-white p-4 sm:p-5 rounded-xl border-2 border-emerald-100 space-y-3 sm:space-y-4 shadow-sm">
+                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Bank Name</span> <strong class="text-sm sm:text-base text-gray-900">{{ eventData.tenant.primaryRemittanceAccount.bankName }}</strong></div>
+                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Account Number</span> 
+                    <div class="flex items-center gap-1 sm:gap-2">
+                      <strong class="text-base sm:text-lg text-primary font-mono bg-primary/10 px-2 sm:px-3 py-1 rounded-lg border border-primary/20">{{ eventData.tenant.primaryRemittanceAccount.accountNumber }}</strong>
+                      <button @click="copyToClipboard(eventData.tenant.primaryRemittanceAccount.accountNumber, 'Account Number')" class="p-1.5 sm:p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-lg transition" title="Copy Account Number"><Copy class="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Account Name</span> 
+                    <div class="flex items-center gap-1 sm:gap-2 text-right">
+                      <strong class="text-xs sm:text-sm text-gray-900 max-w-[120px] sm:max-w-none">{{ eventData.tenant.primaryRemittanceAccount.accountName }}</strong>
+                      <button @click="copyToClipboard(eventData.tenant.primaryRemittanceAccount.accountName, 'Account Name')" class="p-1.5 sm:p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-lg transition" title="Copy Account Name"><Copy class="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Receipt Image</label>
+                    <input type="file" ref="receiptInput" accept="image/*" @change="handleReceiptChange" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" />
+                  </div>
+                  <div v-if="receiptPreviewUrl" class="rounded-lg overflow-hidden border border-gray-200 bg-white">
+                    <img :src="receiptPreviewUrl" alt="Receipt Preview" class="w-full h-auto max-h-48 object-contain" />
+                  </div>
+                  <button
+                    @click="uploadReceipt"
+                    :disabled="uploadingReceipt || !receiptPreviewUrl"
+                    class="w-full btn-primary py-3 text-sm"
+                  >
+                    {{ uploadingReceipt ? 'Uploading...' : 'Submit Proof of Payment' }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </main>
+
+    <!-- Success Modal -->
+    <div v-if="showingSuccess" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+      <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center">
+        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">✓</div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Payment Under Review</h3>
+        <p class="text-sm text-gray-600 mb-6">Your receipt has been uploaded. Once the organizer verifies the payment, your tickets will be sent to your email.</p>
+        <NuxtLink :to="`/?tenant=${tenantSlug}`" class="btn-primary inline-block">Return to Homepage</NuxtLink>
+      </div>
+    </div>
+
+    <!-- Processing Modal -->
+    <div v-if="submitting || uploadingReceipt" class="fixed inset-0 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center z-[100] p-4">
+      <div class="relative w-24 h-24 mb-6">
+        <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+        <div class="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <div class="absolute inset-0 flex items-center justify-center text-indigo-600">
+           <Lock class="w-8 h-8 animate-pulse" />
+        </div>
+      </div>
+      <h3 class="text-2xl font-extrabold text-gray-900 mb-2 tracking-tight">Processing...</h3>
+      <p class="text-sm text-gray-500 max-w-xs text-center">Please wait while we handle your request. Do not close or refresh this page.</p>
+    </div>
+
+    <!-- Custom Toast -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+      enter-to-class="transform translate-y-0 opacity-100 sm:translate-x-0"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="transform translate-y-0 opacity-100 sm:translate-x-0"
+      leave-to-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+    >
+      <div v-if="customToast.show" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-xl shadow-2xl">
+        <div class="bg-emerald-500/20 text-emerald-400 rounded-full p-1"><Copy class="w-4 h-4" /></div>
+        <span class="text-sm font-medium tracking-wide">{{ customToast.message }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
 definePageMeta({ layout: 'default' });
 
-import { toast } from 'vue-sonner';
 import { ref, computed, onMounted } from 'vue';
-import { Globe, MapPin, Calendar, Lock } from 'lucide-vue-next';
+import { Globe, MapPin, Calendar, Lock, Copy } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();
@@ -272,6 +375,7 @@ const { data, pending: loading } = await useFetch(
 );
 
 const eventData = computed(() => data.value || null);
+const isManualTransfer = computed(() => eventData.value?.tenant?.paymentMethod === 'MANUAL_TRANSFER');
 const submitting = ref(false);
 
 useSeoMeta({
@@ -299,6 +403,49 @@ const tierAttendees = ref({}); // { [tierId]: [{ name: '', email: '' }] }
 const customerName = ref('');
 const customerEmail = ref('');
 const departmentCode = ref('');
+
+function copyBillingInfo(attendee) {
+  attendee.name = customerName.value;
+  attendee.email = customerEmail.value;
+  attendee.departmentCode = departmentCode.value;
+}
+
+const manualTransferState = ref({
+  isActive: false,
+  orderId: null,
+  remittanceAccount: null
+});
+const receiptInput = ref(null);
+const receiptPreviewUrl = ref(null);
+const uploadingReceipt = ref(false);
+const showingSuccess = ref(false);
+
+const customToast = ref({ show: false, message: '' });
+let toastTimeout;
+
+function copyToClipboard(text, label) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text);
+    
+    // Custom Toast Logic
+    customToast.value.message = `${label} copied to clipboard!`;
+    customToast.value.show = true;
+    
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      customToast.value.show = false;
+    }, 3000);
+  }
+}
+
+function handleReceiptChange(e) {
+  const file = e.target.files?.[0];
+  if (file) {
+    receiptPreviewUrl.value = URL.createObjectURL(file);
+  } else {
+    receiptPreviewUrl.value = null;
+  }
+}
 
 const departments = [
   { code: 'EDF', name: 'Educational Foundation' },
@@ -396,7 +543,11 @@ async function processCheckout() {
 
     const orderResult = await res.json();
 
-    if (orderResult.authorizationUrl) {
+    if (orderResult.paymentMethod === 'MANUAL_TRANSFER') {
+      manualTransferState.value.isActive = true;
+      manualTransferState.value.orderId = orderResult.orderId;
+      manualTransferState.value.remittanceAccount = orderResult.remittanceAccount;
+    } else if (orderResult.authorizationUrl) {
       window.location.href = orderResult.authorizationUrl;
     } else {
       toast.success('Order placed successfully!');
@@ -406,6 +557,89 @@ async function processCheckout() {
     toast.error('An unexpected error occurred during checkout.');
   } finally {
     submitting.value = false;
+  }
+}
+
+async function compressImage(file) {
+  if (!file.type.startsWith('image/')) return file; // Skip PDFs or non-images
+  
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Target max dimension
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          const newFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(newFile);
+        }, 'image/jpeg', 0.7);
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+}
+
+async function uploadReceipt() {
+  if (!receiptInput.value || !receiptInput.value.files || receiptInput.value.files.length === 0) {
+    toast.error('Please select a receipt image to upload');
+    return;
+  }
+  
+  uploadingReceipt.value = true;
+  try {
+    const file = receiptInput.value.files[0];
+    const optimizedFile = await compressImage(file);
+
+    const formData = new FormData();
+    formData.append('receipt', optimizedFile);
+    formData.append('tenantId', eventData.value.tenant.id);
+
+    const res = await fetch(`${config.public.apiBase}/orders/${manualTransferState.value.orderId}/upload-proof`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      toast.error(err.message || 'Failed to upload receipt');
+      return;
+    }
+
+    showingSuccess.value = true;
+  } catch (err) {
+    toast.error('Error uploading receipt');
+  } finally {
+    uploadingReceipt.value = false;
   }
 }
 
