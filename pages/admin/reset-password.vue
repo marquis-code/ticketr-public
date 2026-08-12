@@ -88,7 +88,6 @@ definePageMeta({ layout: false });
 const config = useRuntimeConfig();
 const route = useRoute();
 
-const token = route.query.token || '';
 const password = ref('');
 const confirmPassword = ref('');
 const showPassword = ref(false);
@@ -98,6 +97,7 @@ const errorMsg = ref('');
 const successMsg = ref('');
 
 async function handleSubmit() {
+  const token = route.query.token;
   if (!token) {
     errorMsg.value = 'Invalid or missing reset token. Please request a new link.';
     return;
