@@ -1,9 +1,5 @@
 <template>
   <div>
-    <!-- Navbar -->
-    
-
-    <!-- Hero Carousel Section -->
     <section class="relative h-[520px] md:h-[560px] overflow-hidden">
       <!-- Carousel Slides -->
       <div class="absolute inset-0">

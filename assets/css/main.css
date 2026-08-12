@@ -4,8 +4,7 @@
 
 @layer base {
   body {
-    font-family: 'Satoshi', sans-serif;
-    @apply bg-gray-50 text-gray-900 antialiased min-h-screen;
+    @apply font-sans bg-gray-50 text-gray-900 antialiased min-h-screen;
   }
 
   ::selection {
@@ -13,7 +12,7 @@
   }
 
   h1, h2, h3, h4, h5, h6, .font-display {
-    font-family: 'Clash Display', sans-serif;
+    @apply font-heading;
   }
 }
 

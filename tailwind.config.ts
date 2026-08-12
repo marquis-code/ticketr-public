@@ -3,6 +3,10 @@ import type { Config } from 'tailwindcss'
 export default <Partial<Config>>{
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Satoshi', 'sans-serif'],
+        heading: ['Clash Display', 'sans-serif'],
+      },
       colors: {
         primary: {
           DEFAULT: '#0F4D3F',
