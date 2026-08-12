@@ -275,7 +275,7 @@ async function handleSubmit() {
         showOtpForm.value = true;
         otpEmail.value = data.email;
       } else {
-        if (data.user.role !== 'ORGANIZER') {
+        if (data.user.role !== 'ORGANIZER' && data.user.role !== 'SUPER_ADMIN') {
           errorMsg.value = 'Access denied. This portal is for organizers only.';
           return;
         }
@@ -314,7 +314,7 @@ async function handleOtpSubmit() {
 
     if (res.ok) {
       const data = await res.json();
-      if (data.user.role !== 'ORGANIZER') {
+      if (data.user.role !== 'ORGANIZER' && data.user.role !== 'SUPER_ADMIN') {
         errorMsg.value = 'Access denied. This portal is for organizers only.';
         return;
       }
