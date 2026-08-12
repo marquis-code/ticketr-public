@@ -1,12 +1,16 @@
 <template>
-  <div>
+  <div >
     <!-- Navbar -->
     
 
     <!-- Content Area -->
-    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex-grow w-full space-y-8">
+    <main v-if="loading" class="max-w-7xl mx-auto px-4 md:px-6 py-24 flex-grow w-full">
+      <TableLoadingState message="Loading dashboard..." />
+    </main>
+
+    <main v-else class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full space-y-8">
       <!-- KPI Cards Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
         <div class="glass-card rounded-2xl p-6 border-primary/20">
           <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">Total Revenue</span>
           <div class="text-3xl font-extrabold text-gray-900">
@@ -40,18 +44,34 @@
         </div>
       </div>
 
+      <!-- Analytics Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" v-if="analytics">
+        <div class="glass-card rounded-2xl p-6 border-primary/20">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Revenue Trend (30 Days)</h3>
+          <div class="h-64 relative">
+            <Line v-if="analytics?.salesOverTime?.length" :data="revenueChartData" :options="chartOptions" />
+            <div v-else class="h-full flex items-center justify-center text-sm text-gray-400">Not enough sales data yet</div>
+          </div>
+        </div>
+        <div class="glass-card rounded-2xl p-6 border-primary/20">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Top Events by Ticket Sales</h3>
+          <div class="h-64 relative">
+            <Bar v-if="analytics?.ticketsByEvent?.length" :data="ticketsChartData" :options="chartOptions" />
+            <div v-else class="h-full flex items-center justify-center text-sm text-gray-400">Not enough ticket data yet</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Events List Table / Cards -->
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div class="flex items-center justify-between p-6 pb-4">
+        <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <h2 class="text-xl font-bold text-gray-900">My Events</h2>
           <NuxtLink to="/admin/events/create" class="text-xs font-semibold text-primary hover:text-primary">
             + Add New Event
           </NuxtLink>
         </div>
 
-        <div v-if="events.length === 0" class="text-center py-12 text-gray-500 text-sm">
-          No events created yet. Click "+ Create Event" to publish your first ticketed event.
-        </div>
+        <TableEmptyState v-if="events.length === 0" title="No Events Yet" message="No events created yet. Click '+ Add New Event' to publish your first ticketed event." />
 
         <div v-else class="overflow-x-auto">
           <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -97,30 +117,106 @@
     </main>
   </div>
 
-</template>
+    </template>
 <script setup>
 definePageMeta({ layout: 'admin' });
 
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Zap, Search, ClipboardList } from 'lucide-vue-next';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import { Line, Bar } from 'vue-chartjs';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 const config = useRuntimeConfig();
 const user = ref(null);
+const loading = ref(true);
 const analytics = ref(null);
 const events = ref([]);
+const revenueChartData = computed(() => {
+  if (!analytics.value?.salesOverTime) return { labels: [], datasets: [] };
+  return {
+    labels: analytics.value.salesOverTime.map(d => new Date(d.date).toLocaleDateString()),
+    datasets: [{
+      label: 'Revenue (₦)',
+      data: analytics.value.salesOverTime.map(d => d.revenue),
+      borderColor: '#4f46e5',
+      backgroundColor: 'rgba(79, 70, 229, 0.15)',
+      borderWidth: 2,
+      pointBackgroundColor: '#ffffff',
+      pointBorderColor: '#4f46e5',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: 0.4,
+      fill: true
+    }]
+  };
+});
 
-const showLogoutModal = ref(false);
+const ticketsChartData = computed(() => {
+  if (!analytics.value?.ticketsByEvent) return { labels: [], datasets: [] };
+  return {
+    labels: analytics.value.ticketsByEvent.map(d => d.eventName),
+    datasets: [{
+      label: 'Tickets Sold',
+      data: analytics.value.ticketsByEvent.map(d => d.ticketsSold),
+      backgroundColor: 'rgba(16, 185, 129, 0.8)',
+      hoverBackgroundColor: 'rgba(16, 185, 129, 1)',
+      borderRadius: 6,
+      maxBarThickness: 40,
+    }]
+  };
+});
 
-function confirmLogout() {
-  localStorage.removeItem('ticketr_admin_token');
-  localStorage.removeItem('ticketr_admin_user');
-  useRouter().push('/admin/login');
-}
-
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    intersect: false,
+    mode: 'index',
+  },
+  plugins: {
+    legend: {
+      display: false
+    },
+    tooltip: {
+      backgroundColor: '#1f2937',
+      padding: 12,
+      titleFont: { size: 13, family: "'Inter', sans-serif" },
+      bodyFont: { size: 13, family: "'Inter', sans-serif" },
+      cornerRadius: 8,
+      displayColors: false,
+    }
+  },
+  scales: {
+    x: {
+      grid: { display: false, drawBorder: false },
+      ticks: { color: '#6b7280', font: { size: 12, family: "'Inter', sans-serif" } }
+    },
+    y: {
+      beginAtZero: true,
+      grid: {
+        color: '#f3f4f6',
+        drawBorder: false,
+        borderDash: [5, 5]
+      },
+      ticks: {
+        color: '#6b7280',
+        font: { size: 12, family: "'Inter', sans-serif" },
+        padding: 10,
+        callback: function(value) {
+          if (value >= 1000) return (value / 1000) + 'k';
+          return value;
+        }
+      }
+    }
+  }
+};
 async function loadDashboardData() {
   const token = localStorage.getItem('ticketr_admin_token');
   if (!token) {
-    useRouter().push('/admin/login');
+    useRouter().push('/login');
     return;
   }
 
@@ -140,6 +236,8 @@ async function loadDashboardData() {
     if (eventsRes.ok) events.value = await eventsRes.json();
   } catch (err) {
     console.error('Error loading organizer data:', err);
+  } finally {
+    loading.value = false;
   }
 }
 

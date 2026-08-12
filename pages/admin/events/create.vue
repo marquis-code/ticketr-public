@@ -1,10 +1,10 @@
 <template>
-  <div>
+  <div >
     <!-- Navbar -->
     
 
-    <main class="max-w-4xl mx-auto px-4 md:px-6 py-8 flex-grow w-full">
-      <div class="glass-card rounded-2xl p-8 border-primary/30">
+    <main class="max-w-4xl mx-auto px-2 sm:px-4 md:px-6 py-6 md:py-8 flex-grow w-full">
+      <div class="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border-primary/30">
         <h1 class="text-2xl font-extrabold text-gray-900 mb-6">Create New Event</h1>
 
         <form @submit.prevent="submitForm" class="space-y-6">
@@ -60,6 +60,24 @@
                 v-model="form.endDate"
                 type="datetime-local"
                 required
+                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Check-In Starts (Optional)</label>
+              <input
+                v-model="form.checkInStart"
+                type="datetime-local"
+                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Check-In Ends (Optional)</label>
+              <input
+                v-model="form.checkInEnd"
+                type="datetime-local"
                 class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
               />
             </div>
@@ -182,7 +200,7 @@
           </div>
 
           <div class="pt-4 flex justify-end">
-            <button type="submit" :disabled="submitting" class="btn-primary py-3 px-8 text-sm">
+            <button type="submit" :disabled="submitting" class="w-full sm:w-auto btn-primary py-3 px-8 text-sm">
               <Send v-if="!submitting" class="w-4 h-4" />
               <span>{{ submitting ? 'Publishing Event...' : 'Publish Event' }}</span>
             </button>
@@ -212,6 +230,8 @@ const form = ref({
   location: '',
   startDate: '',
   endDate: '',
+  checkInStart: '',
+  checkInEnd: '',
   description: '',
   carouselImages: [],
   tiers: [
@@ -276,7 +296,7 @@ function removeTier(idx) {
 async function submitForm() {
   const token = localStorage.getItem('ticketr_admin_token');
   if (!token) {
-    useRouter().push('/admin/login');
+    useRouter().push('/login');
     return;
   }
 
@@ -290,6 +310,8 @@ async function submitForm() {
     formData.append('location', form.value.location);
     formData.append('startDate', form.value.startDate);
     formData.append('endDate', form.value.endDate);
+    if (form.value.checkInStart) formData.append('checkInStart', form.value.checkInStart);
+    if (form.value.checkInEnd) formData.append('checkInEnd', form.value.checkInEnd);
     formData.append('description', form.value.description);
     formData.append('carouselImages', JSON.stringify(form.value.carouselImages));
     formData.append('tiers', JSON.stringify(form.value.tiers));

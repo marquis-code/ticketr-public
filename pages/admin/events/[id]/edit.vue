@@ -1,18 +1,18 @@
 <template>
-  <div>
+  <div >
     <!-- Navbar -->
     
 
-    <main class="max-w-4xl mx-auto px-4 md:px-6 py-8 flex-grow w-full">
+    <main class="max-w-4xl mx-auto px-2 sm:px-4 md:px-6 py-6 md:py-8 flex-grow w-full">
       <div v-if="loading" class="flex justify-center items-center py-20">
-        <Loader2 class="w-8 h-8 animate-spin text-primary" />
+        <AppLoader size="lg" color="primary" />
       </div>
 
       <div v-else-if="!eventData" class="text-center py-10">
         <p class="text-gray-500">Event not found.</p>
       </div>
 
-      <div v-else class="glass-card rounded-2xl p-8 border-primary/30">
+      <div v-else class="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border-primary/30">
         <h1 class="text-2xl font-extrabold text-gray-900 mb-6">Edit Event: {{ eventData.title }}</h1>
 
         <!-- Tabs -->
@@ -58,6 +58,22 @@
                 class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
               />
             </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Check-In Starts (Optional)</label>
+              <input
+                v-model="form.checkInStart"
+                type="datetime-local"
+                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Check-In Ends (Optional)</label>
+              <input
+                v-model="form.checkInEnd"
+                type="datetime-local"
+                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
+              />
+            </div>
             <div class="md:col-span-2">
               <label class="block text-xs font-medium text-gray-600 mb-1">Event Description</label>
               <textarea
@@ -95,10 +111,10 @@
             {{ detailsMsg }}
           </div>
 
-          <div class="pt-4 flex justify-end">
-            <button type="submit" :disabled="submittingDetails" class="btn-primary py-2 px-4 md:px-6 text-sm">
+          <div class="pt-4">
+            <button type="submit" :disabled="submittingDetails" class="btn-primary w-full flex justify-center py-3 px-4 md:px-6 text-sm">
               <Save v-if="!submittingDetails" class="w-4 h-4" />
-              <Loader2 v-else class="w-4 h-4 animate-spin" />
+              <AppLoader v-else size="sm" color="gray" />
               <span>{{ submittingDetails ? 'Saving...' : 'Save Details' }}</span>
             </button>
           </div>
@@ -182,10 +198,10 @@
 
           <div v-if="tierMsg" class="text-xs text-rose-500 mt-2">{{ tierMsg }}</div>
 
-          <div class="pt-4 flex justify-end gap-2">
-            <button type="button" @click="closeTierModal" class="px-4 py-2 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-            <button type="submit" :disabled="submittingTier" class="px-4 py-2 text-xs font-medium text-white bg-primary rounded-lg hover:bg-indigo-600 flex items-center gap-1">
-              <Loader2 v-if="submittingTier" class="w-3 h-3 animate-spin" />
+          <div class="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-2">
+            <button type="button" @click="closeTierModal" class="w-full sm:w-auto px-4 py-3 sm:py-2 text-xs font-medium text-gray-600 bg-gray-100 rounded-xl sm:rounded-lg hover:bg-gray-200">Cancel</button>
+            <button type="submit" :disabled="submittingTier" class="w-full sm:w-auto justify-center px-4 py-3 sm:py-2 text-xs font-medium text-white bg-primary rounded-xl sm:rounded-lg hover:bg-indigo-600 flex items-center gap-1">
+              <AppLoader v-if="submittingTier" size="xs" color="white" />
               {{ editingTier ? 'Save Changes' : 'Add Ticket' }}
             </button>
           </div>
@@ -237,6 +253,8 @@ const form = ref({
   title: '',
   description: '',
   location: '',
+  checkInStart: '',
+  checkInEnd: '',
   carouselImages: []
 });
 
@@ -257,7 +275,7 @@ const eventId = route.params.id;
 
 async function fetchEvent() {
   const token = localStorage.getItem('ticketr_admin_token');
-  if (!token) return router.push('/admin/login');
+  if (!token) return router.push('/login');
 
   try {
     const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {
@@ -271,6 +289,8 @@ async function fetchEvent() {
         form.value.title = ev.title;
         form.value.description = ev.description;
         form.value.location = ev.location;
+        form.value.checkInStart = ev.checkInStart ? new Date(new Date(ev.checkInStart).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : '';
+        form.value.checkInEnd = ev.checkInEnd ? new Date(new Date(ev.checkInEnd).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : '';
         form.value.carouselImages = ev.carouselImages || [];
         if (form.value.carouselImages.length === 0 && ev.bannerUrl) {
           form.value.carouselImages = [ev.bannerUrl];
@@ -299,13 +319,17 @@ async function updateEventDetails() {
   submittingDetails.value = true;
   detailsMsg.value = '';
   try {
+    const payload = { ...form.value };
+    if (payload.checkInStart) payload.checkInStart = new Date(payload.checkInStart).toISOString();
+    if (payload.checkInEnd) payload.checkInEnd = new Date(payload.checkInEnd).toISOString();
+
     const res = await fetch(`${config.public.apiBase}/events/${eventId}/details`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(form.value)
+      body: JSON.stringify(payload)
     });
     if (res.ok) {
       detailsError.value = false;

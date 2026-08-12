@@ -1,9 +1,9 @@
 <template>
-  <div>
+  <div >
     <!-- Header -->
     
 
-    <main class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex-grow w-full space-y-8">
+    <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-extrabold text-gray-900">{{ eventInfo?.title || 'Event Roster' }}</h1>
@@ -11,8 +11,8 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <button @click="exportCSV" class="btn-primary text-xs !py-2 !px-4">
-            📥 Export CSV
+          <button @click="exportCSV" class="btn-primary text-xs flex items-center gap-2 !py-2 !px-4">
+            <Download class="w-4 h-4" /> Export CSV
           </button>
         </div>
       </div>
@@ -36,13 +36,8 @@
 
       <!-- Table -->
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div v-if="loading" class="text-center py-12 text-gray-500 text-sm">
-          Loading attendees...
-        </div>
-
-        <div v-else-if="filteredAttendees.length === 0" class="text-center py-12 text-gray-500 text-sm">
-          No attendees found matching filter criteria.
-        </div>
+        <TableLoadingState v-if="loading" message="Loading attendees..." />
+        <TableEmptyState v-else-if="filteredAttendees.length === 0" title="No Attendees Found" message="No attendees found matching filter criteria." />
 
         <div v-else class="overflow-x-auto">
           <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -104,6 +99,7 @@
         </button>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -111,7 +107,7 @@
 definePageMeta({ layout: 'admin' });
 
 import { ref, computed, onMounted } from 'vue';
-import { CalendarDays } from 'lucide-vue-next';
+import { Download, CalendarDays } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();

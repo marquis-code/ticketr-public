@@ -4,38 +4,57 @@
     <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 bg-gray-900/50 z-40 lg:hidden"></div>
 
     <!-- Sidebar -->
-    <aside :class="['fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out', isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0']">
-      <div class="h-16 px-6 border-b border-gray-200 flex items-center justify-between shrink-0">
+    <aside :class="['fixed lg:static inset-y-0 left-0 z-50 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out', isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0', isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64']">
+      <div class="h-16 px-4 border-b border-gray-200 flex items-center justify-between shrink-0 overflow-hidden">
         <NuxtLink to="/admin/dashboard" class="flex items-center gap-2">
-          <img src="/logo.png" alt="Ticketr" class="h-7 w-auto" />
+          <img src="/logo.png" alt="Ticketr" class="h-7 w-auto shrink-0" :class="{'mx-auto': isSidebarCollapsed}" />
         </NuxtLink>
-        <button @click="isSidebarOpen = false" class="lg:hidden text-gray-500 hover:text-gray-700">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        <button @click="isSidebarOpen = false" class="lg:hidden text-gray-500 hover:text-gray-700 shrink-0">
+          <X class="w-6 h-6" />
         </button>
       </div>
 
-      <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1.5">
-        <NuxtLink to="/admin/dashboard" class="nav-link" active-class="nav-link-active" exact-active-class="nav-link-active">
-          Dashboard
+      <nav class="flex-1 py-6 px-3 space-y-1.5 overflow-hidden">
+        <NuxtLink to="/admin/dashboard" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path === '/admin/dashboard' }">
+          <LayoutDashboard class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Dashboard</span>
         </NuxtLink>
-        <NuxtLink to="/admin/events" class="nav-link" active-class="nav-link-active">
-          Events Management
+        <NuxtLink to="/admin/events" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.startsWith('/admin/events') }">
+          <CalendarDays class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Events Management</span>
         </NuxtLink>
-        <NuxtLink to="/admin/orders" class="nav-link" active-class="nav-link-active">
-          Orders & Financials
+        <NuxtLink to="/admin/attendees" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path === '/admin/attendees' }">
+          <Users class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Attendees</span>
         </NuxtLink>
-        <NuxtLink to="/admin/scanner" class="nav-link" active-class="nav-link-active">
-          Gate Scanner
+        <NuxtLink to="/admin/orders" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.includes('/orders') }">
+          <CreditCard class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Orders & Financials</span>
         </NuxtLink>
-        <NuxtLink to="/admin/settings" class="nav-link" active-class="nav-link-active">
-          Branding & Payouts
+        <NuxtLink to="/admin/scanner" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.includes('/scanner') }">
+          <Scan class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Gate Scanner</span>
+        </NuxtLink>
+        <NuxtLink to="/admin/settings" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.includes('/settings') }">
+          <Palette class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Branding & Payouts</span>
+        </NuxtLink>
+        <NuxtLink to="/admin/audit-logs" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.includes('/audit-logs') }">
+          <ShieldCheck class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Audit Logs</span>
         </NuxtLink>
       </nav>
 
-      <div class="p-4 border-t border-gray-200 bg-gray-50/50">
-        <button @click="showLogoutModal = true" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors bg-white">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          Logout
+      <div class="p-4 border-t border-gray-200 bg-gray-50/50 flex flex-col gap-2">
+        <button @click="isSidebarCollapsed = !isSidebarCollapsed" class="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors" title="Toggle Sidebar">
+          <PanelLeftClose v-if="!isSidebarCollapsed" class="w-4 h-4 shrink-0" />
+          <PanelLeftOpen v-else class="w-4 h-4 shrink-0" />
+          <span v-if="!isSidebarCollapsed">Collapse</span>
+        </button>
+
+        <button @click="showLogoutModal = true" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors bg-white" title="Logout">
+          <LogOut class="w-4 h-4 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}">Logout</span>
         </button>
       </div>
     </aside>
@@ -46,7 +65,7 @@
       <header class="h-16 bg-white border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shrink-0">
         <div class="flex items-center gap-4">
           <button @click="isSidebarOpen = true" class="lg:hidden text-gray-600 hover:text-gray-900 p-1 -ml-1">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            <Menu class="w-6 h-6" />
           </button>
           
           <div class="hidden lg:flex items-center text-sm text-gray-500 font-medium">
@@ -78,9 +97,9 @@
       <div class="bg-white border border-gray-200 w-full max-w-sm p-6 rounded-2xl relative shadow-xl">
         <h3 class="text-lg font-bold text-gray-900 mb-2">Confirm Logout</h3>
         <p class="text-sm text-gray-500 mb-6">Are you sure you want to sign out of your account?</p>
-        <div class="flex justify-end gap-3">
-          <button @click="showLogoutModal = false" class="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
-          <button @click="confirmLogout" class="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition">Yes, Logout</button>
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-3">
+          <button @click="showLogoutModal = false" class="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-xl sm:rounded-lg hover:bg-gray-200 transition">Cancel</button>
+          <button @click="confirmLogout" class="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-semibold text-white bg-red-600 rounded-xl sm:rounded-lg hover:bg-red-700 transition">Yes, Logout</button>
         </div>
       </div>
     </div>
@@ -90,8 +109,10 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { LayoutDashboard, CalendarDays, CreditCard, Scan, Palette, ShieldCheck, PanelLeftClose, PanelLeftOpen, X, LogOut, Menu, Users } from 'lucide-vue-next';
 
 const isSidebarOpen = ref(false);
+const isSidebarCollapsed = ref(false);
 const showLogoutModal = ref(false);
 const user = ref(null);
 const router = useRouter();
@@ -100,10 +121,12 @@ const route = useRoute();
 const routeName = computed(() => {
   const path = route.path;
   if (path === '/admin/dashboard') return 'Dashboard';
-  if (path.includes('/admin/events')) return 'Events Management';
-  if (path.includes('/admin/orders')) return 'Orders & Financials';
-  if (path.includes('/admin/scanner')) return 'Gate Scanner';
-  if (path.includes('/admin/settings')) return 'Branding & Settings';
+  if (path.includes('/events')) return 'Events Management';
+  if (path.includes('/attendees')) return 'Attendees Management';
+  if (path.includes('/orders')) return 'Orders & Financials';
+  if (path.includes('/scanner')) return 'Gate Scanner';
+  if (path.includes('/settings')) return 'Branding & Settings';
+  if (path.includes('/audit-logs')) return 'Audit Logs';
   return '';
 });
 
@@ -129,7 +152,7 @@ function confirmLogout() {
 
 <style scoped>
 .nav-link {
-  @apply block px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all;
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all overflow-hidden;
 }
 .nav-link-active {
   @apply bg-indigo-50 text-indigo-700;
