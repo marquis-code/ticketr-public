@@ -16,13 +16,18 @@ export default defineNuxtRouteMiddleware((to) => {
   if (isAdminSubdomain) {
     const token = localStorage.getItem('ticketr_admin_token');
 
+    if (to.path === '/forgot-password') return navigateTo('/admin/forgot-password', { redirectCode: 301 });
+    if (to.path === '/reset-password') return navigateTo('/admin/reset-password' + (to.query.token ? `?token=${to.query.token}` : ''), { redirectCode: 301 });
+    if (to.path === '/login') return navigateTo('/admin/login', { redirectCode: 301 });
+    if (to.path === '/signup') return navigateTo('/admin/signup', { redirectCode: 301 });
+
     // On admin subdomain but NOT on an /admin route => redirect appropriately
     if (!to.path.startsWith('/' + 'admin')) {
       return navigateTo(token ? '/' + 'admin/dashboard' : '/' + 'admin/login', { redirectCode: 302 });
     }
 
     // Authenticated admin trying to access login/signup page => redirect back to dashboard
-    const isAuthRoute = to.path === '/admin/login' || to.path === '/admin/signup';
+    const isAuthRoute = to.path === '/admin/login' || to.path === '/admin/signup' || to.path === '/admin/forgot-password' || to.path === '/admin/reset-password';
     if (token && isAuthRoute) {
       return navigateTo('/' + 'admin/dashboard', { redirectCode: 302 });
     }

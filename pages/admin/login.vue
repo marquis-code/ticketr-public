@@ -31,7 +31,7 @@
               <div class="relative group">
                 <div class="flex justify-between mb-1.5">
                   <label class="block text-sm font-bold text-gray-700">Password</label>
-                  <NuxtLink to="/forgot-password" class="text-xs font-semibold text-primary hover:underline">Forgot Password?</NuxtLink>
+                  <NuxtLink to="/admin/forgot-password" class="text-xs font-semibold text-primary hover:underline">Forgot Password?</NuxtLink>
                 </div>
                 <div class="relative shadow-sm rounded-xl">
                   <input
