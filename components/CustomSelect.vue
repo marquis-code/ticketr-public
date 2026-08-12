@@ -1,62 +1,93 @@
 <template>
-  <div class="flex flex-col mb-4">
-    <label v-if="label" class="block text-sm font-medium text-gray-700 mb-1">
-      {{ label }}
-    </label>
-    <div class="relative">
-      <select
-        :value="modelValue"
-        @change="$emit('update:modelValue', $event.target.value)"
-        :required="required"
-        :disabled="disabled"
-        class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition appearance-none"
-        :class="{ 'opacity-50 cursor-not-allowed': disabled }"
+  <div class="relative" ref="dropdownRef">
+    <button 
+      type="button" 
+      @click="isOpen = !isOpen"
+      class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-left text-gray-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary flex justify-between items-center transition-all duration-200"
+      :class="{ 'border-primary ring-1 ring-primary': isOpen }"
+    >
+      <span class="truncate block pr-4" :class="{ 'text-gray-400': !selectedOption }">
+        {{ selectedOption ? selectedOption.label : placeholder }}
+      </span>
+      <ChevronDown class="w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200" :class="{ 'rotate-180': isOpen }" />
+    </button>
+
+    <Transition
+      enter-active-class="transition duration-100 ease-out"
+      enter-from-class="transform scale-95 opacity-0"
+      enter-to-class="transform scale-100 opacity-100"
+      leave-active-class="transition duration-75 ease-in"
+      leave-from-class="transform scale-100 opacity-100"
+      leave-to-class="transform scale-95 opacity-0"
+    >
+      <div 
+        v-if="isOpen" 
+        class="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-lg max-h-60 overflow-auto py-1 focus:outline-none"
       >
-        <option value="" disabled selected v-if="placeholder">{{ placeholder }}</option>
-        <option v-for="option in options" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
-      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-        <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-        </svg>
+        <div v-if="options.length === 0" class="px-4 py-2 text-sm text-gray-500">
+          No options available
+        </div>
+        <button
+          v-for="option in options"
+          :key="option.value"
+          @click="selectOption(option)"
+          type="button"
+          class="w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-gray-50 flex items-center justify-between group"
+          :class="{ 'bg-primary/5 text-primary font-medium': modelValue === option.value, 'text-gray-700': modelValue !== option.value }"
+        >
+          <span class="truncate">{{ option.label }}</span>
+          <Check v-if="modelValue === option.value" class="w-4 h-4 text-primary" />
+        </button>
       </div>
-    </div>
-    <span v-if="error" class="text-xs text-red-500 mt-1">{{ error }}</span>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ChevronDown, Check } from 'lucide-vue-next';
+
+const props = defineProps({
   modelValue: {
-    type: [String, Number],
-    default: ''
-  },
-  label: {
-    type: String,
+    type: [String, Number, Boolean],
     default: ''
   },
   options: {
     type: Array,
-    default: () => []
+    required: true // array of { label, value }
   },
   placeholder: {
     type: String,
     default: 'Select an option'
-  },
-  required: {
-    type: Boolean,
-    default: false
-  },
-  disabled: {
-    type: Boolean,
-    default: false
-  },
-  error: {
-    type: String,
-    default: ''
   }
 });
-defineEmits(['update:modelValue']);
+
+const emit = defineEmits(['update:modelValue', 'change']);
+
+const isOpen = ref(false);
+const dropdownRef = ref(null);
+
+const selectedOption = computed(() => {
+  return props.options.find(opt => opt.value === props.modelValue) || null;
+});
+
+function selectOption(option) {
+  emit('update:modelValue', option.value);
+  emit('change', option.value);
+  isOpen.value = false;
+}
+
+function handleClickOutside(event) {
+  if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+    isOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside);
+});
 </script>

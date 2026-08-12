@@ -55,6 +55,25 @@
         </div>
       </div>
     </main>
+
+    <!-- Cute Pre-event Prompt Modal -->
+    <div v-if="scanResult && scanResult.notStarted" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm px-4">
+      <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform scale-100 opacity-100 transition-all text-center border border-indigo-50">
+        <div class="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 mb-6">
+          <CalendarDays class="w-8 h-8 text-primary" />
+        </div>
+        <h3 class="text-xl font-extrabold text-gray-900 mb-2">Hold your horses! 🐎</h3>
+        <p class="text-sm text-gray-600 mb-8 leading-relaxed">
+          The <strong>{{ scanResult.eventTitle || 'event' }}</strong> hasn't started yet! You cannot manually scan or check in attendees until the scheduled event start date and time.
+        </p>
+        <button 
+          @click="scanResult = null" 
+          class="w-full py-3 px-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors focus:ring-4 focus:ring-gray-200"
+        >
+          Got it, I'll wait!
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -63,7 +82,8 @@ definePageMeta({ layout: 'admin' });
 
 import { toast } from 'vue-sonner';
 import { ref } from 'vue';
-import { Search, CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next';
+import { Search, CheckCircle, AlertTriangle, XCircle, Camera, RefreshCw, CalendarDays } from 'lucide-vue-next';
+import { QrcodeStream } from 'vue-qrcode-reader';
 
 const config = useRuntimeConfig();
 

@@ -85,6 +85,25 @@
         </div>
       </div>
     </main>
+
+    <!-- Cute Pre-event Prompt Modal -->
+    <div v-if="showPreEventPrompt" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm px-4">
+      <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform scale-100 opacity-100 transition-all text-center border border-indigo-50">
+        <div class="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-indigo-50 mb-6">
+          <CalendarDays class="w-8 h-8 text-primary" />
+        </div>
+        <h3 class="text-xl font-extrabold text-gray-900 mb-2">Hold your horses! 🐎</h3>
+        <p class="text-sm text-gray-600 mb-8 leading-relaxed">
+          The <strong>{{ eventInfo?.title }}</strong> event hasn't started yet! You cannot manually check in attendees until the scheduled event start date and time.
+        </p>
+        <button 
+          @click="showPreEventPrompt = false" 
+          class="w-full py-3 px-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-colors focus:ring-4 focus:ring-gray-200"
+        >
+          Got it, I'll wait!
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -92,6 +111,7 @@
 definePageMeta({ layout: 'admin' });
 
 import { ref, computed, onMounted } from 'vue';
+import { CalendarDays } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();
@@ -100,6 +120,7 @@ const eventId = ref(route.params.id);
 const eventInfo = ref(null);
 const attendees = ref([]);
 const loading = ref(true);
+const showPreEventPrompt = ref(false);
 
 const searchQuery = ref('');
 const filterStatus = ref('ALL');
@@ -138,6 +159,11 @@ async function loadAttendees() {
 }
 
 async function manualCheckIn(ticket) {
+  if (eventInfo.value && eventInfo.value.startDate && new Date() < new Date(eventInfo.value.startDate)) {
+    showPreEventPrompt.value = true;
+    return;
+  }
+
   const token = localStorage.getItem('ticketr_admin_token');
   try {
     const res = await fetch(`${config.public.apiBase}/tickets/verify-scan`, {
