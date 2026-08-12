@@ -18,6 +18,7 @@ export default defineNuxtRouteMiddleware((to) => {
 
     if (to.path === '/forgot-password') return navigateTo('/admin/forgot-password', { redirectCode: 301 });
     if (to.path === '/reset-password') return navigateTo('/admin/reset-password' + (to.query.token ? `?token=${to.query.token}` : ''), { redirectCode: 301 });
+    if (to.path.startsWith('/verify/')) return navigateTo('/admin/verify/' + to.path.split('/verify/')[1], { redirectCode: 301 });
     if (to.path === '/login') return navigateTo('/admin/login', { redirectCode: 301 });
     if (to.path === '/signup') return navigateTo('/admin/signup', { redirectCode: 301 });
 
