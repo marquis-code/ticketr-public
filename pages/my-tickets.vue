@@ -63,11 +63,20 @@
                 <span class="text-sm font-medium text-gray-500 mt-0.5 block">{{ new Date(order.paidAt || order.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
               </div>
             </div>
-            <div class="md:text-right flex md:flex-col items-center md:items-end justify-between">
-              <span class="text-2xl font-extrabold text-gray-900">₦{{ order.totalAmount?.toLocaleString() }}</span>
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wide">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> {{ order.status }}
-              </span>
+            <div class="md:text-right flex md:flex-col items-center md:items-end justify-between gap-3">
+              <div>
+                <span class="text-2xl font-extrabold text-gray-900 block">₦{{ order.totalAmount?.toLocaleString() }}</span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wide mt-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> {{ order.status }}
+                </span>
+              </div>
+              <button 
+                @click="copyReferralLink(order)"
+                class="btn-secondary !py-1.5 !px-3 text-[11px] flex items-center gap-1 mt-2 text-primary border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+                title="Refer friends to earn rewards!"
+              >
+                <Share class="w-3.5 h-3.5" /> Share Referral Link
+              </button>
             </div>
           </div>
 
@@ -140,6 +149,21 @@
           </div>
         </div>
       </div>
+      
+      <!-- Custom Toast -->
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+        enter-to-class="transform translate-y-0 opacity-100 sm:translate-x-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100 sm:translate-x-0"
+        leave-to-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+      >
+        <div v-if="customToast.show" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-xl shadow-2xl">
+          <div class="bg-emerald-500/20 text-emerald-400 rounded-full p-1"><Share class="w-4 h-4" /></div>
+          <span class="text-sm font-medium tracking-wide">{{ customToast.message }}</span>
+        </div>
+      </Transition>
     </main>
   </div>
 </template>
@@ -148,7 +172,7 @@
 definePageMeta({ layout: 'default' });
 
 import { ref } from 'vue';
-import { Ticket, Search, Mail, Calendar, QrCode } from 'lucide-vue-next';
+import { Ticket, Search, Mail, Calendar, QrCode, Share } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 
@@ -172,6 +196,33 @@ async function lookupTickets() {
   } finally {
     searching.value = false;
     searched.value = true;
+  }
+}
+
+const customToast = ref({ show: false, message: '' });
+let toastTimeout;
+
+function copyReferralLink(order) {
+  if (typeof window !== 'undefined' && navigator.clipboard) {
+    // Generate referral link based on order _id and event slug
+    const eventSlug = order.eventId?.slug || '';
+    const origin = window.location.origin;
+    let url = `${origin}/event/${eventSlug}?ref=${order._id}`;
+    
+    // Check if we are not on a subdomain and a tenant id is available (for local testing mostly)
+    if (order.tenantId?.slug && origin.includes('localhost')) {
+      url += `&tenant=${order.tenantId.slug}`;
+    }
+    
+    navigator.clipboard.writeText(url);
+    
+    customToast.value.message = 'Referral Link Copied!';
+    customToast.value.show = true;
+    
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      customToast.value.show = false;
+    }, 3000);
   }
 }
 

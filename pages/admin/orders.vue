@@ -40,7 +40,7 @@
               <tr v-for="o in filteredOrders" :key="o._id" class="hover:bg-gray-50 transition-colors duration-150">
                 <td class="px-6 py-4 md:px-6">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+                    <div class="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
                       {{ o.customerName.charAt(0).toUpperCase() }}
                     </div>
                     <div>
@@ -49,6 +49,12 @@
                         <span class="font-mono text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{{ o.orderNumber }}</span>
                         {{ o.customerEmail }}
                       </p>
+                      <div v-if="getExistingPaidOrders(o).length > 0" class="mt-1">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300" title="This customer already has another PAID order for this event">
+                          <AlertTriangle class="w-3 h-3 text-amber-600 shrink-0" />
+                          Has Paid Order ({{ getExistingPaidOrders(o)[0].orderNumber }})
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -61,17 +67,24 @@
                   <span class="font-extrabold text-gray-900 text-sm">₦{{ o.totalAmount?.toLocaleString() }}</span>
                 </td>
                 <td class="px-6 py-4 md:px-6">
-                  <div class="flex items-center gap-2">
-                    <template v-if="o.proofOfPaymentUrl">
-                      <div class="cursor-pointer overflow-hidden rounded border border-gray-200 shadow-sm" @click="viewReceipt(o.proofOfPaymentUrl)" title="View Proof of Payment">
-                        <img v-if="!isPdf(o.proofOfPaymentUrl)" :src="o.proofOfPaymentUrl" class="w-12 h-8 object-cover hover:opacity-80 transition" alt="Proof" />
-                        <div v-else class="w-12 h-8 flex items-center justify-center bg-gray-100 text-[10px] font-bold text-gray-600 hover:bg-gray-200 transition">PDF</div>
-                      </div>
-                    </template>
-                    <span v-else-if="o.paystackReference" class="font-mono text-[11px] text-gray-500 truncate max-w-[120px]" :title="o.paystackReference">
-                      {{ o.paystackReference }}
-                    </span>
-                    <span v-else class="text-xs text-gray-400 italic">No reference</span>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <template v-if="o.proofOfPaymentUrl">
+                        <div class="cursor-pointer overflow-hidden rounded border border-gray-200 shadow-sm" @click="viewReceipt(o.proofOfPaymentUrl)" title="View Proof of Payment">
+                          <img v-if="!isPdf(o.proofOfPaymentUrl)" :src="o.proofOfPaymentUrl" class="w-12 h-8 object-cover hover:opacity-80 transition" alt="Proof" />
+                          <div v-else class="w-12 h-8 flex items-center justify-center bg-gray-100 text-[10px] font-bold text-gray-600 hover:bg-gray-200 transition">PDF</div>
+                        </div>
+                      </template>
+                      <span v-else-if="o.paystackReference" class="font-mono text-[11px] text-gray-500 truncate max-w-[120px]" :title="o.paystackReference">
+                        {{ o.paystackReference }}
+                      </span>
+                      <span v-else class="text-xs text-gray-400 italic">No Paystack ref</span>
+                    </div>
+                    <div v-if="o.bankReference">
+                      <span class="font-mono text-[10px] font-semibold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 inline-block max-w-[140px] truncate" :title="'Bank Ref / Session ID: ' + o.bankReference">
+                        Bank: {{ o.bankReference }}
+                      </span>
+                    </div>
                   </div>
                 </td>
                 <td class="px-6 py-4 md:px-6 text-right">
@@ -96,7 +109,7 @@
                   </div>
                   
                   <div v-else-if="o.status === 'PENDING'" class="mt-3 flex flex-wrap justify-end gap-2">
-                    <button @click="forceApproveOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Check class="w-3.5 h-3.5" /> Mark as Paid</button>
+                    <button @click="openManualApproveModal(o)" :disabled="actioning === o._id" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1 shadow-sm"><Check class="w-3.5 h-3.5" /> Mark as Paid</button>
                     <button @click="remindOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Bell class="w-3.5 h-3.5" /> Send Reminder</button>
                   </div>
                 </td>
@@ -121,28 +134,133 @@
       </div>
     </div>
 
-    <!-- Confirmation Modal -->
-    <div v-if="confirmModal.show" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div class="bg-white border border-gray-200 w-full max-w-sm p-6 rounded-2xl shadow-xl">
-        <h3 class="text-lg font-bold text-gray-900 mb-2">{{ confirmModal.title }}</h3>
-        <p class="text-sm text-gray-500 mb-4">{{ confirmModal.message }}</p>
-        
-        <div v-if="confirmModal.requireReason" class="mb-6">
-          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">Reason for approval <span class="text-red-500">*</span></label>
-          <textarea v-model="confirmModal.reason" rows="2" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="e.g. Verified transfer in bank app"></textarea>
+    <!-- Manual Mark as Paid Modal (Compulsory Proof & Bank Ref) -->
+    <div v-if="manualApproveModal.show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm overflow-y-auto">
+      <div class="bg-white border border-gray-200 w-full max-w-lg rounded-2xl shadow-2xl flex flex-col my-8">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+              <Check class="w-5 h-5 text-emerald-600" />
+              Verify & Mark Order as Paid
+            </h3>
+            <p class="text-xs text-gray-500 mt-1">
+              Order: <span class="font-mono font-bold text-gray-700">{{ manualApproveModal.order?.orderNumber }}</span> • <span class="font-bold text-emerald-700">₦{{ manualApproveModal.order?.totalAmount?.toLocaleString() }}</span>
+            </p>
+          </div>
+          <button @click="manualApproveModal.show = false" class="text-gray-400 hover:text-gray-600 transition">
+            <X class="w-5 h-5" />
+          </button>
         </div>
 
-        <div class="flex flex-col-reverse sm:flex-row justify-end gap-3 mt-6">
-          <button @click="confirmModal.show = false" class="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-xl sm:rounded-lg hover:bg-gray-200 transition">Cancel</button>
+        <div class="p-6 space-y-5">
+          <!-- Duplicate Warning Banner -->
+          <div v-if="getExistingPaidOrders(manualApproveModal.order).length > 0" class="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-900">
+            <ShieldAlert class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+            <div class="text-xs">
+              <p class="font-bold text-rose-800">Duplicate Payment Risk Warning!</p>
+              <p class="mt-0.5 text-rose-700">
+                This customer (<span class="font-semibold">{{ manualApproveModal.order?.customerEmail }}</span>) already has a <strong>PAID</strong> order (<span class="font-mono font-bold">{{ getExistingPaidOrders(manualApproveModal.order)[0]?.orderNumber }}</span>) for this event.
+              </p>
+              <p class="mt-1 font-semibold text-rose-900">
+                Please verify that this is a genuine separate payment and NOT a duplicate approval of the same transfer!
+              </p>
+            </div>
+          </div>
+
+          <!-- Customer & Event Summary -->
+          <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs space-y-1">
+            <div class="flex justify-between">
+              <span class="text-gray-500">Customer:</span>
+              <span class="font-bold text-gray-800">{{ manualApproveModal.order?.customerName }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Email:</span>
+              <span class="font-medium text-gray-700">{{ manualApproveModal.order?.customerEmail }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Event:</span>
+              <span class="font-medium text-gray-700">{{ manualApproveModal.order?.eventId?.title || 'Event' }}</span>
+            </div>
+          </div>
+
+          <!-- Bank Reference Input (Compulsory) -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
+              Bank Transaction Reference / Session ID <span class="text-red-500">*</span>
+            </label>
+            <input 
+              v-model="manualApproveModal.bankReference" 
+              type="text" 
+              placeholder="e.g. 090267240813123456789012345678 or NIP Session ID"
+              class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            />
+            <p class="text-[11px] text-gray-500 mt-1">
+              Required. The unique bank session ID or transaction reference from your bank app statement. Each reference can only be used once.
+            </p>
+          </div>
+
+          <!-- Proof of Payment Upload (Compulsory) -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
+              Proof of Payment Receipt File <span class="text-red-500">*</span>
+            </label>
+            <input 
+              type="file" 
+              ref="receiptFileInput" 
+              @change="onReceiptFileChange" 
+              accept="image/*,application/pdf" 
+              class="hidden" 
+            />
+            <div 
+              @click="$refs.receiptFileInput.click()"
+              class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center gap-1.5"
+              :class="manualApproveModal.file ? 'border-emerald-400 bg-emerald-50/40 text-emerald-800' : 'border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-600'"
+            >
+              <template v-if="manualApproveModal.file">
+                <Check class="w-6 h-6 text-emerald-600" />
+                <p class="text-xs font-bold text-emerald-800">{{ manualApproveModal.fileName }}</p>
+                <p class="text-[10px] text-emerald-600">Click to change file</p>
+              </template>
+              <template v-else>
+                <Upload class="w-6 h-6 text-gray-400" />
+                <p class="text-xs font-semibold text-gray-700">Click to upload bank transfer receipt (Image or PDF)</p>
+                <p class="text-[10px] text-gray-500">PNG, JPG, JPEG, or PDF up to 10MB</p>
+              </template>
+            </div>
+          </div>
+
+          <!-- Reason / Notes (Compulsory) -->
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5">
+              Verification Reason / Notes <span class="text-red-500">*</span>
+            </label>
+            <textarea 
+              v-model="manualApproveModal.reason" 
+              rows="2" 
+              placeholder="e.g. Verified ₦15,000 credit in bank app statement from customer on Aug 16"
+              class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="p-4 sm:p-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row justify-end gap-3 bg-gray-50/50 rounded-b-2xl">
           <button 
-            @click="confirmModal.onConfirm(confirmModal.reason); confirmModal.show = false" 
-            :disabled="confirmModal.requireReason && !confirmModal.reason"
-            class="w-full sm:w-auto px-4 py-3 sm:py-2 text-sm font-semibold text-white rounded-xl sm:rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed" 
-            :class="confirmModal.variant === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'">
-            {{ confirmModal.confirmText }}
+            @click="manualApproveModal.show = false" 
+            class="w-full sm:w-auto px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+          <button 
+            @click="submitManualApprove" 
+            :disabled="!manualApproveModal.bankReference || !manualApproveModal.file || !manualApproveModal.reason || manualApproveModal.isSubmitting" 
+            class="w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <AppLoader v-if="manualApproveModal.isSubmitting" size="sm" color="white" />
+            <span>Verify & Issue Tickets</span>
           </button>
         </div>
       </div>
+    </div>
     </div>
     <!-- Action Loader Modal -->
     <div v-if="actioning" class="fixed inset-0 bg-white/70 flex flex-col items-center justify-center z-[100] backdrop-blur-md">
@@ -211,7 +329,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -219,7 +336,7 @@ definePageMeta({ layout: 'admin' });
 
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
-import { Ticket, Paperclip, Check, X, Bell } from 'lucide-vue-next';
+import { Ticket, Paperclip, Check, X, Bell, AlertTriangle, ShieldAlert, Upload, FileText } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 
@@ -262,7 +379,7 @@ const filteredOrders = computed(() => {
   return orders.value.filter(o => o.status === currentTab.value);
 });
 
-// Modal state
+// Receipt modal state
 const showingReceipt = ref(false);
 const receiptUrl = ref('');
 
@@ -323,7 +440,8 @@ async function approveOrder(orderId) {
           toast.success('Order approved successfully');
           loadOrders();
         } else {
-          toast.error('Failed to approve order');
+          const err = await res.json();
+          toast.error(err.message || 'Failed to approve order');
         }
       } catch (err) {
         toast.error('Error approving order');
@@ -352,7 +470,8 @@ async function rejectOrder(orderId) {
           toast.success('Order rejected');
           loadOrders();
         } else {
-          toast.error('Failed to reject order');
+          const err = await res.json();
+          toast.error(err.message || 'Failed to reject order');
         }
       } catch (err) {
         toast.error('Error rejecting order');
@@ -363,39 +482,103 @@ async function rejectOrder(orderId) {
   });
 }
 
-async function forceApproveOrder(orderId) {
-  showConfirm({
-    title: 'Manually Mark as Paid',
-    message: 'Are you sure you want to mark this pending order as paid? This will instantly generate and send the tickets to the customer.',
-    confirmText: 'Mark as Paid & Issue Tickets',
-    variant: 'primary',
-    requireReason: true,
-    onConfirm: async (reason) => {
-      const token = localStorage.getItem('ticketr_admin_token');
-      actioning.value = orderId;
-      try {
-        const res = await fetch(`${config.public.apiBase}/orders/admin/${orderId}/force-approve`, {
-          method: 'PATCH',
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ reason })
-        });
-        if (res.ok) {
-          toast.success('Order manually marked as paid!');
-          loadOrders();
-        } else {
-          const err = await res.json();
-          toast.error(err.message || 'Failed to mark order as paid');
-        }
-      } catch (err) {
-        toast.error('Error marking order as paid');
-      } finally {
-        actioning.value = null;
-      }
-    }
+const receiptFileInput = ref(null);
+
+const manualApproveModal = ref({
+  show: false,
+  order: null,
+  bankReference: '',
+  reason: '',
+  file: null,
+  fileName: '',
+  isSubmitting: false,
+});
+
+function getExistingPaidOrders(order) {
+  if (!order || !order.customerEmail) return [];
+  const eventId = order.eventId?._id || order.eventId;
+  return orders.value.filter(o => {
+    if (o._id === order._id) return false;
+    if (o.status !== 'PAID') return false;
+    const oEventId = o.eventId?._id || o.eventId;
+    const sameEmail = o.customerEmail && o.customerEmail.toLowerCase().trim() === order.customerEmail.toLowerCase().trim();
+    return sameEmail && oEventId === eventId;
   });
+}
+
+function openManualApproveModal(order) {
+  manualApproveModal.value = {
+    show: true,
+    order,
+    bankReference: '',
+    reason: '',
+    file: null,
+    fileName: '',
+    isSubmitting: false,
+  };
+}
+
+function onReceiptFileChange(e) {
+  const file = e.target.files?.[0];
+  if (file) {
+    manualApproveModal.value.file = file;
+    manualApproveModal.value.fileName = file.name;
+  }
+}
+
+async function submitManualApprove() {
+  if (!manualApproveModal.value.order) return;
+  const orderId = manualApproveModal.value.order._id;
+  
+  const bankRef = manualApproveModal.value.bankReference?.trim();
+  if (!bankRef) {
+    toast.error('Bank Transaction Reference / Session ID is compulsory');
+    return;
+  }
+
+  if (!manualApproveModal.value.file) {
+    toast.error('Proof of payment receipt upload is compulsory');
+    return;
+  }
+
+  const reason = manualApproveModal.value.reason?.trim();
+  if (!reason) {
+    toast.error('Verification notes / reason is compulsory');
+    return;
+  }
+
+  const token = localStorage.getItem('ticketr_admin_token');
+  manualApproveModal.value.isSubmitting = true;
+  actioning.value = orderId;
+
+  try {
+    const formData = new FormData();
+    formData.append('bankReference', bankRef);
+    formData.append('reason', reason);
+    formData.append('receipt', manualApproveModal.value.file);
+
+    const res = await fetch(`${config.public.apiBase}/orders/admin/${orderId}/force-approve`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (res.ok) {
+      toast.success('Order manually verified & marked as paid! Tickets issued.');
+      manualApproveModal.value.show = false;
+      loadOrders();
+    } else {
+      const err = await res.json();
+      toast.error(err.message || 'Failed to mark order as paid');
+    }
+  } catch (err) {
+    toast.error('Error marking order as paid');
+  } finally {
+    manualApproveModal.value.isSubmitting = false;
+    actioning.value = null;
+  }
 }
 
 async function remindOrder(orderId) {

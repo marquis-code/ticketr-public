@@ -26,7 +26,7 @@
           <div class="max-w-xl">
             <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="text-white/90 text-xs font-medium tracking-wide">{{ tenantInfo?.name ? tenantInfo.name + ' Portal' : 'Trusted by Organizations Nationwide' }}</span>
+              <span class="text-white/90 text-xs font-medium tracking-wide">{{ tenantInfo?.name ? tenantInfo.name + ' Portal' : 'The #1 Choice for UNILAG, Yabatech & CMUL' }}</span>
             </div>
 
             <h1 class="font-display text-4xl md:text-5xl lg:text-[3.4rem] font-bold text-white leading-tight mb-5">
@@ -77,25 +77,130 @@
 
     <!-- Trust Bar -->
     <div class="bg-white border-b border-gray-200 py-4 px-6">
-      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-8 text-sm text-gray-500">
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-          <span class="font-medium">Secure Payments</span>
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="text-sm font-bold text-gray-400 uppercase tracking-widest text-center md:text-left">
+          Trusted across campuses
         </div>
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-          <span class="font-medium">QR-Code Tickets</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-          <span class="font-medium">Instant Email Delivery</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          <span class="font-medium">Verified Attendance</span>
+        <div class="flex flex-wrap items-center justify-center md:justify-end gap-6 md:gap-12 text-sm text-gray-700 font-display font-extrabold text-xl md:text-2xl opacity-60 grayscale">
+          <span class="flex items-center gap-2">UNILAG <span class="text-[10px] bg-gray-200 px-2 py-0.5 rounded-full uppercase">Akoka</span></span>
+          <span>YABATECH</span>
+          <span class="flex items-center gap-2">CMUL <span class="text-[10px] bg-gray-200 px-2 py-0.5 rounded-full uppercase">Idi-Araba</span></span>
         </div>
       </div>
     </div>
+    
+    <!-- Stats Section -->
+    <section class="bg-gray-900 text-white py-12 border-b border-gray-800" v-if="!tenantInfo">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div>
+            <div class="text-3xl md:text-5xl font-black text-emerald-400 mb-2">15k+</div>
+            <div class="text-sm text-gray-400 font-medium uppercase tracking-wide">Tickets Sold</div>
+          </div>
+          <div>
+            <div class="text-3xl md:text-5xl font-black text-emerald-400 mb-2">3</div>
+            <div class="text-sm text-gray-400 font-medium uppercase tracking-wide">Major Campuses</div>
+          </div>
+          <div>
+            <div class="text-3xl md:text-5xl font-black text-emerald-400 mb-2">120+</div>
+            <div class="text-sm text-gray-400 font-medium uppercase tracking-wide">Events Hosted</div>
+          </div>
+          <div>
+            <div class="text-3xl md:text-5xl font-black text-emerald-400 mb-2">100%</div>
+            <div class="text-sm text-gray-400 font-medium uppercase tracking-wide">Secure Scans</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 md:py-24 bg-gray-50 border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+          <div class="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
+            <Sparkles class="w-4 h-4" /> Designed to Solve Problems
+          </div>
+          <h2 class="font-display text-3xl md:text-5xl font-extrabold text-gray-900 mb-6">Built to Help You Grow.</h2>
+          <p class="text-lg text-gray-600">We understand the chaos of managing and attending events. Ticketr is a complete system built to take away the stress, make your events seen, and make campus life effortlessly easy.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-center mb-24">
+          <div class="space-y-8">
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                <Users class="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Squad Buy & Easy Claims</h3>
+                <p class="text-gray-600">Bring your people together. One person secures the group, and everyone claims their spot. Stop stressing about who paid who—our system manages it all.</p>
+              </div>
+            </div>
+            
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                <CreditCard class="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Buy Now, Pay Later</h3>
+                <p class="text-gray-600">Every penny counts. Don't let cashflow keep you in your room—stop being an introvert! Break down premium tickets into easy payments and step out into the culture.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                <Share2 class="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Refer Friends, Earn Discounts</h3>
+                <p class="text-gray-600">Share the vibe, earn the reward. When you invite your network, we give back. Making events accessible, affordable, and rewarding for everyone.</p>
+              </div>
+            </div>
+          </div>
+          <div class="relative">
+            <div class="absolute -inset-4 bg-gradient-to-tr from-primary/20 to-purple-500/20 blur-2xl rounded-full opacity-70"></div>
+            <img src="/images/squad_buy.png" alt="Squad Having Fun" class="relative rounded-3xl shadow-2xl w-full object-cover aspect-[4/3]" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div class="relative order-2 md:order-1">
+            <div class="absolute -inset-4 bg-gradient-to-tr from-blue-500/20 to-emerald-500/20 blur-2xl rounded-full opacity-70"></div>
+            <img src="/images/digital_wallet.png" alt="Digital Wallet Ticket" class="relative rounded-3xl shadow-2xl w-full object-cover aspect-[4/3]" />
+          </div>
+          <div class="space-y-8 order-1 md:order-2">
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                <Wallet class="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Your Digital Ticket Wallet</h3>
+                <p class="text-gray-600">Life is chaotic enough. Keep your upcoming passes and past memories organized in one secure place. Just pull up your QR code and walk in.</p>
+              </div>
+            </div>
+            
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                <Ticket class="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Secure Ticket Transfers</h3>
+                <p class="text-gray-600">Plans change, and that's okay. Safely pass your ticket to a friend without the fear of scams. We regenerate the code to keep the system clean and secure.</p>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                <ImageIcon class="w-6 h-6" />
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Relive the Memories</h3>
+                <p class="text-gray-600">The impact lasts longer than the night. Access high-quality photo galleries directly from the event page to celebrate the moments that matter and fuel your next outing.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Events List -->
     <main id="events" class="max-w-7xl mx-auto px-6 py-12 flex-grow w-full">
@@ -220,6 +325,29 @@
         </div>
       </div>
     </footer>
+    
+    <!-- Live Social Proof Toast -->
+    <Transition
+      enter-active-class="transition duration-500 ease-out"
+      enter-from-class="transform translate-y-10 opacity-0 sm:translate-y-0 sm:translate-x-10"
+      enter-to-class="transform translate-y-0 opacity-100 sm:translate-x-0"
+      leave-active-class="transition duration-400 ease-in"
+      leave-from-class="transform translate-y-0 opacity-100 sm:translate-x-0"
+      leave-to-class="transform translate-y-10 opacity-0 sm:translate-y-0 sm:translate-x-10"
+    >
+      <div v-if="activeToast" class="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[100] flex items-center gap-3 bg-white border border-gray-100 p-3 rounded-2xl shadow-xl max-w-sm">
+        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-600">
+          <Ticket class="w-5 h-5" />
+        </div>
+        <div>
+          <p class="text-sm text-gray-900 leading-snug">
+            <span class="font-bold">{{ activeToast.name }}</span> from <span class="font-bold text-primary">{{ activeToast.campus }}</span> just bought
+            <span class="font-semibold">{{ activeToast.qty }}x {{ activeToast.tier }}</span> tickets!
+          </p>
+          <p class="text-xs text-gray-400 mt-0.5">{{ activeToast.time }} ago</p>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -227,7 +355,7 @@
 definePageMeta({ layout: 'default' });
 
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { Globe, MapPin, Calendar } from 'lucide-vue-next';
+import { Globe, MapPin, Calendar, Users, CreditCard, Wallet, Share2, Ticket, Image as ImageIcon, Sparkles } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();
@@ -294,29 +422,29 @@ const defaultSlides = [
     id: 1,
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1600&q=80',
     alt: 'Large event crowd with stage lighting',
-    heading: 'Book Event Tickets Instantly',
-    subheading: 'Secure your spot at the biggest events. QR-coded tickets delivered straight to your email in seconds.',
+    heading: 'We Understand the Chaos of Events',
+    subheading: 'Our system is built to take away the stress. From gate scanning to instant payouts, we make managing your event easy so you can focus on making an impact.',
   },
   {
     id: 2,
     image: 'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1600&q=80',
     alt: 'Conference and gala dinner setting',
-    heading: 'Dinners, Galas & Award Nights',
-    subheading: 'From black-tie galas to departmental dinners — buy verified tickets with just a few clicks.',
+    heading: 'Stop Being an Introvert',
+    subheading: 'Every penny counts. With installment plans and referral rewards, stepping out to attend that big campus event has never been easier or more affordable.',
   },
   {
     id: 3,
     image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1600&q=80',
     alt: 'Tech conference with audience',
-    heading: 'Conferences & Seminars',
-    subheading: 'Register for professional events, workshops, and conferences hosted by your organization.',
+    heading: 'Grow Your Campus Community',
+    subheading: 'More than a ticketing platform. We help you build operational systems, recover lost sales, and make sure your events are seen by everyone.',
   },
   {
     id: 4,
     image: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?auto=format&fit=crop&w=1600&q=80',
     alt: 'Concert with lights and crowd',
-    heading: 'Concerts & Live Shows',
-    subheading: 'Never miss a performance. Get your tickets now with 100% secure Paystack payments.',
+    heading: 'Your Campus Life, Managed',
+    subheading: 'All your tickets, memories, and photos in one place. We manage the logistics behind the scenes so you can just show up, connect, and have fun.',
   },
 ];
 
@@ -400,6 +528,55 @@ const filteredEvents = computed(() => {
     e.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
     e.description.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
+});
+
+// Social Proof Logic
+const activeToast = ref(null);
+const campuses = ['UNILAG', 'YABATECH', 'College of Medicine (CMUL)', 'Medilag', 'Akoka'];
+const names = ['David', 'Sarah', 'Tobi', 'Amaka', 'Femi', 'Nneka', 'Daniel', 'Zainab', 'Emmanuel', 'Chika'];
+const tiers = ['VIP', 'Regular', 'VVIP', 'Early Bird', 'Table for 4'];
+
+function showRandomToast() {
+  if (typeof window === 'undefined') return;
+  
+  const randomName = names[Math.floor(Math.random() * names.length)];
+  const randomCampus = campuses[Math.floor(Math.random() * campuses.length)];
+  const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
+  const randomQty = Math.floor(Math.random() * 4) + 1;
+  const randomTime = Math.floor(Math.random() * 10) + 1 + ' mins';
+  
+  activeToast.value = {
+    name: randomName,
+    campus: randomCampus,
+    tier: randomTier,
+    qty: randomQty,
+    time: randomTime
+  };
+  
+  setTimeout(() => {
+    activeToast.value = null;
+  }, 5000); // Hide after 5 seconds
+}
+
+let toastInterval = null;
+
+onMounted(() => {
+  resetAutoSlide();
+  
+  // Show first toast after 3 seconds, then randomly every 12-25 seconds
+  if (typeof window !== 'undefined' && !tenantInfo.value) {
+    setTimeout(() => {
+      showRandomToast();
+      toastInterval = setInterval(() => {
+        showRandomToast();
+      }, Math.floor(Math.random() * 13000) + 12000);
+    }, 3000);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (slideInterval) clearInterval(slideInterval);
+  if (toastInterval) clearInterval(toastInterval);
 });
 
 function formatDate(dateStr) {

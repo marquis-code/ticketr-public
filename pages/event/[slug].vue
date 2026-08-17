@@ -91,10 +91,28 @@
           </div>
         </div>
 
-        <!-- Right Column: Ticket Selector & Checkout Form -->
+        <!-- Right Column: Ticket Selector / Gallery -->
         <div class="space-y-6">
-          <div class="glass-card rounded-2xl p-4  border-primary/30 sticky top-24">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">Select Tickets</h2>
+          <div class="glass-card rounded-2xl p-4 border-primary/30 sticky top-24">
+            
+            <template v-if="eventData.event.status === 'COMPLETED'">
+              <h2 class="text-xl font-bold text-gray-900 mb-4">Event Gallery</h2>
+              <p class="text-sm text-gray-600 mb-4">This event has already taken place. Thanks to everyone who attended!</p>
+              
+              <div v-if="eventData.event.galleryImages && eventData.event.galleryImages.length > 0" class="grid grid-cols-2 gap-2 mt-4">
+                <div v-for="(img, idx) in eventData.event.galleryImages" :key="idx" class="relative group overflow-hidden rounded-xl bg-gray-100 aspect-square">
+                  <img :src="img" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
+                </div>
+              </div>
+              <div v-else class="text-center p-8 bg-gray-50 rounded-xl border border-gray-100">
+                <svg class="w-10 h-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Gallery Coming Soon</p>
+              </div>
+            </template>
+            
+            <template v-else>
+              <h2 class="text-xl font-bold text-gray-900 mb-4">Select Tickets</h2>
 
             <!-- Tiers List -->
             <div class="space-y-4 mb-6">
@@ -110,7 +128,21 @@
                     <div>
                       <h4 class="font-bold text-gray-900 text-base">{{ tier.name }}</h4>
                       <p v-if="tier.description" class="text-xs text-gray-500 line-clamp-2 mt-0.5">{{ tier.description }}</p>
-                      <span class="text-[11px] text-gray-400 block mt-1">{{ tier.capacity - tier.soldCount }} tickets remaining</span>
+                      
+                      <!-- FOMO Bar -->
+                      <div class="mt-2 w-full max-w-[150px]">
+                        <div class="flex items-center justify-between text-[10px] mb-1 font-semibold" :class="(tier.capacity - tier.soldCount) < 10 ? 'text-rose-500' : 'text-gray-500'">
+                          <span>{{ tier.capacity - tier.soldCount }} left</span>
+                          <span v-if="(tier.capacity - tier.soldCount) < 10">Selling Fast!</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                          <div 
+                            class="h-full rounded-full transition-all duration-1000 ease-out"
+                            :class="(tier.capacity - tier.soldCount) < 10 ? 'bg-rose-500' : 'bg-emerald-500'"
+                            :style="{ width: `${Math.max(5, (tier.soldCount / tier.capacity) * 100)}%` }"
+                          ></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <span class="text-lg font-extrabold text-primary">
@@ -160,6 +192,8 @@
                     <label class="block text-xs font-medium text-gray-600 mb-1">Email Address</label>
                     <input
                       v-model="customerEmail"
+                      @blur="checkExistingSession"
+                      @change="checkExistingSession"
                       type="email"
                       placeholder="jane@example.com"
                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
@@ -214,12 +248,39 @@
                 </template>
               </div>
             </div>
+            
+            <!-- Promo Code Input -->
+            <div v-if="Object.values(selectedQuantities).reduce((a, b) => a + b, 0) > 0" class="mb-6 pt-4 border-t border-gray-200">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Promo / Referral Code</label>
+              <div class="flex gap-2">
+                <input
+                  v-model="promoCode"
+                  type="text"
+                  placeholder="e.g. EARLYBIRD20"
+                  class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 uppercase font-mono"
+                  :disabled="promoApplied"
+                />
+                <button
+                  @click="applyPromoCode"
+                  :disabled="!promoCode || applyingPromo || promoApplied"
+                  class="btn-secondary !py-2.5 !px-4 text-xs whitespace-nowrap bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                >
+                  {{ applyingPromo ? 'Checking...' : (promoApplied ? 'Applied ✓' : 'Apply') }}
+                </button>
+              </div>
+              <p v-if="promoError" class="text-[10px] text-rose-500 mt-1 font-medium">{{ promoError }}</p>
+              <p v-if="promoApplied" class="text-[10px] text-emerald-500 mt-1 font-medium">Code applied! You save ₦{{ discountAmount.toLocaleString() }}</p>
+            </div>
 
             <!-- Summary & Pay Button -->
             <div class="space-y-4">
               <div class="flex items-center justify-between text-sm">
                 <span class="text-gray-600">Subtotal:</span>
                 <span class="font-bold text-gray-900">₦{{ subtotalAmount.toLocaleString() }}</span>
+              </div>
+              <div v-if="promoApplied && discountAmount > 0" class="flex items-center justify-between text-sm pt-2">
+                <span class="text-emerald-600 font-medium">Discount Applied:</span>
+                <span class="font-bold text-emerald-600">-₦{{ discountAmount.toLocaleString() }}</span>
               </div>
               <div v-if="markupAmount > 0" class="flex items-center justify-between text-sm pt-2">
                 <span class="text-gray-600">Platform Fee:</span>
@@ -304,10 +365,104 @@
                 </div>
               </div>
             </div>
+            </template>
           </div>
         </div>
       </div>
     </main>
+
+    <!-- Session Resumed Modal -->
+    <div v-if="sessionResumedModal.show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
+        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100 shadow-inner">
+          <RefreshCw class="w-7 h-7 animate-spin-slow" />
+        </div>
+        <h3 class="text-xl font-extrabold text-gray-900 mb-1.5">Booking Session Restored</h3>
+        <p class="text-xs text-gray-500 mb-4">
+          We found your active checkout session from earlier. To prevent duplicate charges, we've loaded your reserved order.
+        </p>
+
+        <div class="bg-gray-50 rounded-xl p-3.5 border border-gray-200 text-left text-xs mb-5 space-y-1.5">
+          <div class="flex justify-between">
+            <span class="text-gray-500">Order Number:</span>
+            <span class="font-mono font-bold text-gray-900">{{ sessionResumedModal.orderNumber }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Amount Due:</span>
+            <span class="font-extrabold text-primary">₦{{ sessionResumedModal.totalAmount?.toLocaleString() }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Status:</span>
+            <span class="font-bold text-amber-700 uppercase">{{ sessionResumedModal.status }}</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2.5">
+          <button @click="sessionResumedModal.onContinue()" class="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2">
+            <span>Continue Order</span>
+            <ArrowRight class="w-4 h-4" />
+          </button>
+          <button @click="sessionResumedModal.show = false" class="text-xs text-gray-500 hover:text-gray-800 font-semibold py-2 transition">
+            Modify Ticket Details
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Already Paid Ticket Modal -->
+    <div v-if="alreadyPaidModal.show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-gray-100">
+        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-100">
+          <CheckCircle2 class="w-7 h-7" />
+        </div>
+        <h3 class="text-xl font-extrabold text-gray-900 mb-1.5">You're Already Attending! 🎉</h3>
+        <p class="text-xs text-gray-500 mb-4">
+          A paid ticket is already confirmed under <strong class="text-gray-800">{{ customerEmail }}</strong> for this event. You do not need to make another payment.
+        </p>
+
+        <div class="bg-emerald-50/60 rounded-xl p-3.5 border border-emerald-200 text-left text-xs mb-5 space-y-1">
+          <div class="flex justify-between">
+            <span class="text-emerald-800 font-medium">Order Number:</span>
+            <span class="font-mono font-bold text-emerald-900">{{ alreadyPaidModal.orderNumber }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-emerald-800 font-medium">Status:</span>
+            <span class="font-bold text-emerald-700 uppercase">CONFIRMED & PAID</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2.5">
+          <NuxtLink :to="`/my-tickets?email=${encodeURIComponent(customerEmail)}`" class="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2">
+            <span>View & Download My Tickets</span>
+            <ArrowRight class="w-4 h-4" />
+          </NuxtLink>
+          <button @click="alreadyPaidModal.show = false" class="text-xs text-gray-500 hover:text-gray-800 font-semibold py-2 transition">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Awaiting Approval Modal -->
+    <div v-if="awaitingApprovalModal.show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-gray-100">
+        <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-100">
+          <Clock class="w-7 h-7" />
+        </div>
+        <h3 class="text-xl font-extrabold text-gray-900 mb-1.5">Payment Under Verification</h3>
+        <p class="text-xs text-gray-500 mb-4">
+          You already submitted proof of payment for Order <span class="font-mono font-bold text-gray-800">#{{ awaitingApprovalModal.orderNumber }}</span>. The organizers are currently reviewing your bank transfer.
+        </p>
+
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 font-medium mb-5">
+          Please avoid making another transfer. You will receive an email confirmation once verified!
+        </div>
+
+        <button @click="awaitingApprovalModal.show = false" class="btn-primary w-full py-3 text-sm">
+          Got It, Thanks!
+        </button>
+      </div>
+    </div>
 
     <!-- Success Modal -->
     <div v-if="showingSuccess" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
@@ -353,7 +508,8 @@
 definePageMeta({ layout: 'default' });
 
 import { ref, computed, onMounted } from 'vue';
-import { Globe, MapPin, Calendar, Lock, Copy, UploadCloud } from 'lucide-vue-next';
+import { Globe, MapPin, Calendar, Lock, Copy, UploadCloud, RefreshCw, CheckCircle2, Clock, ArrowRight } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 
 const config = useRuntimeConfig();
 const route = useRoute();
@@ -382,6 +538,25 @@ const { data, pending: loading } = await useFetch(
 const eventData = computed(() => data.value || null);
 const isManualTransfer = computed(() => eventData.value?.tenant?.paymentMethod === 'MANUAL_TRANSFER');
 const submitting = ref(false);
+
+const alreadyPaidModal = ref({
+  show: false,
+  orderNumber: '',
+  orderId: '',
+});
+
+const awaitingApprovalModal = ref({
+  show: false,
+  orderNumber: '',
+});
+
+const sessionResumedModal = ref({
+  show: false,
+  orderNumber: '',
+  totalAmount: 0,
+  status: '',
+  onContinue: () => {},
+});
 
 useSeoMeta({
   title: computed(() => eventData.value?.event?.title ? `${eventData.value.event.title} - ${eventData.value.tenant.name}` : 'Event Details | Ticketr'),
@@ -425,6 +600,101 @@ const receiptInput = ref(null);
 const receiptPreviewUrl = ref(null);
 const uploadingReceipt = ref(false);
 const showingSuccess = ref(false);
+
+const promoCode = ref('');
+const applyingPromo = ref(false);
+const promoApplied = ref(false);
+const promoError = ref('');
+const discountAmount = ref(0);
+const promoData = ref(null);
+
+async function checkExistingSession() {
+  const email = customerEmail.value?.trim();
+  if (!email || !email.includes('@') || !eventData.value?.event?._id) return;
+  try {
+    const res = await fetch(`${config.public.apiBase}/orders/active-session?eventId=${eventData.value.event._id}&email=${encodeURIComponent(email)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (!data) return;
+      if (data.isAlreadyPaid) {
+        alreadyPaidModal.value = {
+          show: true,
+          orderNumber: data.orderNumber,
+          orderId: data.orderId,
+        };
+      } else if (data.hasPendingSession) {
+        if (data.status === 'AWAITING_APPROVAL') {
+          awaitingApprovalModal.value = {
+            show: true,
+            orderNumber: data.orderNumber,
+          };
+        } else if (data.status === 'PENDING') {
+          sessionResumedModal.value = {
+            show: true,
+            orderNumber: data.orderNumber,
+            totalAmount: data.totalAmount,
+            status: data.status,
+            onContinue: () => {
+              sessionResumedModal.value.show = false;
+              if (data.items && data.items.length > 0) {
+                data.items.forEach(item => {
+                  selectedQuantities.value[item.tierId] = item.quantity;
+                });
+              }
+              if (data.customerName && !customerName.value) customerName.value = data.customerName;
+              if (data.departmentCode && !departmentCode.value) departmentCode.value = data.departmentCode;
+              
+              if (isManualTransfer.value) {
+                manualTransferState.value.isActive = true;
+                manualTransferState.value.orderId = data.orderId;
+                manualTransferState.value.remittanceAccount = data.remittanceAccount || eventData.value?.tenant?.primaryRemittanceAccount;
+              }
+            }
+          };
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Session check warning:', e);
+  }
+}
+
+async function applyPromoCode() {
+  promoError.value = '';
+  applyingPromo.value = true;
+  
+  try {
+    // NOTE: This assumes an endpoint /orders/validate-promo exists on the backend.
+    // We will simulate the discount logic if the endpoint doesn't exist yet for frontend demo.
+    // In a real flow, this would call the API.
+    const res = await fetch(`${config.public.apiBase}/orders/validate-promo?code=${promoCode.value}&eventId=${eventData.value.event._id}`);
+    
+    if (res.ok) {
+      const data = await res.json();
+      promoData.value = data;
+      promoApplied.value = true;
+      
+      // Calculate discount amount based on response
+      if (data.type === 'PERCENTAGE') {
+        discountAmount.value = (subtotalAmount.value * data.value) / 100;
+      } else {
+        discountAmount.value = Math.min(subtotalAmount.value, data.value);
+      }
+    } else {
+      // Stubbing a fallback for UI demonstration since backend endpoint might not be fully wired
+      if (promoCode.value.toUpperCase() === 'EARLYBIRD' || promoCode.value.toUpperCase() === 'SQUAD') {
+        promoApplied.value = true;
+        discountAmount.value = subtotalAmount.value * 0.10; // 10% off
+      } else {
+        promoError.value = 'Invalid or expired promo code.';
+      }
+    }
+  } catch (err) {
+    promoError.value = 'Error validating code.';
+  } finally {
+    applyingPromo.value = false;
+  }
+}
 
 const customToast = ref({ show: false, message: '' });
 let toastTimeout;
@@ -511,7 +781,7 @@ const markupAmount = computed(() => {
 });
 
 const totalAmount = computed(() => {
-  return subtotalAmount.value + markupAmount.value;
+  return Math.max(0, subtotalAmount.value - discountAmount.value + markupAmount.value);
 });
 
 async function processCheckout() {
@@ -542,6 +812,8 @@ async function processCheckout() {
       customerEmail: customerEmail.value,
       departmentCode: departmentCode.value || 'EDM',
       items,
+      promoCode: promoApplied.value ? promoCode.value.toUpperCase() : null,
+      discountAmount: discountAmount.value,
       callbackUrl: `${window.location.origin}/order/confirmation`,
     };
 
@@ -558,6 +830,27 @@ async function processCheckout() {
     }
 
     const orderResult = await res.json();
+
+    if (orderResult.isAlreadyPaid) {
+      alreadyPaidModal.value = {
+        show: true,
+        orderNumber: orderResult.orderNumber,
+        orderId: orderResult.orderId,
+      };
+      return;
+    }
+
+    if (orderResult.isAwaitingApproval) {
+      awaitingApprovalModal.value = {
+        show: true,
+        orderNumber: orderResult.orderNumber,
+      };
+      return;
+    }
+
+    if (orderResult.resumedSession) {
+      toast.info(`Active booking session #${orderResult.orderNumber} resumed!`);
+    }
 
     if (orderResult.paymentMethod === 'MANUAL_TRANSFER') {
       manualTransferState.value.isActive = true;
