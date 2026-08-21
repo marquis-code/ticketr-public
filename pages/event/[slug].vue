@@ -126,7 +126,10 @@
                   <div class="flex gap-4">
                     <img v-if="tier.templateImageUrl" :src="tier.templateImageUrl" class="w-12 h-12 rounded-lg object-cover border border-gray-200" />
                     <div>
-                      <h4 class="font-bold text-gray-900 text-base">{{ tier.name }}</h4>
+                      <h4 class="font-bold text-gray-900 text-base flex items-center gap-2">
+                        {{ tier.name }}
+                        <span v-if="tier.isCoupleTicket" class="text-[10px] font-bold uppercase tracking-wider bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full">Couple</span>
+                      </h4>
                       <p v-if="tier.description" class="text-xs text-gray-500 line-clamp-2 mt-0.5">{{ tier.description }}</p>
                       
                       <!-- FOMO Bar -->
@@ -224,7 +227,14 @@
                     <h4 class="font-semibold text-gray-900 text-sm mb-3">Ticket Holders ({{ eventData?.event?.tiers?.find(t => t._id === tierId)?.name }})</h4>
                     <div v-for="(attendee, index) in attendees" :key="index" class="p-3 bg-gray-50 border border-gray-100 rounded-lg mb-3">
                       <div class="flex justify-between items-center mb-2">
-                        <p class="text-xs font-semibold text-gray-500">Ticket #{{ index + 1 }}</p>
+                        <p class="text-xs font-semibold text-gray-500">
+                          <template v-if="eventData?.event?.tiers?.find(t => t._id === tierId)?.isCoupleTicket">
+                            Ticket #{{ Math.floor(index/2) + 1 }} ({{ index % 2 === 0 ? 'Male' : 'Female' }} Attendee)
+                          </template>
+                          <template v-else>
+                            Ticket #{{ index + 1 }}
+                          </template>
+                        </p>
                         <button @click="copyBillingInfo(attendee)" type="button" class="text-[10px] text-primary font-medium hover:underline bg-primary-50 px-2 py-1 rounded">Copy Billing Info</button>
                       </div>
                       <div class="space-y-3">
@@ -747,16 +757,20 @@ function updateQuantity(tierId, delta, max) {
     [tierId]: next,
   };
 
+  const tier = eventData.value?.event?.tiers?.find(t => t._id === tierId);
+  const attendeesPerQty = tier?.isCoupleTicket ? 2 : 1;
+  const targetLength = next * attendeesPerQty;
+
   if (!tierAttendees.value[tierId]) {
     tierAttendees.value[tierId] = [];
   }
   
-  if (next > tierAttendees.value[tierId].length) {
-    for (let i = tierAttendees.value[tierId].length; i < next; i++) {
+  if (targetLength > tierAttendees.value[tierId].length) {
+    for (let i = tierAttendees.value[tierId].length; i < targetLength; i++) {
       tierAttendees.value[tierId].push({ name: '', email: '', departmentCode: '' });
     }
-  } else if (next < tierAttendees.value[tierId].length) {
-    tierAttendees.value[tierId].length = next;
+  } else if (targetLength < tierAttendees.value[tierId].length) {
+    tierAttendees.value[tierId].length = targetLength;
   }
 }
 
@@ -791,8 +805,10 @@ async function processCheckout() {
       .filter(([_, qty]) => qty > 0)
       .map(([tierId, quantity]) => {
         let attendees = tierAttendees.value[tierId] || [];
+        const tier = eventData.value?.event?.tiers?.find(t => t._id === tierId);
+        const attendeeCount = tier?.isCoupleTicket ? quantity * 2 : quantity;
         if (useBillingForTickets.value) {
-          attendees = Array.from({ length: quantity }, () => ({
+          attendees = Array.from({ length: attendeeCount }, () => ({
             name: customerName.value,
             email: customerEmail.value,
             departmentCode: departmentCode.value
