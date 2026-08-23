@@ -128,7 +128,11 @@
                   <div class="flex items-start justify-between mb-2">
                     <div>
                       <span class="text-gray-400 text-xs font-semibold uppercase tracking-wider block">Attendee</span>
-                      <p class="text-base font-bold text-gray-900">{{ ticket.attendeeName }}</p>
+                      <div class="flex items-center gap-2">
+                        <p class="text-base font-bold text-gray-900">{{ getCleanName(ticket.attendeeName) }}</p>
+                        <span v-if="getGenderTag(ticket.attendeeName) === 'Male'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider border border-blue-200">Male</span>
+                        <span v-if="getGenderTag(ticket.attendeeName) === 'Female'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-100 text-pink-700 uppercase tracking-wider border border-pink-200">Female</span>
+                      </div>
                     </div>
                     <span
                       :class="ticket.status === 'CHECKED_IN' ? 'bg-purple-50 text-purple-600 border-purple-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'"
@@ -180,6 +184,20 @@ const emailInput = ref('');
 const searching = ref(false);
 const searched = ref(false);
 const orders = ref([]);
+
+function getCleanName(name) {
+  if (!name) return '';
+  return name.replace(/\s*\((Male|Female)\)\s*/i, '');
+}
+
+function getGenderTag(name) {
+  if (!name) return null;
+  const match = name.match(/\((Male|Female)\)/i);
+  if (match) {
+    return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+  }
+  return null;
+}
 
 async function lookupTickets() {
   searching.value = true;

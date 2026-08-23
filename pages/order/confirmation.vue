@@ -39,11 +39,15 @@
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span class="text-xs text-gray-500 uppercase font-medium block">Attendee</span>
-                <span class="font-semibold text-gray-900">{{ ticket.attendeeName }}</span>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="font-semibold text-gray-900">{{ getCleanName(ticket.attendeeName) }}</span>
+                  <span v-if="getGenderTag(ticket.attendeeName) === 'Male'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider border border-blue-200">Male</span>
+                  <span v-if="getGenderTag(ticket.attendeeName) === 'Female'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-100 text-pink-700 uppercase tracking-wider border border-pink-200">Female</span>
+                </div>
               </div>
               <div>
                 <span class="text-xs text-gray-500 uppercase font-medium block">Email</span>
-                <span class="font-semibold text-gray-700 text-xs truncate block">{{ ticket.attendeeEmail }}</span>
+                <span class="font-semibold text-gray-700 text-xs truncate block mt-0.5">{{ ticket.attendeeEmail }}</span>
               </div>
             </div>
 
@@ -136,4 +140,18 @@ async function verifyOrder() {
 onMounted(() => {
   verifyOrder();
 });
+
+function getCleanName(name) {
+  if (!name) return '';
+  return name.replace(/\s*\((Male|Female)\)\s*/i, '');
+}
+
+function getGenderTag(name) {
+  if (!name) return null;
+  const match = name.match(/\((Male|Female)\)/i);
+  if (match) {
+    return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+  }
+  return null;
+}
 </script>
