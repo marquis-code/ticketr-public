@@ -115,7 +115,7 @@
                     <button @click="deleteOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Trash class="w-3.5 h-3.5" /> Delete</button>
                   </div>
 
-                  <div v-else class="mt-3 flex flex-wrap justify-end gap-2">
+                  <div v-else-if="o.status !== 'PAID'" class="mt-3 flex flex-wrap justify-end gap-2">
                     <button @click="deleteOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Trash class="w-3.5 h-3.5" /> Delete</button>
                   </div>
                 </td>
