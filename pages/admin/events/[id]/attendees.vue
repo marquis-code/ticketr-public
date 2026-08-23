@@ -54,7 +54,13 @@
             <tbody class="divide-y divide-gray-100 bg-white">
               <tr v-for="att in filteredAttendees" :key="att._id" class="hover:bg-gray-50 transition-colors duration-150">
                 <td class="px-6 py-4 font-mono text-xs text-primary">{{ att.ticketNumber }}</td>
-                <td class="px-6 py-4 font-semibold text-gray-900">{{ att.attendeeName }}</td>
+                <td class="px-6 py-4 font-semibold text-gray-900">
+                  <div class="flex items-center gap-2">
+                    <span>{{ getCleanName(att.attendeeName) }}</span>
+                    <span v-if="getGenderTag(att.attendeeName) === 'Male'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider border border-blue-200">Male</span>
+                    <span v-if="getGenderTag(att.attendeeName) === 'Female'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-100 text-pink-700 uppercase tracking-wider border border-pink-200">Female</span>
+                  </div>
+                </td>
                 <td class="px-6 py-4 text-xs text-gray-600">{{ att.attendeeEmail }}</td>
                 <td class="px-6 py-4 text-xs text-gray-700">{{ att.tierId?.name || 'Standard' }}</td>
                 <td class="px-6 py-4">
@@ -132,6 +138,20 @@ const filteredAttendees = computed(() => {
     return matchesSearch && matchesStatus;
   });
 });
+
+function getCleanName(name) {
+  if (!name) return '';
+  return name.replace(/\s*\((Male|Female)\)\s*/i, '');
+}
+
+function getGenderTag(name) {
+  if (!name) return null;
+  const match = name.match(/\((Male|Female)\)/i);
+  if (match) {
+    return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+  }
+  return null;
+}
 
 async function loadAttendees() {
   const token = localStorage.getItem('ticketr_admin_token');

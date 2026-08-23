@@ -106,11 +106,17 @@
                     <span v-else class="text-[10px] text-gray-400 italic">No receipt uploaded</span>
                     <button @click="approveOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Check class="w-3.5 h-3.5" /> Approve</button>
                     <button @click="rejectOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><X class="w-3.5 h-3.5" /> Reject</button>
+                    <button @click="deleteOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Trash class="w-3.5 h-3.5" /> Delete</button>
                   </div>
                   
                   <div v-else-if="o.status === 'PENDING'" class="mt-3 flex flex-wrap justify-end gap-2">
                     <button @click="openManualApproveModal(o)" :disabled="actioning === o._id" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1 shadow-sm"><Check class="w-3.5 h-3.5" /> Mark as Paid</button>
                     <button @click="remindOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Bell class="w-3.5 h-3.5" /> Send Reminder</button>
+                    <button @click="deleteOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Trash class="w-3.5 h-3.5" /> Delete</button>
+                  </div>
+
+                  <div v-else class="mt-3 flex flex-wrap justify-end gap-2">
+                    <button @click="deleteOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Trash class="w-3.5 h-3.5" /> Delete</button>
                   </div>
                 </td>
               </tr>
@@ -364,7 +370,7 @@ definePageMeta({ layout: 'admin' });
 
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
-import { Ticket, Paperclip, Check, X, Bell, AlertTriangle, ShieldAlert, Upload, FileText } from 'lucide-vue-next';
+import { Ticket, Paperclip, Check, X, Bell, AlertTriangle, ShieldAlert, Upload, FileText, Trash } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 
@@ -503,6 +509,36 @@ async function rejectOrder(orderId) {
         }
       } catch (err) {
         toast.error('Error rejecting order');
+      } finally {
+        actioning.value = null;
+      }
+    }
+  });
+}
+
+async function deleteOrder(orderId) {
+  showConfirm({
+    title: 'Delete Order',
+    message: 'Are you sure you want to delete this order entirely? This action is permanent.',
+    confirmText: 'Delete Order',
+    variant: 'danger',
+    onConfirm: async () => {
+      const token = localStorage.getItem('ticketr_admin_token');
+      actioning.value = orderId;
+      try {
+        const res = await fetch(`${config.public.apiBase}/orders/admin/${orderId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          toast.success('Order deleted successfully');
+          loadOrders();
+        } else {
+          const err = await res.json();
+          toast.error(err.message || 'Failed to delete order');
+        }
+      } catch (err) {
+        toast.error('Error deleting order');
       } finally {
         actioning.value = null;
       }
