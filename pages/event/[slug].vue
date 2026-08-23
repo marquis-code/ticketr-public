@@ -231,6 +231,9 @@
                           <template v-if="eventData?.event?.tiers?.find(t => t._id === tierId)?.isCoupleTicket">
                             Ticket #{{ Math.floor(index/2) + 1 }} ({{ index % 2 === 0 ? 'Male' : 'Female' }} Attendee)
                           </template>
+                          <template v-else-if="getAttendeesPerQty(eventData?.event?.tiers?.find(t => t._id === tierId)) > 1">
+                            Ticket #{{ Math.floor(index / getAttendeesPerQty(eventData?.event?.tiers?.find(t => t._id === tierId))) + 1 }} (Guest {{ (index % getAttendeesPerQty(eventData?.event?.tiers?.find(t => t._id === tierId))) + 1 }})
+                          </template>
                           <template v-else>
                             Ticket #{{ index + 1 }}
                           </template>
@@ -749,6 +752,15 @@ function formatDate(dStr) {
   });
 }
 
+function getAttendeesPerQty(tier) {
+  if (!tier) return 1;
+  if (tier.groupSize && tier.groupSize > 1) return tier.groupSize;
+  const match = tier.name?.match(/table of (\d+)/i);
+  if (match) return parseInt(match[1]);
+  if (tier.isCoupleTicket) return 2;
+  return 1;
+}
+
 function updateQuantity(tierId, delta, max) {
   const current = selectedQuantities.value[tierId] || 0;
   const next = Math.max(0, Math.min(max, current + delta));
@@ -758,7 +770,7 @@ function updateQuantity(tierId, delta, max) {
   };
 
   const tier = eventData.value?.event?.tiers?.find(t => t._id === tierId);
-  const attendeesPerQty = tier?.isCoupleTicket ? 2 : 1;
+  const attendeesPerQty = getAttendeesPerQty(tier);
   const targetLength = next * attendeesPerQty;
 
   if (!tierAttendees.value[tierId]) {
@@ -806,7 +818,7 @@ async function processCheckout() {
       .map(([tierId, quantity]) => {
         let attendees = tierAttendees.value[tierId] || [];
         const tier = eventData.value?.event?.tiers?.find(t => t._id === tierId);
-        const attendeeCount = tier?.isCoupleTicket ? quantity * 2 : quantity;
+        const attendeeCount = quantity * getAttendeesPerQty(tier);
         if (useBillingForTickets.value) {
           attendees = Array.from({ length: attendeeCount }, () => ({
             name: customerName.value,
