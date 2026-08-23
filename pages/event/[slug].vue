@@ -755,7 +755,7 @@ function formatDate(dStr) {
 function getAttendeesPerQty(tier) {
   if (!tier) return 1;
   if (tier.groupSize && tier.groupSize > 1) return tier.groupSize;
-  const match = tier.name?.match(/table of (\d+)/i);
+  const match = tier.name?.match(/table\s+(?:of|for)?\s*(\d+)/i);
   if (match) return parseInt(match[1]);
   if (tier.isCoupleTicket) return 2;
   return 1;
