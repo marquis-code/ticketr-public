@@ -31,6 +31,10 @@
           <CreditCard class="w-5 h-5 shrink-0" />
           <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Orders & Financials</span>
         </NuxtLink>
+        <NuxtLink to="/admin/internal-tickets" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.includes('/internal-tickets') }">
+          <CreditCard class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Internal Tickets</span>
+        </NuxtLink>
         <NuxtLink to="/admin/scanner" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.includes('/scanner') }">
           <Scan class="w-5 h-5 shrink-0" />
           <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Gate Scanner</span>
@@ -124,6 +128,7 @@ const routeName = computed(() => {
   if (path.includes('/events')) return 'Events Management';
   if (path.includes('/attendees')) return 'Attendees Management';
   if (path.includes('/orders')) return 'Orders & Financials';
+  if (path.includes('/internal-tickets')) return 'Internal & Special Tickets';
   if (path.includes('/scanner')) return 'Gate Scanner';
   if (path.includes('/settings')) return 'Branding & Settings';
   if (path.includes('/audit-logs')) return 'Audit Logs';
