@@ -13,8 +13,8 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden relative">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+      <div class="bg-white rounded-2xl shadow-xl border border-gray-100 relative overflow-visible">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-t-2xl"></div>
         <form @submit.prevent="generateTicket" class="p-8 sm:p-10 space-y-10">
           
           <!-- Event Details Section -->
