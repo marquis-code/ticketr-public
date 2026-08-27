@@ -146,7 +146,7 @@ const removeEmail = (index) => {
 const isFormValid = computed(() => {
   if (!form.value.audience || !form.value.subject || !form.value.message || form.value.message === '<p><br></p>') return false;
   if (form.value.audience === 'event' && !form.value.eventId) return false;
-  if (form.value.audience === 'custom' && customEmailsList.value.length === 0) return false;
+  if (form.value.audience === 'custom' && customEmailsList.value.length === 0 && !emailInput.value.trim()) return false;
   return true;
 });
 
