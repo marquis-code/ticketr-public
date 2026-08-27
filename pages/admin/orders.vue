@@ -12,12 +12,21 @@
       </div>
 
       <!-- Filters -->
-      <div class="flex gap-2 border-b border-gray-200 pb-2">
-        <button @click="currentTab = 'ALL'" :class="currentTab === 'ALL' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-gray-500'" class="px-4 py-2 text-sm">All Orders</button>
-        <button @click="currentTab = 'AWAITING_APPROVAL'" :class="currentTab === 'AWAITING_APPROVAL' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-gray-500'" class="px-4 py-2 text-sm flex items-center gap-2">
-          Pending Approvals
-          <span v-if="pendingCount > 0" class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{{ pendingCount }}</span>
-        </button>
+      <div class="flex flex-col sm:flex-row gap-4 border-b border-gray-200 pb-2 justify-between items-start sm:items-center">
+        <div class="flex gap-2">
+          <button @click="currentTab = 'ALL'" :class="currentTab === 'ALL' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-gray-500'" class="px-4 py-2 text-sm">All Orders</button>
+          <button @click="currentTab = 'AWAITING_APPROVAL'" :class="currentTab === 'AWAITING_APPROVAL' ? 'text-indigo-600 border-b-2 border-indigo-600 font-bold' : 'text-gray-500'" class="px-4 py-2 text-sm flex items-center gap-2">
+            Pending Approvals
+            <span v-if="pendingCount > 0" class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{{ pendingCount }}</span>
+          </button>
+        </div>
+        
+        <div class="flex items-center gap-2 px-4">
+          <label class="text-sm text-gray-500 font-semibold">Department:</label>
+          <select v-model="selectedDepartment" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-500">
+            <option v-for="dept in availableDepartments" :key="dept" :value="dept">{{ dept === 'ALL' ? 'All Departments' : dept }}</option>
+          </select>
+        </div>
       </div>
 
       <!-- Orders Table -->
@@ -47,6 +56,7 @@
                       <p class="font-bold text-gray-900 text-sm">{{ o.customerName }}</p>
                       <p class="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
                         <span class="font-mono text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{{ o.orderNumber }}</span>
+                        <span v-if="o.departmentCode" class="font-mono text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-bold">{{ o.departmentCode }}</span>
                         {{ o.customerEmail }}
                       </p>
                       <div v-if="getExistingPaidOrders(o).length > 0" class="mt-1">
@@ -402,15 +412,29 @@ const actioning = ref(null);
 const tenantLogo = ref('');
 const tenantName = ref('');
 const currentTab = ref('ALL');
+const selectedDepartment = ref('ALL');
 
 const pendingCount = computed(() => orders.value.filter(o => ['AWAITING_APPROVAL', 'PENDING'].includes(o.status)).length);
 
+const availableDepartments = computed(() => {
+  const depts = new Set(orders.value.map(o => o.departmentCode).filter(Boolean));
+  return ['ALL', ...Array.from(depts).sort()];
+});
+
 const filteredOrders = computed(() => {
-  if (currentTab.value === 'ALL') return orders.value;
+  let result = orders.value;
+  
   if (currentTab.value === 'AWAITING_APPROVAL') {
-    return orders.value.filter(o => ['AWAITING_APPROVAL', 'PENDING'].includes(o.status));
+    result = result.filter(o => ['AWAITING_APPROVAL', 'PENDING'].includes(o.status));
+  } else if (currentTab.value !== 'ALL') {
+    result = result.filter(o => o.status === currentTab.value);
   }
-  return orders.value.filter(o => o.status === currentTab.value);
+  
+  if (selectedDepartment.value !== 'ALL') {
+    result = result.filter(o => o.departmentCode === selectedDepartment.value);
+  }
+  
+  return result;
 });
 
 // Receipt modal state

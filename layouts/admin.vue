@@ -39,6 +39,10 @@
           <Scan class="w-5 h-5 shrink-0" />
           <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Gate Scanner</span>
         </NuxtLink>
+        <NuxtLink to="/admin/communications" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.includes('/communications') }">
+          <Megaphone class="w-5 h-5 shrink-0" />
+          <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Communications</span>
+        </NuxtLink>
         <NuxtLink to="/admin/settings" class="nav-link flex items-center gap-3" :class="{ 'nav-link-active': route.path.includes('/settings') }">
           <Palette class="w-5 h-5 shrink-0" />
           <span :class="{'hidden lg:hidden': isSidebarCollapsed, 'block': !isSidebarCollapsed}" class="whitespace-nowrap">Branding & Payouts</span>
@@ -113,7 +117,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { LayoutDashboard, CalendarDays, CreditCard, Scan, Palette, ShieldCheck, PanelLeftClose, PanelLeftOpen, X, LogOut, Menu, Users } from 'lucide-vue-next';
+import { LayoutDashboard, CalendarDays, CreditCard, Scan, Megaphone, Palette, ShieldCheck, PanelLeftClose, PanelLeftOpen, X, LogOut, Menu, Users } from 'lucide-vue-next';
 
 const isSidebarOpen = ref(false);
 const isSidebarCollapsed = ref(false);
@@ -130,6 +134,7 @@ const routeName = computed(() => {
   if (path.includes('/orders')) return 'Orders & Financials';
   if (path.includes('/internal-tickets')) return 'Internal & Special Tickets';
   if (path.includes('/scanner')) return 'Gate Scanner';
+  if (path.includes('/communications')) return 'Communications';
   if (path.includes('/settings')) return 'Branding & Settings';
   if (path.includes('/audit-logs')) return 'Audit Logs';
   return '';
