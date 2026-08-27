@@ -1,12 +1,77 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6 lg:p-8 space-y-8">
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Broadcast Communications</h1>
-      <p class="text-sm text-gray-500 mt-1">Send emails to your attendees directly from the platform.</p>
+  <div class="max-w-6xl mx-auto p-6 lg:p-8 space-y-8">
+    
+    <!-- Header Area -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Broadcast Communications</h1>
+        <p class="text-sm text-gray-500 mt-1">Manage and send emails to your attendees directly from the platform.</p>
+      </div>
+      <button 
+        v-if="viewMode === 'list'"
+        @click="openCompose(null)"
+        class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        New Broadcast
+      </button>
     </div>
 
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 lg:p-8">
-      <form @submit.prevent="sendBroadcast" class="space-y-6">
+    <!-- LIST VIEW -->
+    <div v-if="viewMode === 'list'" class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      <div v-if="loadingList" class="p-8 text-center text-gray-500 animate-pulse">Loading communications...</div>
+      <div v-else-if="communications.length === 0" class="p-12 text-center">
+        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900">No communications found</h3>
+        <p class="text-sm text-gray-500 mt-1">You haven't created any emails yet.</p>
+        <button @click="openCompose(null)" class="mt-6 px-5 py-2.5 bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 transition-all">Create your first broadcast</button>
+      </div>
+      <table v-else class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-gray-50 border-b border-gray-200">
+            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Subject</th>
+            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Audience</th>
+            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr v-for="comm in communications" :key="comm._id" class="hover:bg-gray-50 transition-colors">
+            <td class="py-4 px-6 text-sm font-medium text-gray-900">
+              <span class="truncate block max-w-xs" :title="comm.subject">{{ comm.subject }}</span>
+            </td>
+            <td class="py-4 px-6 text-sm text-gray-500 capitalize">{{ comm.audience }}</td>
+            <td class="py-4 px-6">
+              <span 
+                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+                :class="{
+                  'bg-gray-100 text-gray-800': comm.status === 'DRAFT',
+                  'bg-blue-100 text-blue-800 animate-pulse': comm.status === 'SENDING',
+                  'bg-green-100 text-green-800': comm.status === 'SENT',
+                  'bg-red-100 text-red-800': comm.status === 'FAILED',
+                }"
+              >
+                {{ comm.status }}
+              </span>
+            </td>
+            <td class="py-4 px-6 text-sm text-gray-500">{{ new Date(comm.createdAt).toLocaleDateString() }}</td>
+            <td class="py-4 px-6 text-sm text-right space-x-3">
+              <button @click="showPreview(comm)" class="text-indigo-600 hover:text-indigo-900 font-medium">Preview</button>
+              <button v-if="comm.status === 'DRAFT' || comm.status === 'FAILED'" @click="openCompose(comm)" class="text-gray-600 hover:text-gray-900 font-medium">Edit</button>
+              <button v-if="comm.status === 'DRAFT' || comm.status === 'FAILED' || comm.status === 'SENT'" @click="confirmSend(comm)" class="text-green-600 hover:text-green-900 font-medium">{{ comm.status === 'DRAFT' ? 'Send' : 'Resend' }}</button>
+              <button v-if="comm.status !== 'SENDING'" @click="confirmDelete(comm)" class="text-red-600 hover:text-red-900 font-medium">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- COMPOSE VIEW -->
+    <div v-if="viewMode === 'compose'" class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 lg:p-8">
+      <form @submit.prevent="saveOrSend('send')" class="space-y-6">
         
         <div class="space-y-2">
           <label class="block text-sm font-semibold text-gray-700">Target Audience <span class="text-red-500">*</span></label>
@@ -74,14 +139,29 @@
           </div>
         </div>
 
-        <div class="pt-4 flex items-center justify-end border-t border-gray-100">
+        <div class="pt-6 flex flex-col-reverse sm:flex-row items-center justify-end gap-3 border-t border-gray-100">
+          <button 
+            type="button"
+            @click="cancelCompose"
+            class="w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all"
+          >
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            @click="saveOrSend('draft')"
+            :disabled="loading || !isFormValid" 
+            class="w-full sm:w-auto px-6 py-3 bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 transition-all disabled:opacity-50"
+          >
+            Save as Draft
+          </button>
           <button 
             type="submit" 
             :disabled="loading || !isFormValid" 
-            class="flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <svg v-if="loading" class="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <span>{{ loading ? 'Sending Broadcast...' : 'Send Broadcast' }}</span>
+            <svg v-if="loading && submittingAction === 'send'" class="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <span>{{ (loading && submittingAction === 'send') ? 'Sending...' : 'Send Broadcast' }}</span>
           </button>
         </div>
 
@@ -90,6 +170,29 @@
     
     <!-- Hidden file input for custom image handler -->
     <input type="file" ref="imageUploadInput" class="hidden" accept="image/*" @change="handleImageUpload" />
+
+    <!-- Modals -->
+    <ConfirmModal 
+      :isOpen="isDeleteModalOpen"
+      title="Delete Communication"
+      description="Are you sure you want to delete this email? This action cannot be undone."
+      @close="isDeleteModalOpen = false"
+      @confirm="executeDelete"
+    />
+
+    <ConfirmModal 
+      :isOpen="isSendModalOpen"
+      title="Dispatch Email"
+      description="Are you sure you want to send this broadcast right now? It will be delivered to the selected audience immediately."
+      @close="isSendModalOpen = false"
+      @confirm="executeSend"
+    />
+
+    <PreviewModal 
+      :isOpen="isPreviewModalOpen"
+      :htmlContent="previewContent"
+      @close="isPreviewModalOpen = false"
+    />
   </div>
 </template>
 
@@ -99,6 +202,8 @@ import { useRuntimeConfig } from '#app';
 import { toast } from 'vue-sonner';
 import { X } from 'lucide-vue-next';
 import CustomSelect from '~/components/CustomSelect.vue';
+import ConfirmModal from '~/components/ConfirmModal.vue';
+import PreviewModal from '~/components/PreviewModal.vue';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
@@ -106,8 +211,19 @@ definePageMeta({ layout: 'admin' });
 
 const config = useRuntimeConfig();
 
+const viewMode = ref('list'); // 'list' or 'compose'
+const communications = ref([]);
+const loadingList = ref(false);
+
 const events = ref([]);
 const loading = ref(false);
+const submittingAction = ref(''); // 'draft' or 'send'
+
+const isDeleteModalOpen = ref(false);
+const isSendModalOpen = ref(false);
+const isPreviewModalOpen = ref(false);
+const commToActOn = ref(null);
+const previewContent = ref('');
 
 const audienceOptions = [
   { value: 'all', label: 'All Attendees (Across all events)' },
@@ -120,6 +236,7 @@ const eventOptions = computed(() => {
 });
 
 const form = ref({
+  id: null,
   audience: '',
   eventId: '',
   subject: '',
@@ -170,16 +287,218 @@ const toolbarOptions = [
 
 onMounted(async () => {
   await fetchEvents();
-  
+  await fetchCommunications();
+});
+
+const fetchCommunications = async () => {
+  loadingList.value = true;
+  try {
+    const res = await fetch(`${config.public.apiBase}/communications`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
+      }
+    });
+    if (res.ok) {
+      communications.value = await res.json();
+    }
+  } catch (err) {
+    toast.error('Failed to load communications history.');
+  } finally {
+    loadingList.value = false;
+  }
+};
+
+const fetchEvents = async () => {
+  try {
+    const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
+      }
+    });
+    if (res.ok) {
+      events.value = await res.json();
+    } else {
+      const res2 = await fetch(`${config.public.apiBase}/events/tenant`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
+        }
+      });
+      if (res2.ok) {
+         events.value = await res2.json();
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching events:', error);
+  }
+};
+
+const initQuill = () => {
   setTimeout(() => {
     if (quillEditor.value) {
       const quill = quillEditor.value.getQuill();
-      quill.getModule('toolbar').addHandler('image', () => {
-        imageUploadInput.value.click();
-      });
+      if(quill) {
+        quill.getModule('toolbar').addHandler('image', () => {
+          imageUploadInput.value.click();
+        });
+        if (form.value.message) {
+          quillEditor.value.setHTML(form.value.message);
+        }
+      }
     }
   }, 1000);
-});
+};
+
+const openCompose = (comm = null) => {
+  if (comm) {
+    form.value = {
+      id: comm._id,
+      audience: comm.audience,
+      eventId: comm.eventId || '',
+      subject: comm.subject,
+      message: comm.message
+    };
+    customEmailsList.value = comm.customEmails || [];
+  } else {
+    form.value = { id: null, audience: '', eventId: '', subject: '', message: '' };
+    customEmailsList.value = [];
+  }
+  emailInput.value = '';
+  viewMode.value = 'compose';
+  initQuill();
+};
+
+const cancelCompose = () => {
+  viewMode.value = 'list';
+};
+
+const showPreview = (comm) => {
+  previewContent.value = comm.message;
+  isPreviewModalOpen.value = true;
+};
+
+const confirmDelete = (comm) => {
+  commToActOn.value = comm;
+  isDeleteModalOpen.value = true;
+};
+
+const confirmSend = (comm) => {
+  commToActOn.value = comm;
+  isSendModalOpen.value = true;
+};
+
+const executeDelete = async () => {
+  isDeleteModalOpen.value = false;
+  try {
+    const res = await fetch(`${config.public.apiBase}/communications/${commToActOn.value._id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
+      }
+    });
+    if (res.ok) {
+      toast.success('Deleted successfully');
+      fetchCommunications();
+    } else {
+      toast.error('Failed to delete');
+    }
+  } catch (err) {
+    toast.error('Network error');
+  }
+};
+
+const executeSend = async () => {
+  isSendModalOpen.value = false;
+  
+  // We can optimistically mark it as sending in UI
+  const commIndex = communications.value.findIndex(c => c._id === commToActOn.value._id);
+  if (commIndex > -1) {
+    communications.value[commIndex].status = 'SENDING';
+  }
+  toast.info('Dispatching emails in the background...');
+
+  try {
+    const res = await fetch(`${config.public.apiBase}/communications/${commToActOn.value._id}/send`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
+      }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Broadcast sent successfully!');
+      } else {
+        toast.error(data.message || 'Failed to send broadcast');
+      }
+    } else {
+      toast.error('Error occurred while dispatching.');
+    }
+  } catch (err) {
+    toast.error('Network error while dispatching.');
+  } finally {
+    fetchCommunications(); // refresh status
+  }
+};
+
+const saveOrSend = async (action) => {
+  if (form.value.audience === 'custom' && emailInput.value.trim()) {
+    addEmail();
+  }
+
+  if (!isFormValid.value) return;
+  
+  // If action is send from the compose view, we first save, then send.
+  submittingAction.value = action;
+  loading.value = true;
+  
+  try {
+    const payload = {
+      audience: form.value.audience,
+      eventId: form.value.audience === 'event' ? form.value.eventId : undefined,
+      customEmails: form.value.audience === 'custom' ? customEmailsList.value : undefined,
+      subject: form.value.subject,
+      message: form.value.message
+    };
+
+    const method = form.value.id ? 'PUT' : 'POST';
+    const url = form.value.id 
+      ? `${config.public.apiBase}/communications/${form.value.id}` 
+      : `${config.public.apiBase}/communications`;
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (res.ok) {
+      const savedComm = await res.json();
+      
+      if (action === 'send') {
+        // Send it now
+        commToActOn.value = savedComm;
+        // Don't show modal, just send it because they clicked Send Broadcast from form
+        await executeSend(); 
+      } else {
+        toast.success('Draft saved successfully');
+      }
+      
+      viewMode.value = 'list';
+      fetchCommunications();
+    } else {
+      const err = await res.json();
+      toast.error(err.message || 'Error occurred while saving.');
+    }
+  } catch (error) {
+    toast.error('Network error. Check your connection.');
+  } finally {
+    loading.value = false;
+    submittingAction.value = '';
+  }
+};
 
 const handleImageUpload = async (event) => {
   const file = event.target.files[0];
@@ -216,88 +535,6 @@ const handleImageUpload = async (event) => {
     toast.error('Network error while uploading image', { id: 'image-upload' });
   } finally {
     event.target.value = '';
-  }
-};
-
-const fetchEvents = async () => {
-  try {
-    const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      }
-    });
-    if (res.ok) {
-      events.value = await res.json();
-    } else {
-      const res2 = await fetch(`${config.public.apiBase}/events/tenant`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-        }
-      });
-      if (res2.ok) {
-         events.value = await res2.json();
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching events:', error);
-  }
-};
-
-const sendBroadcast = async () => {
-  if (form.value.audience === 'custom' && emailInput.value.trim()) {
-    addEmail();
-  }
-
-  if (!isFormValid.value) return;
-  
-  const confirmMsg = "Are you sure you want to broadcast this email? This action cannot be undone.";
-  if (!window.confirm(confirmMsg)) return;
-
-  loading.value = true;
-  
-  try {
-    const payload = {
-      audience: form.value.audience,
-      eventId: form.value.audience === 'event' ? form.value.eventId : undefined,
-      customEmails: form.value.audience === 'custom' ? customEmailsList.value : undefined,
-      subject: form.value.subject,
-      message: form.value.message
-    };
-
-    const res = await fetch(`${config.public.apiBase}/communications/broadcast`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success) {
-         toast.success(data.message || 'Broadcast sent successfully!');
-         form.value.audience = '';
-         form.value.eventId = '';
-         customEmailsList.value = [];
-         emailInput.value = '';
-         form.value.subject = '';
-         form.value.message = '';
-         
-         if (quillEditor.value) {
-            quillEditor.value.setHTML('');
-         }
-      } else {
-         toast.error(data.message || 'Failed to send broadcast');
-      }
-    } else {
-      const err = await res.json();
-      toast.error(err.message || 'Error occurred while broadcasting.');
-    }
-  } catch (error) {
-    toast.error('Network error. Check your connection.');
-  } finally {
-    loading.value = false;
   }
 };
 </script>
