@@ -47,6 +47,7 @@
                 <th class="px-6 py-4">Attendee Name</th>
                 <th class="px-6 py-4">Email</th>
                 <th class="px-6 py-4">Tier</th>
+                <th class="px-6 py-4">Email Status</th>
                 <th class="px-6 py-4">Check-in Status</th>
                 <th class="px-6 py-4 text-right">Action</th>
               </tr>
@@ -65,19 +66,50 @@
                 <td class="px-6 py-4 text-xs text-gray-700">{{ att.tierId?.name || 'Standard' }}</td>
                 <td class="px-6 py-4">
                   <span
-                    :class="att.status === 'CHECKED_IN' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'"
+                    :class="att.emailSent ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-red-500/10 text-red-600 border-red-500/20'"
+                    class="px-2.5 py-1 rounded-full text-[11px] font-semibold border"
+                  >
+                    {{ att.emailSent ? 'Sent' : 'Failed' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <span
+                    :class="att.status === 'CHECKED_IN' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'"
                     class="px-2.5 py-1 rounded-full text-[11px] font-semibold border"
                   >
                     {{ att.status }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-right">
+                <td class="px-6 py-4 text-right space-x-2">
+                  <button
+                    v-if="!att.emailSent"
+                    @click="resendEmail(att)"
+                    class="btn-primary text-[10px] !py-1 !px-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 shadow-none"
+                    title="Resend ticket email"
+                  >
+                    Resend Email
+                  </button>
+                  <button
+                    @click="openUpdateEmailModal(att)"
+                    class="btn-secondary text-[10px] !py-1 !px-2 border border-gray-200 text-gray-600 hover:bg-gray-100"
+                    title="Update email & resend"
+                  >
+                    Update Email
+                  </button>
                   <button
                     @click="manualCheckIn(att)"
                     :disabled="att.status === 'CHECKED_IN'"
-                    class="btn-secondary text-[11px] !py-1 !px-3 disabled:opacity-40"
+                    class="btn-secondary text-[10px] !py-1 !px-2 disabled:opacity-40"
                   >
                     {{ att.status === 'CHECKED_IN' ? 'Checked In' : 'Manual Check-in' }}
+                  </button>
+                  <button
+                    @click="openChangeTierModal(att)"
+                    :disabled="att.status === 'CHECKED_IN'"
+                    class="btn-primary text-[10px] !py-1 !px-2 bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 shadow-none disabled:opacity-40"
+                    title="Change ticket tier"
+                  >
+                    Change Tier
                   </button>
                 </td>
               </tr>
@@ -105,15 +137,63 @@
         </button>
       </div>
     </div>
+    
+    <!-- Update Email Modal -->
+    <div v-if="updateEmailModal.show" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm px-4">
+      <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform scale-100 opacity-100 transition-all border border-indigo-50">
+        <h3 class="text-xl font-extrabold text-gray-900 mb-2">Update Email</h3>
+        <p class="text-xs text-gray-600 mb-4">Update the email address for ticket <strong>{{ updateEmailModal.ticket.ticketNumber }}</strong> and resend it.</p>
+        
+        <input 
+          v-model="updateEmailModal.newEmail" 
+          type="email" 
+          placeholder="New Email Address" 
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 mb-4 focus:outline-none focus:border-primary"
+        />
+
+        <div class="flex gap-3">
+          <button @click="updateEmailModal.show = false" class="w-1/2 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
+          <button @click="submitUpdateEmail" :disabled="updateEmailModal.submitting || !updateEmailModal.newEmail" class="w-1/2 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition disabled:opacity-50">
+            {{ updateEmailModal.submitting ? 'Sending...' : 'Update & Resend' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Change Tier Modal -->
+    <div v-if="changeTierModal.show" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm px-4">
+      <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl transform scale-100 opacity-100 transition-all border border-indigo-50">
+        <h3 class="text-xl font-extrabold text-gray-900 mb-2">Change Ticket Tier</h3>
+        <p class="text-xs text-gray-600 mb-4">Select a new tier for ticket <strong>{{ changeTierModal.ticket.ticketNumber }}</strong>.</p>
+        
+        <select 
+          v-model="changeTierModal.newTierId" 
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 mb-4 focus:outline-none focus:border-primary bg-gray-50"
+        >
+          <option value="" disabled>Select new tier</option>
+          <option v-for="tier in tiers" :key="tier._id" :value="tier._id" :disabled="tier._id === changeTierModal.ticket.tierId?._id">
+            {{ tier.name }} - ₦{{ tier.price.toLocaleString() }}
+          </option>
+        </select>
+
+        <div class="flex gap-3">
+          <button @click="changeTierModal.show = false" class="w-1/2 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Cancel</button>
+          <button @click="submitChangeTier" :disabled="changeTierModal.submitting || !changeTierModal.newTierId" class="w-1/2 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition disabled:opacity-50">
+            {{ changeTierModal.submitting ? 'Updating...' : 'Change Tier' }}
+          </button>
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>
 
 <script setup>
-definePageMeta({ layout: 'admin' });
 
 import { ref, computed, onMounted } from 'vue';
 import { Download, CalendarDays } from 'lucide-vue-next';
+
+definePageMeta({ layout: 'admin' });
 
 const config = useRuntimeConfig();
 const route = useRoute();
@@ -124,8 +204,23 @@ const attendees = ref([]);
 const loading = ref(true);
 const showPreEventPrompt = ref(false);
 
+const updateEmailModal = ref({
+  show: false,
+  ticket: null,
+  newEmail: '',
+  submitting: false,
+});
+
+const changeTierModal = ref({
+  show: false,
+  ticket: null,
+  newTierId: '',
+  submitting: false,
+});
+
 const searchQuery = ref('');
 const filterStatus = ref('ALL');
+const tiers = ref([]);
 
 const filteredAttendees = computed(() => {
   return attendees.value.filter((a) => {
@@ -167,6 +262,15 @@ async function loadAttendees() {
       eventInfo.value = data.event;
       attendees.value = data.attendees || [];
     }
+    
+    // Fetch tiers
+    const resEvent = await fetch(`${config.public.apiBase}/events/${eventId.value}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (resEvent.ok) {
+      const eventData = await resEvent.json();
+      tiers.value = eventData.tiers || [];
+    }
   } catch (err) {
     console.error('Error fetching attendees:', err);
   } finally {
@@ -195,6 +299,116 @@ async function manualCheckIn(ticket) {
     }
   } catch (e) {
     console.error(e);
+  }
+}
+
+async function resendEmail(ticket) {
+  const token = localStorage.getItem('ticketr_admin_token');
+  try {
+    const res = await fetch(`${config.public.apiBase}/tickets/${ticket._id}/resend-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({}),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      ticket.emailSent = data.emailSent;
+      alert('Email sent successfully!');
+    } else {
+      alert('Failed to send email.');
+    }
+  } catch (e) {
+    console.error(e);
+    alert('An error occurred while resending email.');
+  }
+}
+
+function openUpdateEmailModal(ticket) {
+  updateEmailModal.value = {
+    show: true,
+    ticket,
+    newEmail: ticket.attendeeEmail || '',
+    submitting: false,
+  };
+}
+
+async function submitUpdateEmail() {
+  const modal = updateEmailModal.value;
+  if (!modal.newEmail) return;
+
+  const token = localStorage.getItem('ticketr_admin_token');
+  modal.submitting = true;
+  
+  try {
+    const res = await fetch(`${config.public.apiBase}/tickets/${modal.ticket._id}/resend-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ newEmail: modal.newEmail }),
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      modal.ticket.attendeeEmail = data.attendeeEmail;
+      modal.ticket.emailSent = data.emailSent;
+      modal.show = false;
+      alert('Email updated and resent successfully!');
+    } else {
+      alert('Failed to update and resend email.');
+    }
+  } catch (e) {
+    console.error(e);
+    alert('An error occurred.');
+  } finally {
+    modal.submitting = false;
+  }
+}
+
+function openChangeTierModal(ticket) {
+  changeTierModal.value = {
+    show: true,
+    ticket,
+    newTierId: '',
+    submitting: false,
+  };
+}
+
+async function submitChangeTier() {
+  const modal = changeTierModal.value;
+  if (!modal.newTierId) return;
+
+  const token = localStorage.getItem('ticketr_admin_token');
+  modal.submitting = true;
+  
+  try {
+    const res = await fetch(`${config.public.apiBase}/tickets/${modal.ticket._id}/change-tier`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ newTierId: modal.newTierId }),
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      modal.show = false;
+      alert(`Tier changed successfully! Price difference: ₦${data.priceDifference.toLocaleString()}`);
+      loadAttendees();
+    } else {
+      const err = await res.json();
+      alert(`Failed: ${err.message}`);
+    }
+  } catch (e) {
+    console.error(e);
+    alert('An error occurred while changing tier.');
+  } finally {
+    modal.submitting = false;
   }
 }
 
