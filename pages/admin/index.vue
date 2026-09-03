@@ -233,7 +233,10 @@ async function loadDashboardData() {
     ]);
 
     if (analyticsRes.ok) analytics.value = await analyticsRes.json();
-    if (eventsRes.ok) events.value = await eventsRes.json();
+    if (eventsRes.ok) {
+      const eData = await eventsRes.json();
+      events.value = eData.data || eData;
+    }
   } catch (err) {
     console.error('Error loading organizer data:', err);
   } finally {
