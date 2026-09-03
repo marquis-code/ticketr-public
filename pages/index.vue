@@ -305,6 +305,13 @@
           </div>
         </NuxtLink>
       </div>
+
+      <!-- Pagination Controls for Public App -->
+      <div v-if="totalPages > 1" class="max-w-7xl mx-auto px-6 mt-12 flex justify-center items-center gap-4">
+        <button @click="changePage(page - 1)" :disabled="page <= 1" class="px-5 py-2 border border-gray-200 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition">Previous</button>
+        <span class="text-sm font-semibold text-gray-500">Page {{ page }} of {{ totalPages }}</span>
+        <button @click="changePage(page + 1)" :disabled="page >= totalPages" class="px-5 py-2 border border-gray-200 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition">Next</button>
+      </div>
     </main>
 
     <!-- Footer -->
@@ -374,10 +381,15 @@ const resolveSubdomain = () => {
 };
 
 const activeSlug = ref(resolveSubdomain());
+const page = ref(1);
+const limit = ref(12);
 
-const { data, pending: loading } = await useFetch(
-  activeSlug.value ? `${config.public.apiBase}/events/tenant/${activeSlug.value}` : `${config.public.apiBase}/events/public/all`
-);
+const { data, pending: loading, refresh } = await useFetch(() => {
+  const query = new URLSearchParams({ page: page.value, limit: limit.value }).toString();
+  return activeSlug.value 
+    ? `${config.public.apiBase}/events/tenant/${activeSlug.value}?${query}` 
+    : `${config.public.apiBase}/events/public/all?${query}`;
+});
 
 const getEventLink = (event) => {
   if (activeSlug.value) {
@@ -395,7 +407,22 @@ const getEventLink = (event) => {
 };
 
 const tenantInfo = computed(() => data.value?.tenant || null);
-const events = computed(() => data.value?.events || []);
+const events = computed(() => {
+  if (data.value?.events?.data) {
+    return data.value.events.data;
+  }
+  return data.value?.events || [];
+});
+
+const totalPages = computed(() => data.value?.events?.metadata?.lastPage || 1);
+
+function changePage(newPage) {
+  if (newPage < 1 || newPage > totalPages.value) return;
+  page.value = newPage;
+  refresh();
+  window.scrollTo({ top: document.getElementById('events')?.offsetTop || 0, behavior: 'smooth' });
+}
+
 const searchQuery = ref('');
 
 useSeoMeta({

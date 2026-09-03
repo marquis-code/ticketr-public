@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+  <div>
     <div class="w-full max-w-md">
       <!-- Verifying state -->
       <div v-if="verifying" class="glass-card rounded-2xl p-12 text-center shadow-lg">
@@ -95,7 +95,7 @@ async function verifyTicket(commit = false) {
   
   if (!token) {
     toast.error('You must be logged in as an Admin to scan tickets. Redirecting to login...');
-    router.push(`/admin/login?redirect=/admin/verify/${hash}`);
+    router.push(`/login?redirect=/dashboard/verify/${hash}`);
     return;
   }
 

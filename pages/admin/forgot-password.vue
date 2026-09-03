@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 font-sans px-4">
+  <div>
     <div class="w-full max-w-md bg-white px-6 py-8 sm:p-8 rounded-2xl shadow-md sm:shadow-lg border border-gray-100">
       <div class="text-center mb-8">
         <h1 class="font-display text-2xl font-bold text-gray-900 mb-2">Forgot Password</h1>
@@ -33,7 +33,7 @@
           <span v-else>Send Reset Link</span>
         </button>
         
-        <NuxtLink to="/admin/login" class="block w-full text-center mt-4 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+        <NuxtLink to="/login" class="block w-full text-center mt-4 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
           Back to Login
         </NuxtLink>
       </form>
@@ -43,7 +43,7 @@
           <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
         </div>
         <p class="text-gray-900 font-medium">{{ successMsg }}</p>
-        <NuxtLink to="/admin/login" class="inline-block mt-6 px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+        <NuxtLink to="/login" class="inline-block mt-6 px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
           Return to Login
         </NuxtLink>
       </div>

@@ -181,7 +181,11 @@
                   />
                 </div>
 
-                <div class="flex items-center justify-end pt-4 sm:pt-0">
+                <div class="col-span-1 sm:col-span-4 flex items-center justify-between pt-2 border-t border-gray-100">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" :id="'couple-' + index" v-model="tier.isCoupleTicket" class="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary" />
+                    <label :for="'couple-' + index" class="text-[11px] font-medium text-gray-600">Is a Couple Ticket (Admits 2 Attendees)</label>
+                  </div>
                   <button
                     type="button"
                     @click="removeTier(index)"
@@ -214,6 +218,7 @@
 <script setup>
 definePageMeta({ layout: 'admin' });
 
+
 import { toast } from 'vue-sonner';
 import { ref } from 'vue';
 import { Send, Check } from 'lucide-vue-next';
@@ -235,7 +240,7 @@ const form = ref({
   description: '',
   carouselImages: [],
   tiers: [
-    { name: 'Standard Ticket', price: 2500, capacity: 100, maxPerPurchase: 700 },
+    { name: 'Standard Ticket', price: 2500, capacity: 100, maxPerPurchase: 700, isCoupleTicket: false },
   ],
 });
 
@@ -284,6 +289,7 @@ function addTier() {
     price: 5000,
     capacity: 50,
     maxPerPurchase: 700,
+    isCoupleTicket: false,
   });
 }
 

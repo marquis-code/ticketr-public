@@ -4,7 +4,7 @@
     
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full space-y-6">
+    <main class="w-full space-y-8">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-extrabold text-gray-900">Events Management</h1>
@@ -21,6 +21,20 @@
         </div>
       </div>
 
+      </div>
+
+      <!-- Advanced Statistics -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Total Events</p>
+          <h3 class="text-2xl font-extrabold text-gray-900 mt-1">{{ stats.totalEvents }}</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Active Published Events</p>
+          <h3 class="text-2xl font-extrabold text-emerald-600 mt-1">{{ stats.activeEvents }}</h3>
+        </div>
+      </div>
+
       <!-- Events Table -->
       <TableLoadingState v-if="loading" message="Loading events..." />
 
@@ -31,6 +45,7 @@
           <table class="w-full text-left border-collapse whitespace-nowrap">
             <thead class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
               <tr>
+                <th class="px-4 py-4 w-12 text-center">S/N</th>
                 <th class="px-6 py-4">Event</th>
                 <th class="px-6 py-4 text-center">Tickets Sold</th>
                 <th class="px-6 py-4 text-center">Status</th>
@@ -38,7 +53,10 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 bg-white">
-              <tr v-for="ev in filteredEvents" :key="ev._id" class="hover:bg-gray-50 transition-colors duration-150">
+              <tr v-for="(ev, index) in events" :key="ev._id" class="hover:bg-gray-50 transition-colors duration-150">
+                <td class="px-4 py-4 text-center font-semibold text-gray-500 text-sm">
+                  {{ (page - 1) * limit + index + 1 }}
+                </td>
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-4">
                     <img
@@ -62,10 +80,10 @@
                 </td>
                 <td class="px-6 py-4 text-right">
                   <div class="flex items-center justify-end gap-2">
-                    <NuxtLink :to="`/admin/events/${ev._id}/attendees`" class="btn-secondary text-[11px] flex items-center gap-1.5 !py-1.5 !px-3" title="Attendee Roster">
+                    <NuxtLink :to="`/dashboard/events/${ev._id}/attendees`" class="btn-secondary text-[11px] flex items-center gap-1.5 !py-1.5 !px-3" title="Attendee Roster">
                       <ClipboardList class="w-3.5 h-3.5" /> Roster
                     </NuxtLink>
-                    <NuxtLink :to="`/admin/events/${ev._id}/edit`" class="text-[11px] text-primary hover:bg-primary/10 border border-primary/30 font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-lg transition" title="Edit Event">
+                    <NuxtLink :to="`/dashboard/events/${ev._id}/edit`" class="text-[11px] text-primary hover:bg-primary/10 border border-primary/30 font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-lg transition" title="Edit Event">
                       <Pencil class="w-3.5 h-3.5" /> Edit
                     </NuxtLink>
                     <button @click="deleteEvent(ev._id)" class="text-[11px] text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-lg transition" title="Delete Event">
@@ -76,6 +94,18 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div v-if="events.length > 0" class="p-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="text-sm text-gray-500">
+            Showing <span class="font-bold text-gray-900">{{ (page - 1) * limit + 1 }}</span> to <span class="font-bold text-gray-900">{{ (page - 1) * limit + events.length }}</span> of <span class="font-bold text-gray-900">{{ totalRecords }}</span> events
+          </div>
+          <div class="flex items-center gap-2">
+            <button @click="changePage(page - 1)" :disabled="page <= 1" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+            <span class="text-sm text-gray-700 font-semibold px-2">Page {{ page }} of {{ totalPages }}</span>
+            <button @click="changePage(page + 1)" :disabled="page >= totalPages" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+          </div>
         </div>
       </div>
       <input type="file" ref="imageUploadInput" class="hidden" accept="image/*" @change="handleImageUpload" />
@@ -98,6 +128,7 @@
 <script setup>
 definePageMeta({ layout: 'admin' });
 
+
 import { toast } from 'vue-sonner';
 import { ref, computed, onMounted } from 'vue';
 import { Calendar, ClipboardList, Pencil, Trash2 } from 'lucide-vue-next';
@@ -109,6 +140,22 @@ const loading = ref(true);
 const search = ref('');
 const imageUploadInput = ref(null);
 const currentEditingEventId = ref(null);
+
+const page = ref(1);
+const limit = ref(20);
+const totalPages = ref(1);
+const totalRecords = ref(0);
+
+const stats = ref({
+  totalEvents: 0,
+  activeEvents: 0
+});
+
+function changePage(newPage) {
+  if (newPage < 1 || newPage > totalPages.value) return;
+  page.value = newPage;
+  loadEvents();
+}
 
 const confirmModal = ref({
   show: false,
@@ -136,11 +183,24 @@ async function loadEvents() {
 
   loading.value = true;
   try {
-    const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {
+    const query = new URLSearchParams({
+      page: page.value,
+      limit: limit.value,
+      search: search.value,
+    });
+    const res = await fetch(`${config.public.apiBase}/events/admin/my-events?${query.toString()}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
-      events.value = await res.json();
+      const data = await res.json();
+      if (data.metadata) {
+        events.value = data.data;
+        totalPages.value = data.metadata.lastPage;
+        totalRecords.value = data.metadata.total;
+        stats.value = data.metadata.statistics;
+      } else {
+        events.value = data;
+      }
     }
   } catch (err) {
     console.error('Error loading events:', err);
@@ -148,6 +208,11 @@ async function loadEvents() {
     loading.value = false;
   }
 }
+
+watch(search, () => {
+  page.value = 1;
+  loadEvents();
+});
 
 async function deleteEvent(eventId) {
   showConfirm({

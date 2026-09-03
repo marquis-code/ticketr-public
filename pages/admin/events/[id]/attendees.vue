@@ -3,7 +3,7 @@
     <!-- Header -->
     
 
-    <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full space-y-6">
+    <main class="w-full space-y-8">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-extrabold text-gray-900">{{ eventInfo?.title || 'Event Roster' }}</h1>
@@ -14,6 +14,24 @@
           <button @click="exportCSV" class="btn-primary text-xs flex items-center gap-2 !py-2 !px-4">
             <Download class="w-4 h-4" /> Export CSV
           </button>
+        </div>
+      </div>
+
+      </div>
+
+      <!-- Advanced Statistics -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Total Tickets Sold</p>
+          <h3 class="text-2xl font-extrabold text-gray-900 mt-1">{{ stats.totalTickets }}</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Checked In</p>
+          <h3 class="text-2xl font-extrabold text-emerald-600 mt-1">{{ stats.checkedInCount }}</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Pending Check-in</p>
+          <h3 class="text-2xl font-extrabold text-amber-600 mt-1">{{ stats.pendingCount }}</h3>
         </div>
       </div>
 
@@ -43,6 +61,7 @@
           <table class="w-full text-left border-collapse whitespace-nowrap">
             <thead class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
               <tr>
+                <th class="px-4 py-4 w-12 text-center">S/N</th>
                 <th class="px-6 py-4">Ticket #</th>
                 <th class="px-6 py-4">Attendee Name</th>
                 <th class="px-6 py-4">Email</th>
@@ -53,7 +72,10 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 bg-white">
-              <tr v-for="att in filteredAttendees" :key="att._id" class="hover:bg-gray-50 transition-colors duration-150">
+              <tr v-for="(att, index) in attendees" :key="att._id" class="hover:bg-gray-50 transition-colors duration-150">
+                <td class="px-4 py-4 text-center font-semibold text-gray-500 text-sm">
+                  {{ (page - 1) * limit + index + 1 }}
+                </td>
                 <td class="px-6 py-4 font-mono text-xs text-primary">{{ att.ticketNumber }}</td>
                 <td class="px-6 py-4 font-semibold text-gray-900">
                   <div class="flex items-center gap-2">
@@ -115,6 +137,18 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div v-if="attendees.length > 0" class="p-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="text-sm text-gray-500">
+            Showing <span class="font-bold text-gray-900">{{ (page - 1) * limit + 1 }}</span> to <span class="font-bold text-gray-900">{{ (page - 1) * limit + attendees.length }}</span> of <span class="font-bold text-gray-900">{{ totalRecords }}</span> attendees
+          </div>
+          <div class="flex items-center gap-2">
+            <button @click="changePage(page - 1)" :disabled="page <= 1" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+            <span class="text-sm text-gray-700 font-semibold px-2">Page {{ page }} of {{ totalPages }}</span>
+            <button @click="changePage(page + 1)" :disabled="page >= totalPages" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+          </div>
         </div>
       </div>
     </main>
@@ -189,11 +223,11 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: 'admin' });
+
 
 import { ref, computed, onMounted } from 'vue';
 import { Download, CalendarDays } from 'lucide-vue-next';
-
-definePageMeta({ layout: 'admin' });
 
 const config = useRuntimeConfig();
 const route = useRoute();
@@ -222,16 +256,26 @@ const searchQuery = ref('');
 const filterStatus = ref('ALL');
 const tiers = ref([]);
 
-const filteredAttendees = computed(() => {
-  return attendees.value.filter((a) => {
-    const matchesSearch =
-      a.attendeeName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      a.attendeeEmail.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      a.ticketNumber.toLowerCase().includes(searchQuery.value.toLowerCase());
+const page = ref(1);
+const limit = ref(20);
+const totalPages = ref(1);
+const totalRecords = ref(0);
 
-    const matchesStatus = filterStatus.value === 'ALL' || a.status === filterStatus.value;
-    return matchesSearch && matchesStatus;
-  });
+const stats = ref({
+  totalTickets: 0,
+  checkedInCount: 0,
+  pendingCount: 0,
+});
+
+function changePage(newPage) {
+  if (newPage < 1 || newPage > totalPages.value) return;
+  page.value = newPage;
+  loadAttendees();
+}
+
+watch([searchQuery, filterStatus], () => {
+  page.value = 1;
+  loadAttendees();
 });
 
 function getCleanName(name) {
@@ -254,13 +298,27 @@ async function loadAttendees() {
 
   loading.value = true;
   try {
-    const res = await fetch(`${config.public.apiBase}/events/${eventId.value}/attendees`, {
+    const query = new URLSearchParams({
+      page: page.value,
+      limit: limit.value,
+      search: searchQuery.value,
+      status: filterStatus.value
+    });
+    
+    const res = await fetch(`${config.public.apiBase}/events/${eventId.value}/attendees?${query.toString()}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
       const data = await res.json();
       eventInfo.value = data.event;
-      attendees.value = data.attendees || [];
+      if (data.attendees.metadata) {
+        attendees.value = data.attendees.data || [];
+        totalPages.value = data.attendees.metadata.lastPage;
+        totalRecords.value = data.attendees.metadata.total;
+        stats.value = data.attendees.metadata.statistics;
+      } else {
+        attendees.value = data.attendees || [];
+      }
     }
     
     // Fetch tiers

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex w-full bg-white">
+  <div>
     <!-- Left Side: Form -->
     <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
       <div class="w-full max-w-md py-8">
@@ -101,7 +101,7 @@
 
         <p class="text-center text-sm text-gray-500 mt-8">
           Already have an account? 
-          <NuxtLink to="/admin/login" class="font-semibold text-primary hover:underline">Sign in</NuxtLink>
+          <NuxtLink to="/login" class="font-semibold text-primary hover:underline">Sign in</NuxtLink>
         </p>
       </div>
     </div>

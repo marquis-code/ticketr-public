@@ -2,7 +2,7 @@
   <div >
     
 
-    <main class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full space-y-6">
+    <main class="w-full space-y-8">
       <div>
         <h1 class="text-2xl font-extrabold text-gray-900">Orders & Financial Transactions</h1>
         <p class="text-xs text-gray-600 mt-1">Audit ticket purchases, Paystack transaction references, and revenue logs.</p>
@@ -29,6 +29,26 @@
         </div>
       </div>
 
+      <!-- Advanced Statistics -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Total Orders</p>
+          <h3 class="text-2xl font-extrabold text-gray-900 mt-1">{{ stats.totalOrders }}</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Total Paid</p>
+          <h3 class="text-2xl font-extrabold text-emerald-600 mt-1">{{ stats.totalPaidOrders }}</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Total Revenue</p>
+          <h3 class="text-2xl font-extrabold text-indigo-600 mt-1">₦{{ (stats.totalRevenue || 0).toLocaleString() }}</h3>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-center">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Pending Review</p>
+          <h3 class="text-2xl font-extrabold text-amber-600 mt-1">{{ stats.totalPending }}</h3>
+        </div>
+      </div>
+
       <!-- Orders Table -->
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <TableLoadingState v-if="loading" message="Loading orders..." />
@@ -38,6 +58,7 @@
           <table class="w-full text-left border-collapse whitespace-nowrap">
             <thead class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
               <tr>
+                <th class="py-4 px-4 md:px-6 w-16 text-center">S/N</th>
                 <th class="py-4 px-4 md:px-6">Customer & Order</th>
                 <th class="py-4 px-4 md:px-6">Event</th>
                 <th class="py-4 px-4 md:px-6">Amount</th>
@@ -46,7 +67,10 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 bg-white">
-              <tr v-for="o in filteredOrders" :key="o._id" class="hover:bg-gray-50 transition-colors duration-150">
+              <tr v-for="(o, index) in orders" :key="o._id" class="hover:bg-gray-50 transition-colors duration-150">
+                <td class="px-6 py-4 md:px-6 text-center font-semibold text-gray-500 text-sm">
+                  {{ (page - 1) * limit + index + 1 }}
+                </td>
                 <td class="px-6 py-4 md:px-6">
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
@@ -124,7 +148,7 @@
                     <button @click="remindOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Bell class="w-3.5 h-3.5" /> Send Reminder</button>
                     <button @click="deleteOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Trash class="w-3.5 h-3.5" /> Delete</button>
                   </div>
-
+                  
                   <div v-else-if="o.status !== 'PAID'" class="mt-3 flex flex-wrap justify-end gap-2">
                     <button @click="deleteOrder(o._id)" :disabled="actioning === o._id" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1"><Trash class="w-3.5 h-3.5" /> Delete</button>
                   </div>
@@ -133,6 +157,19 @@
             </tbody>
           </table>
         </div>
+        
+        <!-- Pagination Controls -->
+        <div class="p-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="text-sm text-gray-500">
+            Showing <span class="font-bold text-gray-900">{{ orders.length > 0 ? (page - 1) * limit + 1 : 0 }}</span> to <span class="font-bold text-gray-900">{{ (page - 1) * limit + orders.length }}</span> of <span class="font-bold text-gray-900">{{ totalRecords }}</span> orders
+          </div>
+          <div class="flex items-center gap-2">
+            <button @click="changePage(page - 1)" :disabled="page <= 1" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+            <span class="text-sm text-gray-700 font-semibold px-2">Page {{ page }} of {{ totalPages }}</span>
+            <button @click="changePage(page + 1)" :disabled="page >= totalPages" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+
       </div>
     </main>
 
@@ -378,6 +415,7 @@
 <script setup>
 definePageMeta({ layout: 'admin' });
 
+
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import { Ticket, Paperclip, Check, X, Bell, AlertTriangle, ShieldAlert, Upload, FileText, Trash } from 'lucide-vue-next';
@@ -416,25 +454,28 @@ const selectedDepartment = ref('ALL');
 
 const pendingCount = computed(() => orders.value.filter(o => ['AWAITING_APPROVAL', 'PENDING'].includes(o.status)).length);
 
-const availableDepartments = computed(() => {
-  const depts = new Set(orders.value.map(o => o.departmentCode).filter(Boolean));
-  return ['ALL', ...Array.from(depts).sort()];
-});
+const page = ref(1);
+const limit = ref(20);
+const totalPages = ref(1);
+const totalRecords = ref(0);
 
-const filteredOrders = computed(() => {
-  let result = orders.value;
-  
-  if (currentTab.value === 'AWAITING_APPROVAL') {
-    result = result.filter(o => ['AWAITING_APPROVAL', 'PENDING'].includes(o.status));
-  } else if (currentTab.value !== 'ALL') {
-    result = result.filter(o => o.status === currentTab.value);
-  }
-  
-  if (selectedDepartment.value !== 'ALL') {
-    result = result.filter(o => o.departmentCode === selectedDepartment.value);
-  }
-  
-  return result;
+const stats = ref({
+  totalOrders: 0,
+  totalPaidOrders: 0,
+  totalRevenue: 0,
+  totalPending: 0,
+});
+const availableDepartments = ref(['ALL']);
+
+function changePage(newPage) {
+  if (newPage < 1 || newPage > totalPages.value) return;
+  page.value = newPage;
+  loadOrders();
+}
+
+watch([currentTab, selectedDepartment], () => {
+  page.value = 1;
+  loadOrders();
 });
 
 // Receipt modal state
@@ -585,6 +626,7 @@ const manualApproveModal = ref({
 function getExistingPaidOrders(order) {
   if (!order || !order.customerEmail) return [];
   const eventId = order.eventId?._id || order.eventId;
+  // Fallback to checking the current page, better to check backend but this provides some safety
   return orders.value.filter(o => {
     if (o._id === order._id) return false;
     if (o.status !== 'PAID') return false;
@@ -731,11 +773,26 @@ async function loadOrders() {
 
   loading.value = true;
   try {
-    const res = await fetch(`${config.public.apiBase}/orders/tenant`, {
+    const query = new URLSearchParams({
+      page: page.value,
+      limit: limit.value,
+      status: currentTab.value,
+      departmentCode: selectedDepartment.value,
+    });
+    const res = await fetch(`${config.public.apiBase}/orders/tenant?${query.toString()}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
-      orders.value = await res.json();
+      const data = await res.json();
+      if (data.metadata) {
+        orders.value = data.data;
+        totalPages.value = data.metadata.lastPage;
+        totalRecords.value = data.metadata.total;
+        stats.value = data.metadata.statistics;
+        availableDepartments.value = data.metadata.statistics.availableDepartments || ['ALL'];
+      } else {
+        orders.value = data;
+      }
     }
   } catch (err) {
     console.error(err);

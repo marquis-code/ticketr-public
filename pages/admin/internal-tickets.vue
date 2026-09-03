@@ -129,7 +129,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRuntimeConfig } from '#app';
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'default'
 });
 
 const config = useRuntimeConfig();

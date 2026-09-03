@@ -121,7 +121,6 @@
 <script setup>
 definePageMeta({ layout: 'admin' });
 
-
 import { ref, onMounted, computed } from 'vue';
 import { Zap, Search, ClipboardList } from 'lucide-vue-next';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';

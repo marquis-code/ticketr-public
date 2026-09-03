@@ -207,7 +207,7 @@ import PreviewModal from '~/components/PreviewModal.vue';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
-definePageMeta({ layout: 'admin' });
+definePageMeta({ layout: 'default' });
 
 const config = useRuntimeConfig();
 
