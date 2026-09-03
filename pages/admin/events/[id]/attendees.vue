@@ -17,7 +17,7 @@
         </div>
       </div>
 
-      </div>
+
 
       <!-- Advanced Statistics -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
