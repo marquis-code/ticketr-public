@@ -105,7 +105,7 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <NuxtLink :to="`/dashboard/events/${ev._id}/attendees`" class="btn-secondary text-xs !py-1 !px-3 flex items-center gap-1 justify-end">
+                  <NuxtLink :to="`/admin/events/${ev._id}/attendees`" class="btn-secondary text-xs !py-1 !px-3 flex items-center gap-1 justify-end">
                     Attendees <ClipboardList class="w-3 h-3" />
                   </NuxtLink>
                 </td>

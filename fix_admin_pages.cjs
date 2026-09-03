@@ -45,8 +45,10 @@ files.forEach(file => {
   content = content.replace(/to="\/signup"/g, 'to="/admin/signup"');
   content = content.replace(/to="\/forgot-password"/g, 'to="/admin/forgot-password"');
   content = content.replace(/to="\/dashboard/g, 'to="/admin');
+  content = content.replace(/:to="`\/dashboard/g, ':to="`/admin');
   content = content.replace(/push\('\/login'\)/g, 'push(\'/admin/login\')');
   content = content.replace(/push\('\/dashboard/g, 'push(\'/admin');
+  content = content.replace(/push\(`\/dashboard/g, 'push(`/admin');
 
   fs.writeFileSync(file, content);
   console.log('Fixed', file);

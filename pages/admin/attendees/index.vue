@@ -57,7 +57,7 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <NuxtLink :to="`/dashboard/events/${ev._id}/attendees`" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-sm hover:bg-indigo-700 transition" title="View Attendee Roster">
+                  <NuxtLink :to="`/admin/events/${ev._id}/attendees`" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-sm hover:bg-indigo-700 transition" title="View Attendee Roster">
                     <Users class="w-4 h-4" /> View Attendees
                   </NuxtLink>
                 </td>

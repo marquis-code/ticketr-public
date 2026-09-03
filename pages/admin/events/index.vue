@@ -80,10 +80,10 @@
                 </td>
                 <td class="px-6 py-4 text-right">
                   <div class="flex items-center justify-end gap-2">
-                    <NuxtLink :to="`/dashboard/events/${ev._id}/attendees`" class="btn-secondary text-[11px] flex items-center gap-1.5 !py-1.5 !px-3" title="Attendee Roster">
+                    <NuxtLink :to="`/admin/events/${ev._id}/attendees`" class="btn-secondary text-[11px] flex items-center gap-1.5 !py-1.5 !px-3" title="Attendee Roster">
                       <ClipboardList class="w-3.5 h-3.5" /> Roster
                     </NuxtLink>
-                    <NuxtLink :to="`/dashboard/events/${ev._id}/edit`" class="text-[11px] text-primary hover:bg-primary/10 border border-primary/30 font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-lg transition" title="Edit Event">
+                    <NuxtLink :to="`/admin/events/${ev._id}/edit`" class="text-[11px] text-primary hover:bg-primary/10 border border-primary/30 font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-lg transition" title="Edit Event">
                       <Pencil class="w-3.5 h-3.5" /> Edit
                     </NuxtLink>
                     <button @click="deleteEvent(ev._id)" class="text-[11px] text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded-lg transition" title="Delete Event">
