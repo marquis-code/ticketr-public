@@ -95,7 +95,7 @@
         </div>
       </header>
 
-      <main class="flex-1 overflow-y-auto w-full relative">
+      <main class="flex-1 overflow-y-auto w-full relative p-6 md:p-8 lg:p-10">
         <slot />
       </main>
     </div>

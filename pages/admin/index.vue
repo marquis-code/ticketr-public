@@ -4,11 +4,11 @@
     
 
     <!-- Content Area -->
-    <main v-if="loading" class="max-w-7xl mx-auto px-4 md:px-6 py-24 flex-grow w-full">
+    <main v-if="loading" class="w-full max-w-7xl mx-auto space-y-8">
       <TableLoadingState message="Loading dashboard..." />
     </main>
 
-    <main v-else class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full space-y-8">
+    <main v-else class="w-full max-w-7xl mx-auto space-y-8">
       <!-- KPI Cards Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
         <div class="glass-card rounded-2xl p-6 border-primary/20">

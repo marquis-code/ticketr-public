@@ -38,7 +38,9 @@ files.forEach(file => {
   content = content.replace(/<div class="min-h-screen[^>]*>/g, '<div>');
 
   // Fix main tags that had aggressive padding
-  content = content.replace(/<main class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full[^>]*>/, '<main class="w-full space-y-8">');
+  content = content.replace(/<main class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full[^>]*>/, '<main class="w-full max-w-7xl mx-auto space-y-8">');
+  content = content.replace(/<main v-if="loading" class="max-w-7xl mx-auto px-4 md:px-6 py-24 flex-grow w-full[^>]*>/, '<main v-if="loading" class="w-full max-w-7xl mx-auto space-y-8">');
+  content = content.replace(/<main v-else class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full[^>]*>/, '<main v-else class="w-full max-w-7xl mx-auto space-y-8">');
 
   // Fix internal NuxtLinks and router.push
   content = content.replace(/to="\/login"/g, 'to="/admin/login"');
