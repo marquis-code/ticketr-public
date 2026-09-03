@@ -173,7 +173,7 @@ function showConfirm({ title, message, confirmText, onConfirm }) {
 async function loadEvents() {
   const token = localStorage.getItem('ticketr_admin_token');
   if (!token) {
-    useRouter().push('/login');
+    useRouter().push('/admin/login');
     return;
   }
 

@@ -130,7 +130,7 @@ async function verifyTicketScan() {
   const token = localStorage.getItem('ticketr_admin_token');
   if (!token) {
     toast.success('Please log in to use gate scanner.');
-    useRouter().push('/login');
+    useRouter().push('/admin/login');
     return;
   }
 

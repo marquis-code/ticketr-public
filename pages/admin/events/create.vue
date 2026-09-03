@@ -302,7 +302,7 @@ function removeTier(idx) {
 async function submitForm() {
   const token = localStorage.getItem('ticketr_admin_token');
   if (!token) {
-    useRouter().push('/login');
+    useRouter().push('/admin/login');
     return;
   }
 

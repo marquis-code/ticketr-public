@@ -294,7 +294,7 @@ const eventId = route.params.id;
 
 async function fetchEvent() {
   const token = localStorage.getItem('ticketr_admin_token');
-  if (!token) return router.push('/login');
+  if (!token) return router.push('/admin/login');
 
   try {
     const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {

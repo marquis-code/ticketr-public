@@ -40,6 +40,14 @@ files.forEach(file => {
   // Fix main tags that had aggressive padding
   content = content.replace(/<main class="max-w-7xl mx-auto px-4 md:px-6 py-8 flex-grow w-full[^>]*>/, '<main class="w-full space-y-8">');
 
+  // Fix internal NuxtLinks and router.push
+  content = content.replace(/to="\/login"/g, 'to="/admin/login"');
+  content = content.replace(/to="\/signup"/g, 'to="/admin/signup"');
+  content = content.replace(/to="\/forgot-password"/g, 'to="/admin/forgot-password"');
+  content = content.replace(/to="\/dashboard/g, 'to="/admin');
+  content = content.replace(/push\('\/login'\)/g, 'push(\'/admin/login\')');
+  content = content.replace(/push\('\/dashboard/g, 'push(\'/admin');
+
   fs.writeFileSync(file, content);
   console.log('Fixed', file);
 });

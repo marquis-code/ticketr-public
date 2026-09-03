@@ -101,7 +101,7 @@
 
         <p class="text-center text-sm text-gray-500 mt-8">
           Already have an account? 
-          <NuxtLink to="/login" class="font-semibold text-primary hover:underline">Sign in</NuxtLink>
+          <NuxtLink to="/admin/login" class="font-semibold text-primary hover:underline">Sign in</NuxtLink>
         </p>
       </div>
     </div>

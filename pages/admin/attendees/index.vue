@@ -89,7 +89,7 @@ const search = ref('');
 async function loadEvents() {
   const token = localStorage.getItem('ticketr_admin_token');
   if (!token) {
-    router.push('/login');
+    router.push('/admin/login');
     return;
   }
 
