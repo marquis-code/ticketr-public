@@ -55,7 +55,7 @@
       <!-- Table -->
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <TableLoadingState v-if="loading" message="Loading attendees..." />
-        <TableEmptyState v-else-if="filteredAttendees.length === 0" title="No Attendees Found" message="No attendees found matching filter criteria." />
+        <TableEmptyState v-else-if="attendees.length === 0" title="No Attendees Found" message="No attendees found matching filter criteria." />
 
         <div v-else class="overflow-x-auto">
           <table class="w-full text-left border-collapse whitespace-nowrap">
@@ -140,9 +140,9 @@
         </div>
         
         <!-- Pagination Controls -->
-        <div v-if="attendees.length > 0" class="p-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div v-if="attendees?.length > 0" class="p-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="text-sm text-gray-500">
-            Showing <span class="font-bold text-gray-900">{{ (page - 1) * limit + 1 }}</span> to <span class="font-bold text-gray-900">{{ (page - 1) * limit + attendees.length }}</span> of <span class="font-bold text-gray-900">{{ totalRecords }}</span> attendees
+            Showing <span class="font-bold text-gray-900">{{ (page - 1) * limit + 1 }}</span> to <span class="font-bold text-gray-900">{{ (page - 1) * limit + attendees?.length }}</span> of <span class="font-bold text-gray-900">{{ totalRecords }}</span> attendees
           </div>
           <div class="flex items-center gap-2">
             <button @click="changePage(page - 1)" :disabled="page <= 1" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
@@ -471,7 +471,7 @@ async function submitChangeTier() {
 }
 
 function exportCSV() {
-  if (attendees.value.length === 0) return;
+  if (attendees.value?.length === 0) return;
   const headers = ['Ticket Number', 'Attendee Name', 'Attendee Email', 'Tier', 'Status'];
   const rows = attendees.value.map(a => [
     a.ticketNumber,

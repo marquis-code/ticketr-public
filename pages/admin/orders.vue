@@ -52,7 +52,7 @@
       <!-- Orders Table -->
       <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <TableLoadingState v-if="loading" message="Loading orders..." />
-        <TableEmptyState v-else-if="filteredOrders.length === 0" title="No Orders Found" message="No orders found in this category." />
+        <TableEmptyState v-else-if="orders.length === 0" title="No Orders Found" message="No orders found in this category." />
 
         <div v-else class="overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-sm">
           <table class="w-full text-left border-collapse whitespace-nowrap">
