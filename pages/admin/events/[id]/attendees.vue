@@ -44,11 +44,19 @@
           class="w-full sm:w-80  border border-gray-200 rounded-xl px-4 py-2 text-xs text-gray-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
         />
 
-        <div class="flex items-center gap-2 text-xs">
-          <span class="text-gray-600">Filter Status:</span>
-          <button @click="filterStatus = 'ALL'" :class="filterStatus === 'ALL' ? 'bg-primary text-white' : ' text-gray-600'" class="px-3 py-1 rounded-lg border border-gray-200">All</button>
-          <button @click="filterStatus = 'CHECKED_IN'" :class="filterStatus === 'CHECKED_IN' ? 'bg-primary text-white' : ' text-gray-600'" class="px-3 py-1 rounded-lg border border-gray-200">Checked In</button>
-          <button @click="filterStatus = 'ISSUED'" :class="filterStatus === 'ISSUED' ? 'bg-primary text-white' : ' text-gray-600'" class="px-3 py-1 rounded-lg border border-gray-200">Not Checked In</button>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-gray-600 font-semibold">Department:</span>
+            <select v-model="filterDepartment" class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500 bg-white">
+              <option v-for="dept in availableDepartments" :key="dept" :value="dept">{{ dept === 'ALL' ? 'All Departments' : dept }}</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-gray-600">Filter Status:</span>
+            <button @click="filterStatus = 'ALL'" :class="filterStatus === 'ALL' ? 'bg-primary text-white' : ' text-gray-600'" class="px-3 py-1 rounded-lg border border-gray-200">All</button>
+            <button @click="filterStatus = 'CHECKED_IN'" :class="filterStatus === 'CHECKED_IN' ? 'bg-primary text-white' : ' text-gray-600'" class="px-3 py-1 rounded-lg border border-gray-200">Checked In</button>
+            <button @click="filterStatus = 'ISSUED'" :class="filterStatus === 'ISSUED' ? 'bg-primary text-white' : ' text-gray-600'" class="px-3 py-1 rounded-lg border border-gray-200">Not Checked In</button>
+          </div>
         </div>
       </div>
 
@@ -254,6 +262,8 @@ const changeTierModal = ref({
 
 const searchQuery = ref('');
 const filterStatus = ref('ALL');
+const filterDepartment = ref('ALL');
+const availableDepartments = ref(['ALL']);
 const tiers = ref([]);
 
 const page = ref(1);
@@ -273,7 +283,7 @@ function changePage(newPage) {
   loadAttendees();
 }
 
-watch([searchQuery, filterStatus], () => {
+watch([searchQuery, filterStatus, filterDepartment], () => {
   page.value = 1;
   loadAttendees();
 });
@@ -302,7 +312,8 @@ async function loadAttendees() {
       page: page.value,
       limit: limit.value,
       search: searchQuery.value,
-      status: filterStatus.value
+      status: filterStatus.value,
+      departmentCode: filterDepartment.value
     });
     
     const res = await fetch(`${config.public.apiBase}/events/${eventId.value}/attendees?${query.toString()}`, {
@@ -316,6 +327,7 @@ async function loadAttendees() {
         totalPages.value = data.attendees.metadata.lastPage;
         totalRecords.value = data.attendees.metadata.total;
         stats.value = data.attendees.metadata.statistics;
+        availableDepartments.value = data.attendees.metadata.statistics.availableDepartments || ['ALL'];
       } else {
         attendees.value = data.attendees || [];
       }
