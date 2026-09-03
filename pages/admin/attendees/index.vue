@@ -20,7 +20,7 @@
 
       <!-- Events Grid -->
       <TableLoadingState v-if="loading" message="Loading events..." />
-      <TableEmptyState v-else-if="filteredEvents.length === 0" title="No Events Found" message="Create an event to start managing attendees." />
+      <TableEmptyState v-else-if="events.length === 0" title="No Events Found" message="Create an event to start managing attendees." />
 
       <div v-else class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
@@ -34,7 +34,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 bg-white">
-              <tr v-for="ev in filteredEvents" :key="ev._id" class="hover:bg-gray-50 transition-colors duration-150">
+              <tr v-for="ev in events" :key="ev._id" class="hover:bg-gray-50 transition-colors duration-150">
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-4">
                     <img
@@ -85,10 +85,6 @@ const events = ref([]);
 const loading = ref(true);
 const search = ref('');
 
-const filteredEvents = computed(() => {
-  if (!search.value) return events.value;
-  return events.value.filter(e => e.title.toLowerCase().includes(search.value.toLowerCase()));
-});
 
 async function loadEvents() {
   const token = localStorage.getItem('ticketr_admin_token');
@@ -103,7 +99,12 @@ async function loadEvents() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
-      events.value = await res.json();
+      const data = await res.json();
+      if (data.metadata) {
+        events.value = data.data;
+      } else {
+        events.value = data;
+      }
     }
   } catch (err) {
     console.error('Error loading events:', err);

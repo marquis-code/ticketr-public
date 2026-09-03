@@ -38,7 +38,7 @@
       <!-- Events Table -->
       <TableLoadingState v-if="loading" message="Loading events..." />
 
-      <TableEmptyState v-else-if="filteredEvents.length === 0" title="No Events Found" message="Create an event to start selling tickets." />
+      <TableEmptyState v-else-if="events.length === 0" title="No Events Found" message="Create an event to start selling tickets." />
 
       <div v-else class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
@@ -169,10 +169,6 @@ function showConfirm({ title, message, confirmText, onConfirm }) {
   confirmModal.value = { show: true, title, message, confirmText: confirmText || 'Confirm', onConfirm };
 }
 
-const filteredEvents = computed(() => {
-  if (!search.value) return events.value;
-  return events.value.filter(e => e.title.toLowerCase().includes(search.value.toLowerCase()));
-});
 
 async function loadEvents() {
   const token = localStorage.getItem('ticketr_admin_token');
