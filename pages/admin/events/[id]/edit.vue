@@ -297,12 +297,11 @@ async function fetchEvent() {
   if (!token) return router.push('/admin/login');
 
   try {
-    const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {
+    const res = await fetch(`${config.public.apiBase}/events/${eventId}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (res.ok) {
-      const allEvents = await res.json();
-      const ev = allEvents.find(e => e._id === eventId);
+      const ev = await res.json();
       if (ev) {
         eventData.value = ev;
         form.value.title = ev.title;
