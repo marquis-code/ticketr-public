@@ -127,6 +127,13 @@
                     Update Email
                   </button>
                   <button
+                    @click="downloadTicket(att)"
+                    class="btn-primary text-[10px] !py-1 !px-2 bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 shadow-none"
+                    title="Download ticket PDF to send manually"
+                  >
+                    Download PDF
+                  </button>
+                  <button
                     @click="manualCheckIn(att)"
                     :disabled="att.status === 'CHECKED_IN'"
                     class="btn-secondary text-[10px] !py-1 !px-2 disabled:opacity-40"
@@ -480,6 +487,11 @@ async function submitChangeTier() {
   } finally {
     modal.submitting = false;
   }
+}
+
+function downloadTicket(ticket) {
+  const url = `${config.public.apiBase}/tickets/${ticket._id}/pdf`;
+  window.open(url, '_blank');
 }
 
 function exportCSV() {
