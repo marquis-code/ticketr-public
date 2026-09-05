@@ -110,44 +110,51 @@
                     {{ att.status }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-right space-x-2">
-                  <button
-                    v-if="!att.emailSent"
-                    @click="resendEmail(att)"
-                    class="btn-primary text-[10px] !py-1 !px-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 shadow-none"
-                    title="Resend ticket email"
-                  >
-                    Resend Email
-                  </button>
-                  <button
-                    @click="openUpdateEmailModal(att)"
-                    class="btn-secondary text-[10px] !py-1 !px-2 border border-gray-200 text-gray-600 hover:bg-gray-100"
-                    title="Update email & resend"
-                  >
-                    Update Email
-                  </button>
-                  <button
-                    @click="downloadTicket(att)"
-                    class="btn-primary text-[10px] !py-1 !px-2 bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 shadow-none"
-                    title="Download ticket PDF to send manually"
-                  >
-                    Download PDF
-                  </button>
-                  <button
-                    @click="manualCheckIn(att)"
-                    :disabled="att.status === 'CHECKED_IN'"
-                    class="btn-secondary text-[10px] !py-1 !px-2 disabled:opacity-40"
-                  >
-                    {{ att.status === 'CHECKED_IN' ? 'Checked In' : 'Manual Check-in' }}
-                  </button>
-                  <button
-                    @click="openChangeTierModal(att)"
-                    :disabled="att.status === 'CHECKED_IN'"
-                    class="btn-primary text-[10px] !py-1 !px-2 bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 shadow-none disabled:opacity-40"
-                    title="Change ticket tier"
-                  >
-                    Change Tier
-                  </button>
+                <td class="px-6 py-4 text-right">
+                  <div class="relative inline-block text-left dropdown-container">
+                    <button @click="toggleDropdown(att._id)" class="inline-flex items-center gap-1 btn-secondary text-xs !py-1 !px-2 border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none rounded-lg">
+                      Actions
+                      <ChevronDown class="w-3 h-3" />
+                    </button>
+                    
+                    <div v-if="activeDropdown === att._id" class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10 overflow-hidden">
+                      <div class="py-1">
+                        <button
+                          v-if="!att.emailSent"
+                          @click="resendEmail(att); activeDropdown = null"
+                          class="block w-full text-left px-4 py-2 text-xs text-indigo-700 hover:bg-indigo-50"
+                        >
+                          Resend Email
+                        </button>
+                        <button
+                          @click="openUpdateEmailModal(att); activeDropdown = null"
+                          class="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100"
+                        >
+                          Update Email
+                        </button>
+                        <button
+                          @click="downloadTicket(att); activeDropdown = null"
+                          class="block w-full text-left px-4 py-2 text-xs text-teal-700 hover:bg-teal-50"
+                        >
+                          Download PDF
+                        </button>
+                        <button
+                          @click="manualCheckIn(att); activeDropdown = null"
+                          :disabled="att.status === 'CHECKED_IN'"
+                          class="block w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {{ att.status === 'CHECKED_IN' ? 'Checked In' : 'Manual Check-in' }}
+                        </button>
+                        <button
+                          @click="openChangeTierModal(att); activeDropdown = null"
+                          :disabled="att.status === 'CHECKED_IN'"
+                          class="block w-full text-left px-4 py-2 text-xs text-amber-700 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Change Tier
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -241,8 +248,8 @@
 definePageMeta({ layout: 'admin' });
 
 
-import { ref, computed, onMounted } from 'vue';
-import { Download, CalendarDays } from 'lucide-vue-next';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { Download, CalendarDays, ChevronDown } from 'lucide-vue-next';
 
 const config = useRuntimeConfig();
 const route = useRoute();
@@ -252,6 +259,17 @@ const eventInfo = ref(null);
 const attendees = ref([]);
 const loading = ref(true);
 const showPreEventPrompt = ref(false);
+const activeDropdown = ref(null);
+
+function toggleDropdown(id) {
+  activeDropdown.value = activeDropdown.value === id ? null : id;
+}
+
+function closeDropdowns(e) {
+  if (!e.target.closest('.dropdown-container')) {
+    activeDropdown.value = null;
+  }
+}
 
 const updateEmailModal = ref({
   show: false,
@@ -516,6 +534,11 @@ function exportCSV() {
 }
 
 onMounted(() => {
+  document.addEventListener('click', closeDropdowns);
   loadAttendees();
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdowns);
 });
 </script>
