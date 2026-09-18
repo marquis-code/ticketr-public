@@ -105,7 +105,7 @@
                     <div class="flex items-center gap-2">
                       <template v-if="o.proofOfPaymentUrl">
                         <div class="cursor-pointer overflow-hidden rounded border border-gray-200 shadow-sm" @click="viewReceipt(o.proofOfPaymentUrl)" title="View Proof of Payment">
-                          <img v-if="!isPdf(o.proofOfPaymentUrl)" :src="o.proofOfPaymentUrl" class="w-12 h-8 object-cover hover:opacity-80 transition" alt="Proof" />
+                          <img v-if="!isPdf(o.proofOfPaymentUrl)" :src="o.proofOfPaymentUrl" class="w-12 h-8 object-cover hover:opacity-80 transition" alt="Proof" @error="e => e.target.src='https://placehold.co/120x80?text=No+Image'" />
                           <div v-else class="w-12 h-8 flex items-center justify-center bg-gray-100 text-[10px] font-bold text-gray-600 hover:bg-gray-200 transition">PDF</div>
                         </div>
                       </template>
@@ -182,7 +182,7 @@
         </div>
         <div class="p-4 flex-grow overflow-auto flex justify-center bg-gray-100">
           <iframe v-if="isPdf(receiptUrl)" :src="receiptUrl" class="w-full h-full border-0" frameborder="0"></iframe>
-          <img v-else :src="receiptUrl" alt="Receipt" class="max-w-full object-contain" />
+          <img v-else :src="receiptUrl" alt="Receipt" class="max-w-full object-contain" @error="e => e.target.src='https://placehold.co/600x400?text=Receipt+Not+Available'" />
         </div>
       </div>
     </div>
