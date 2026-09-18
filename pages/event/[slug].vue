@@ -202,12 +202,20 @@
                       class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
                     />
                   </div>
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Department / Association Code</label>
+                  <div v-if="eventData?.event?.formSettings?.requireDepartment !== false">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ eventData?.event?.formSettings?.departmentLabel || 'Department / Association Code' }}</label>
                     <CustomDropdown
+                      v-if="eventData?.event?.formSettings?.departmentOptions?.length > 0"
                       v-model="departmentCode"
-                      :options="departments"
-                      placeholder="Select your department"
+                      :options="eventData.event.formSettings.departmentOptions.map(opt => ({ code: opt, name: opt }))"
+                      placeholder="Select..."
+                    />
+                    <input
+                      v-else
+                      v-model="departmentCode"
+                      type="text"
+                      placeholder="e.g. Sales"
+                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
                     />
                     <span class="text-[11px] text-gray-500 mt-1 block">Used to generate structured ticket code (e.g. V/T01/EDM)</span>
                   </div>
@@ -215,7 +223,7 @@
               </div>
 
               <!-- Use Billing Toggle -->
-              <div v-if="Object.values(selectedQuantities).reduce((a, b) => a + b, 0) > 0" class="flex items-center gap-2 mb-4 pt-2">
+              <div v-if="Object.values(selectedQuantities).reduce((a, b) => a + b, 0) > 0 && !(eventData?.event?.formSettings?.customFields?.length > 0)" class="flex items-center gap-2 mb-4 pt-2">
                 <input type="checkbox" id="useBilling" v-model="useBillingForTickets" class="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary focus:ring-2 cursor-pointer" />
                 <label for="useBilling" class="text-sm font-medium text-gray-700 cursor-pointer">Use Billing Contact Info for all tickets</label>
               </div>
@@ -247,12 +255,44 @@
                         <div>
                           <input v-model="attendee.email" type="email" placeholder="Attendee Email" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
                         </div>
-                        <div>
+                        <div v-if="eventData?.event?.formSettings?.requireDepartment !== false">
+                          <label class="block text-[11px] font-medium text-gray-600 mb-1">{{ eventData?.event?.formSettings?.departmentLabel || 'Department / Association Code' }}</label>
                           <CustomDropdown
+                            v-if="eventData?.event?.formSettings?.departmentOptions?.length > 0"
                             v-model="attendee.departmentCode"
-                            :options="departments"
+                            :options="eventData.event.formSettings.departmentOptions.map(opt => ({ code: opt, name: opt }))"
                             :allowEmpty="true"
                             emptyLabel="Same as billing contact"
+                          />
+                          <input
+                            v-else
+                            v-model="attendee.departmentCode"
+                            type="text"
+                            placeholder="Same as billing contact"
+                            class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none"
+                          />
+                        </div>
+                        
+                        <!-- Custom Fields -->
+                        <div v-for="field in eventData?.event?.formSettings?.customFields || []" :key="field.name">
+                          <label class="block text-[11px] font-medium text-gray-600 mb-1">
+                            {{ field.label }} <span v-if="field.required" class="text-rose-500">*</span>
+                          </label>
+                          <select
+                            v-if="field.type === 'select'"
+                            v-model="attendee.customData[field.name]"
+                            :required="field.required"
+                            class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none bg-white"
+                          >
+                            <option value="" disabled>Select option</option>
+                            <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
+                          </select>
+                          <input
+                            v-else
+                            v-model="attendee.customData[field.name]"
+                            :required="field.required"
+                            type="text"
+                            class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none"
                           />
                         </div>
                       </div>
@@ -736,6 +776,7 @@ function handleReceiptChange(e) {
   }
 }
 
+// Kept for fallback, dynamic options preferred
 const departments = [
   { code: 'EDF', name: 'Educational Foundation' },
   { code: 'EDM', name: 'Educational Management' },
@@ -779,7 +820,7 @@ function updateQuantity(tierId, delta, max) {
   
   if (targetLength > tierAttendees.value[tierId].length) {
     for (let i = tierAttendees.value[tierId].length; i < targetLength; i++) {
-      tierAttendees.value[tierId].push({ name: '', email: '', departmentCode: '' });
+      tierAttendees.value[tierId].push({ name: '', email: '', departmentCode: '', customData: {} });
     }
   } else if (targetLength < tierAttendees.value[tierId].length) {
     tierAttendees.value[tierId].length = targetLength;
@@ -823,7 +864,8 @@ async function processCheckout() {
           attendees = Array.from({ length: attendeeCount }, () => ({
             name: customerName.value,
             email: customerEmail.value,
-            departmentCode: departmentCode.value
+            departmentCode: departmentCode.value,
+            customData: {}
           }));
         }
         return { 
