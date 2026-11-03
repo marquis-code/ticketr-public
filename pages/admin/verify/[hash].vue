@@ -1,145 +1,143 @@
 <template>
-  <div>
+  <div class="min-h-screen bg-paper flex items-center justify-center px-5 py-10">
     <div class="w-full max-w-md">
-      <!-- Verifying state -->
-      <div v-if="verifying" class="glass-card rounded-2xl p-12 text-center shadow-lg">
-        <AppLoader size="xl" color="indigo" class="inline-block" />
-        <h3 class="text-xl font-bold text-gray-900 mt-6">Verifying Ticket...</h3>
-        <p class="text-sm text-gray-600 mt-2">Checking validity and logging entry...</p>
-      </div>
+      <NuxtLink to="/admin/scanner" class="flex items-center gap-2 text-[12px] font-semibold text-muted hover:text-ink mb-4">
+        <ArrowLeft class="w-3.5 h-3.5" /> Back to scanner
+      </NuxtLink>
 
-      <div v-else-if="needsConfirmation && scanResult" class="glass-card rounded-2xl p-8 shadow-lg text-center border-indigo-500/50">
-        <div class="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-6 shadow-inner bg-indigo-100 text-indigo-600">
-          <UserCheck class="w-10 h-10" />
+      <div class="surface overflow-hidden">
+        <div class="bg-ink text-paper px-5 py-5">
+          <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-paper/50">Gate verification</p>
+          <h1 class="font-display text-xl font-semibold mt-1">{{ state.user?.name || 'Gate staff' }}</h1>
+          <p class="text-[11px] text-paper/50 mono truncate">{{ hash }}</p>
         </div>
-        
-        <h2 class="text-2xl font-extrabold text-gray-900 mb-2">Confirm Check-In</h2>
-        <p class="text-base text-gray-700 font-medium mb-6">Review attendee details before checking them in.</p>
 
-        <div class="bg-gray-50 rounded-xl p-4 text-left border border-gray-100 mb-6">
-          <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Attendee</p>
-          <p class="font-bold text-gray-900 text-lg">{{ scanResult.attendeeName }}</p>
-          
-          <div class="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Ticket Tier</p>
-              <p class="font-semibold text-gray-800 text-sm">{{ scanResult.tierName }}</p>
-            </div>
-            <div>
-              <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Ticket Number</p>
-              <p class="font-mono text-gray-800 text-xs mt-0.5 bg-gray-200 inline-block px-1.5 py-0.5 rounded">{{ scanResult.ticketNumber }}</p>
+        <!-- Not signed in -->
+        <div v-if="!authed" class="p-6 text-center">
+          <span class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto mb-3">
+            <Lock class="w-6 h-6" />
+          </span>
+          <p class="font-display text-lg font-semibold text-ink">Sign in to verify</p>
+          <p class="text-sm text-muted mt-1">Ticket checks require a gate staff or organizer session.</p>
+          <NuxtLink :to="`/admin/login?redirect=${encodeURIComponent(`/admin/verify/${hash}`)}`" class="btn-primary mt-4 w-full">Sign in</NuxtLink>
+        </div>
+
+        <!-- Loading -->
+        <div v-else-if="loading" class="p-8 text-center">
+          <div class="w-9 h-9 mx-auto rounded-full border-4 border-line border-t-forest animate-spin" />
+          <p class="text-sm text-muted mt-3">Checking ticket…</p>
+        </div>
+
+        <!-- Result -->
+        <div v-else class="p-5 space-y-4">
+          <div class="rounded-xl border p-4 flex items-start gap-3" :class="tone.border + ' ' + tone.bg">
+            <span class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="tone.icon">
+              <CheckCircle2 v-if="result?.valid" class="w-5 h-5" />
+              <AlertTriangle v-else-if="result?.alreadyCheckedIn" class="w-5 h-5" />
+              <XCircle v-else class="w-5 h-5" />
+            </span>
+            <div class="min-w-0">
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em]" :class="tone.kicker">{{ tone.label }}</p>
+              <p class="font-display text-lg font-semibold text-ink leading-tight">{{ result?.attendeeName || 'Ticket' }}</p>
+              <p class="text-[12px] text-muted mt-0.5">{{ result?.message }}</p>
             </div>
           </div>
-        </div>
 
-        <div class="flex flex-col gap-3">
-          <button @click="verifyTicket(true)" :disabled="verifying" class="btn-primary w-full py-3 flex justify-center items-center gap-2">
-            <AppLoader v-if="verifying" size="sm" color="white" />
-            Check In Attendee
+          <div class="grid grid-cols-2 gap-3 text-[12px]">
+            <div>
+              <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted">Ticket</p>
+              <p class="mono font-semibold text-ink break-all">{{ result?.ticketNumber || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted">Tier</p>
+              <p class="font-semibold text-ink">{{ result?.tierName || '—' }}</p>
+            </div>
+            <div class="col-span-2">
+              <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-muted">Event</p>
+              <p class="font-semibold text-ink">{{ result?.eventName || '—' }}</p>
+            </div>
+          </div>
+
+          <p v-if="error" class="field-error">{{ error }}</p>
+
+          <button
+            v-if="result?.valid"
+            class="btn-primary w-full !py-3.5"
+            type="button"
+            :disabled="admitting"
+            @click="admit"
+          >
+            {{ admitting ? 'Admitting…' : 'Admit attendee' }}
           </button>
-          <button @click="goHome" class="w-full py-3 text-sm font-semibold text-gray-600 hover:text-gray-900">Cancel</button>
+          <NuxtLink to="/admin/scanner" class="btn-secondary w-full">Open full scanner</NuxtLink>
         </div>
-      </div>
-
-      <div v-else-if="scanResult" class="glass-card rounded-2xl p-8 shadow-lg text-center" :class="scanResult.valid ? 'border-emerald-500/50' : 'border-rose-500/50'">
-        <div class="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl mb-6 shadow-inner" :class="scanResult.valid ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'">
-          <CheckCircle v-if="scanResult.valid" class="w-10 h-10" />
-          <XCircle v-else class="w-10 h-10" />
-        </div>
-        
-        <h2 class="text-2xl font-extrabold text-gray-900 mb-2">{{ scanResult.valid ? 'Access Granted' : 'Access Denied' }}</h2>
-        <p class="text-base text-gray-700 font-medium mb-6">{{ scanResult.message }}</p>
-
-        <div v-if="scanResult.attendeeName" class="bg-gray-50 rounded-xl p-4 text-left border border-gray-100 mb-6">
-          <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Attendee</p>
-          <p class="font-bold text-gray-900 text-lg">{{ scanResult.attendeeName }}</p>
-          
-          <div class="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Ticket Tier</p>
-              <p class="font-semibold text-gray-800 text-sm">{{ scanResult.tierName }}</p>
-            </div>
-            <div>
-              <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Ticket Number</p>
-              <p class="font-mono text-gray-800 text-xs mt-0.5 bg-gray-200 inline-block px-1.5 py-0.5 rounded">{{ scanResult.ticketNumber }}</p>
-            </div>
-          </div>
-        </div>
-
-        <button @click="goHome" class="btn-primary w-full py-3">Return to Dashboard</button>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { AlertTriangle, ArrowLeft, CheckCircle2, Lock, XCircle } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { CheckCircle, XCircle, UserCheck } from 'lucide-vue-next';
 
 definePageMeta({ layout: false });
 
-const config = useRuntimeConfig();
 const route = useRoute();
-const router = useRouter();
+const { state, hydrate } = useAuth();
+const hash = computed(() => String(route.params.hash || ''));
+const authed = computed(() => !!state.token);
+const loading = ref(true);
+const admitting = ref(false);
+const result = ref<any>(null);
+const error = ref('');
 
-const verifying = ref(true);
-const needsConfirmation = ref(false);
-const scanResult = ref(null);
+const tone = computed(() => {
+  if (result.value?.valid) {
+    return { border: 'border-forest/30', bg: 'bg-forest/[0.06]', icon: 'bg-forest text-lime', kicker: 'text-forest', label: 'Ready to admit' };
+  }
+  if (result.value?.alreadyCheckedIn) {
+    return { border: 'border-amber-300', bg: 'bg-amber-50', icon: 'bg-amber-400 text-ink', kicker: 'text-amber-700', label: 'Already scanned' };
+  }
+  return { border: 'border-coral/30', bg: 'bg-coral/5', icon: 'bg-coral text-white', kicker: 'text-coral', label: 'Do not admit' };
+});
 
-async function verifyTicket(commit = false) {
-  verifying.value = true;
-  const hash = route.params.hash;
-  const token = localStorage.getItem('ticketr_admin_token');
-  
-  if (!token) {
-    toast.error('You must be logged in as an Admin to scan tickets. Redirecting to login...');
-    router.push(`/login?redirect=/dashboard/verify/${hash}`);
+async function verify(commit: boolean) {
+  const data = await apiRequest<any>('/tickets/verify-scan', {
+    method: 'POST',
+    body: { qrCodeHash: hash.value, commit },
+  });
+  result.value = data;
+  return data;
+}
+
+async function admit() {
+  admitting.value = true;
+  error.value = '';
+  try {
+    await verify(true);
+    toast.success('Attendee admitted');
+    await navigateTo('/admin/scanner');
+  } catch (err) {
+    error.value = errorMessage(err);
+  } finally {
+    admitting.value = false;
+  }
+}
+
+onMounted(async () => {
+  hydrate();
+  if (!authed.value) {
+    loading.value = false;
     return;
   }
-
   try {
-    const res = await fetch(`${config.public.apiBase}/tickets/verify-scan`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ qrCodeHash: hash, commit }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      scanResult.value = data;
-      if (data.valid && !commit) {
-        needsConfirmation.value = true;
-      } else if (commit) {
-        needsConfirmation.value = false;
-        toast.success('Attendee checked in successfully!');
-      }
-    } else {
-      const err = await res.json();
-      scanResult.value = {
-        valid: false,
-        message: err.message || 'Invalid QR code or ticket scan failed',
-      };
-    }
+    await verify(false);
   } catch (err) {
-    scanResult.value = {
-      valid: false,
-      message: 'Network error verifying ticket',
-    };
+    result.value = { valid: false, message: errorMessage(err) };
   } finally {
-    verifying.value = false;
+    loading.value = false;
   }
-}
-
-function goHome() {
-  router.push('/admin/scanner');
-}
-
-onMounted(() => {
-  verifyTicket(false); // Fetch preview without committing check-in
 });
+
+useSeoMeta({ title: 'Verify ticket | Ticketr', robots: 'noindex, nofollow' });
 </script>

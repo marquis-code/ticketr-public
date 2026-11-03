@@ -1,560 +1,371 @@
 <template>
-  <div class="max-w-6xl mx-auto p-6 lg:p-8 space-y-8">
-    
-    <!-- Header Area -->
-    <div class="flex items-center justify-between">
+  <div class="space-y-4">
+    <!-- Header -->
+    <section class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Broadcast Communications</h1>
-        <p class="text-sm text-gray-500 mt-1">Manage and send emails to your attendees directly from the platform.</p>
+        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Audience</p>
+        <h2 class="font-display text-2xl font-semibold text-ink mt-0.5">Communications</h2>
+        <p class="text-[12.5px] text-muted mt-1">Email attendees of one event or your whole list. Duplicate sends are blocked.</p>
       </div>
-      <button 
-        v-if="viewMode === 'list'"
-        @click="openCompose(null)"
-        class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all"
-      >
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-        New Broadcast
+      <button class="btn-primary shrink-0" type="button" @click="openCompose()">
+        <Plus class="w-4 h-4" /> New campaign
       </button>
+    </section>
+
+    <div v-if="error" class="surface p-4 border-coral/30 bg-coral/5 flex items-start gap-3">
+      <AlertTriangle class="w-5 h-5 text-coral shrink-0 mt-0.5" />
+      <p class="text-sm text-ink flex-1">{{ error }}</p>
+      <button class="btn-secondary btn-sm" type="button" @click="load">Retry</button>
     </div>
 
-    <!-- LIST VIEW -->
-    <div v-if="viewMode === 'list'" class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-      <div v-if="loadingList" class="p-8 text-center text-gray-500 animate-pulse">Loading communications...</div>
-      <div v-else-if="communications.length === 0" class="p-12 text-center">
-        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-        </div>
-        <h3 class="text-lg font-bold text-gray-900">No communications found</h3>
-        <p class="text-sm text-gray-500 mt-1">You haven't created any emails yet.</p>
-        <button @click="openCompose(null)" class="mt-6 px-5 py-2.5 bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 transition-all">Create your first broadcast</button>
+    <!-- List -->
+    <section class="table-wrap">
+      <div v-if="loading" class="p-5 space-y-3">
+        <div v-for="n in 4" :key="n" class="skeleton h-14" />
       </div>
-      <table v-else class="w-full text-left border-collapse">
+      <UiEmpty
+        v-else-if="!campaigns.length"
+        title="No campaigns yet"
+        message="Write once and reach every ticket holder, or send a targeted note to one event."
+        class="!py-14"
+      >
+        <template #icon><Megaphone class="w-6 h-6" /></template>
+        <template #action>
+          <button class="btn-primary btn-sm" type="button" @click="openCompose()">New campaign</button>
+        </template>
+      </UiEmpty>
+      <table v-else class="table min-w-[760px]">
         <thead>
-          <tr class="bg-gray-50 border-b border-gray-200">
-            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Subject</th>
-            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Audience</th>
-            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-            <th class="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+          <tr>
+            <th>Campaign</th>
+            <th>Audience</th>
+            <th>Recipients</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th class="text-right">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-for="comm in communications" :key="comm._id" class="hover:bg-gray-50 transition-colors">
-            <td class="py-4 px-6 text-sm font-medium text-gray-900">
-              <span class="truncate block max-w-xs" :title="comm.subject">{{ comm.subject }}</span>
+        <tbody>
+          <tr v-for="campaign in campaigns" :key="campaign._id">
+            <td class="max-w-[280px]">
+              <p class="text-[13px] font-semibold text-ink truncate">{{ campaign.subject }}</p>
+              <p class="text-[11px] text-muted truncate">{{ stripHtml(campaign.message).slice(0, 90) }}</p>
             </td>
-            <td class="py-4 px-6 text-sm text-gray-500 capitalize">{{ comm.audience }}</td>
-            <td class="py-4 px-6">
-              <span 
-                class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
-                :class="{
-                  'bg-gray-100 text-gray-800': comm.status === 'DRAFT',
-                  'bg-blue-100 text-blue-800 animate-pulse': comm.status === 'SENDING',
-                  'bg-green-100 text-green-800': comm.status === 'SENT',
-                  'bg-red-100 text-red-800': comm.status === 'FAILED',
-                }"
-              >
-                {{ comm.status }}
-              </span>
+            <td>
+              <span class="chip-muted !text-[9px]">{{ audienceLabel(campaign) }}</span>
             </td>
-            <td class="py-4 px-6 text-sm text-gray-500">{{ new Date(comm.createdAt).toLocaleDateString() }}</td>
-            <td class="py-4 px-6 text-sm text-right space-x-3">
-              <button @click="showPreview(comm)" class="text-indigo-600 hover:text-indigo-900 font-medium">Preview</button>
-              <button v-if="comm.status === 'DRAFT' || comm.status === 'FAILED'" @click="openCompose(comm)" class="text-gray-600 hover:text-gray-900 font-medium">Edit</button>
-              <button v-if="comm.status === 'DRAFT' || comm.status === 'FAILED' || comm.status === 'SENT'" @click="confirmSend(comm)" class="text-green-600 hover:text-green-900 font-medium">{{ comm.status === 'DRAFT' ? 'Send' : 'Resend' }}</button>
-              <button v-if="comm.status !== 'SENDING'" @click="confirmDelete(comm)" class="text-red-600 hover:text-red-900 font-medium">Delete</button>
+            <td class="text-[12px] text-ink">
+              {{ campaign.recipientCount || 0 }}
+              <span v-if="campaign.failedCount" class="text-[10px] text-coral block">{{ campaign.failedCount }} failed</span>
+            </td>
+            <td><UiBadge :value="campaign.status" dot /></td>
+            <td class="text-[11.5px] text-muted whitespace-nowrap">{{ relativeTime(campaign.updatedAt || campaign.createdAt) }}</td>
+            <td>
+              <div class="flex items-center justify-end gap-1">
+                <button class="btn-ghost btn-sm" type="button" title="Preview" @click="openPreview(campaign)">
+                  <Eye class="w-4 h-4" />
+                </button>
+                <button class="btn-ghost btn-sm" type="button" title="Edit" :disabled="campaign.status === 'SENDING'" @click="openCompose(campaign)">
+                  <Pencil class="w-4 h-4" />
+                </button>
+                <button
+                  class="btn-secondary btn-sm !py-1.5 !px-2.5 text-[11px]"
+                  type="button"
+                  :disabled="sending === campaign._id || campaign.status === 'SENDING'"
+                  @click="askSend(campaign)"
+                >
+                  {{ campaign.status === 'SENT' ? 'Resend' : 'Send' }}
+                </button>
+                <button class="btn-ghost btn-sm text-coral" type="button" title="Delete" @click="askDelete(campaign)">
+                  <Trash2 class="w-4 h-4" />
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
+    </section>
 
-    <!-- COMPOSE VIEW -->
-    <div v-if="viewMode === 'compose'" class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 lg:p-8">
-      <form @submit.prevent="saveOrSend('send')" class="space-y-6">
-        
-        <div class="space-y-2">
-          <label class="block text-sm font-semibold text-gray-700">Target Audience <span class="text-red-500">*</span></label>
-          <CustomSelect 
-            v-model="form.audience" 
-            :options="audienceOptions" 
-            placeholder="Select Audience..." 
-          />
+    <!-- Compose -->
+    <UiModal :open="compose.open" :title="compose.id ? 'Edit campaign' : 'New campaign'" eyebrow="Email attendees" size="lg" @close="compose.open = false">
+      <div class="space-y-3.5">
+        <div>
+          <label class="label">Subject</label>
+          <input v-model.trim="compose.subject" type="text" maxlength="140" class="input" placeholder="Doors open at 6pm — here's what to know" />
         </div>
 
-        <div v-if="form.audience === 'event'" class="space-y-2">
-          <label class="block text-sm font-semibold text-gray-700">Select Event <span class="text-red-500">*</span></label>
-          <CustomSelect 
-            v-model="form.eventId" 
-            :options="eventOptions" 
-            placeholder="Choose an event..." 
-          />
-        </div>
-
-        <div v-if="form.audience === 'custom'" class="space-y-2">
-          <label class="block text-sm font-semibold text-gray-700">Custom Email Addresses <span class="text-red-500">*</span></label>
-          <div class="flex flex-wrap gap-2 mb-2" v-if="customEmailsList.length > 0">
-            <span v-for="(email, idx) in customEmailsList" :key="idx" class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-full">
-              {{ email }}
-              <button type="button" @click="removeEmail(idx)" class="hover:text-red-500 focus:outline-none">
-                <X class="w-3 h-3" />
-              </button>
-            </span>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label class="label">Audience</label>
+            <select v-model="compose.audience" class="input">
+              <option value="event">Attendees of one event</option>
+              <option value="all">Everyone who has a ticket</option>
+              <option value="custom">Specific emails</option>
+            </select>
           </div>
-          <input 
-            type="text" 
-            v-model="emailInput" 
-            @keydown.enter.prevent="addEmail"
-            @keydown.188.prevent="addEmail"
-            placeholder="Type an email and press Enter or Comma..."
-            class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 hover:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
-          <p class="text-xs text-gray-500 mt-1">Press Enter or type a comma after each email to add it.</p>
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-sm font-semibold text-gray-700">Subject Line <span class="text-red-500">*</span></label>
-          <input 
-            type="text" 
-            v-model="form.subject" 
-            required 
-            placeholder="Important Update Regarding Your Ticket"
-            class="w-full border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 hover:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-          />
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-sm font-semibold text-gray-700">Email Body <span class="text-red-500">*</span></label>
-          <div class="quill-wrapper border border-gray-300 rounded-xl overflow-hidden bg-gray-50 hover:bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:bg-white transition-all">
-            <ClientOnly>
-              <QuillEditor 
-                theme="snow" 
-                v-model:content="form.message" 
-                contentType="html" 
-                :toolbar="toolbarOptions" 
-                ref="quillEditor"
-                style="min-height: 250px;"
-              />
-            </ClientOnly>
+          <div v-if="compose.audience === 'event'">
+            <label class="label">Event</label>
+            <select v-model="compose.eventId" class="input">
+              <option value="">Select event…</option>
+              <option v-for="event in events" :key="event._id" :value="event._id">{{ event.title }}</option>
+            </select>
           </div>
         </div>
 
-        <div class="pt-6 flex flex-col-reverse sm:flex-row items-center justify-end gap-3 border-t border-gray-100">
-          <button 
-            type="button"
-            @click="cancelCompose"
-            class="w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all"
-          >
-            Cancel
-          </button>
-          <button 
-            type="button" 
-            @click="saveOrSend('draft')"
-            :disabled="loading || !isFormValid" 
-            class="w-full sm:w-auto px-6 py-3 bg-indigo-50 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 transition-all disabled:opacity-50"
-          >
-            Save as Draft
-          </button>
-          <button 
-            type="submit" 
-            :disabled="loading || !isFormValid" 
-            class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg v-if="loading && submittingAction === 'send'" class="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <span>{{ (loading && submittingAction === 'send') ? 'Sending...' : 'Send Broadcast' }}</span>
-          </button>
+        <div v-if="compose.audience === 'custom'">
+          <label class="label">Emails</label>
+          <textarea v-model="compose.customEmails" rows="2" class="input resize-y" placeholder="one@example.com, two@example.com" />
         </div>
 
-      </form>
-    </div>
-    
-    <!-- Hidden file input for custom image handler -->
-    <input type="file" ref="imageUploadInput" class="hidden" accept="image/*" @change="handleImageUpload" />
+        <div>
+          <label class="label">Message</label>
+          <textarea v-model="compose.message" rows="9" class="input resize-y" placeholder="Write your update. Basic formatting is preserved; scripts and iframes are stripped for safety." />
+          <p class="field-hint">{{ compose.message.length }} characters · sent from your organizer identity</p>
+        </div>
 
-    <!-- Modals -->
-    <ConfirmModal 
-      :isOpen="isDeleteModalOpen"
-      title="Delete Communication"
-      description="Are you sure you want to delete this email? This action cannot be undone."
-      @close="isDeleteModalOpen = false"
-      @confirm="executeDelete"
-    />
+        <p v-if="compose.error" class="field-error">{{ compose.error }}</p>
 
-    <ConfirmModal 
-      :isOpen="isSendModalOpen"
-      title="Dispatch Email"
-      description="Are you sure you want to send this broadcast right now? It will be delivered to the selected audience immediately."
-      @close="isSendModalOpen = false"
-      @confirm="executeSend"
-    />
+        <div class="rounded-xl bg-paper border border-line p-3 text-[11.5px] text-muted">
+          Campaigns cannot be edited while sending. A sent campaign must be duplicated deliberately — resending requires confirming a duplicate.
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn-primary" type="button" :disabled="compose.saving" @click="saveCampaign">
+          {{ compose.saving ? 'Saving…' : compose.id ? 'Save changes' : 'Create draft' }}
+        </button>
+        <button v-if="compose.id" class="btn-secondary" type="button" @click="compose.open = false; askSend(campaigns.find(c => c._id === compose.id))">
+          Save & send
+        </button>
+        <button class="btn-ghost" type="button" @click="compose.open = false">Cancel</button>
+      </template>
+    </UiModal>
 
-    <PreviewModal 
-      :isOpen="isPreviewModalOpen"
-      :htmlContent="previewContent"
-      @close="isPreviewModalOpen = false"
-    />
+    <!-- Preview -->
+    <UiModal :open="!!previewTarget" title="Campaign preview" eyebrow="Exactly what recipients get" size="lg" @close="previewTarget = null">
+      <div v-if="previewTarget" class="space-y-3">
+        <div class="rounded-xl border border-line overflow-hidden">
+          <div class="px-4 py-3 bg-paper border-b border-line">
+            <p class="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Subject</p>
+            <p class="text-sm font-semibold text-ink">{{ previewTarget.subject }}</p>
+          </div>
+          <div class="p-4 prose-editorial" v-html="sanitizedPreview" />
+        </div>
+        <p class="text-[11px] text-muted">Scripts, iframes and inline event handlers are removed before sending.</p>
+        <button class="btn-secondary btn-sm" type="button" @click="loadRecipientCount(previewTarget)">Check recipient count</button>
+        <p v-if="recipientInfo" class="text-[12px] font-medium text-ink">{{ recipientInfo }}</p>
+      </div>
+    </UiModal>
+
+    <!-- Send confirm -->
+    <UiModal :open="!!sendTarget" :title="sendTarget?.status === 'SENT' ? 'Resend this campaign?' : 'Send this campaign?'" eyebrow="Email delivery" size="sm" @close="sendTarget = null">
+      <p class="text-sm text-muted">
+        <strong class="text-ink">{{ sendTarget?.subject }}</strong> will be emailed to every matching attendee. This cannot be undone.
+      </p>
+      <div v-if="sendTarget?.status === 'SENT'" class="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-[12px] text-amber-900">
+        This campaign was already sent. Resending will email everyone again.
+      </div>
+      <p v-if="sendError" class="field-error mt-2">{{ sendError }}</p>
+      <template #footer>
+        <button class="btn-primary" type="button" :disabled="!!sending" @click="confirmSend">
+          {{ sending ? 'Sending…' : 'Send now' }}
+        </button>
+        <button class="btn-secondary" type="button" @click="sendTarget = null">Cancel</button>
+      </template>
+    </UiModal>
+
+    <!-- Delete -->
+    <UiModal :open="!!deleteTarget" title="Delete campaign?" eyebrow="Irreversible" size="sm" @close="deleteTarget = null">
+      <p class="text-sm text-muted">{{ deleteTarget?.subject }} will be removed. Sent history is not recoverable.</p>
+      <p v-if="deleteError" class="field-error mt-2">{{ deleteError }}</p>
+      <template #footer>
+        <button class="btn-danger" type="button" :disabled="deleting" @click="confirmDelete">{{ deleting ? 'Deleting…' : 'Delete' }}</button>
+        <button class="btn-secondary" type="button" @click="deleteTarget = null">Cancel</button>
+      </template>
+    </UiModal>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, computed, nextTick } from 'vue';
-import { useRuntimeConfig } from '#app';
+<script setup lang="ts">
+import { AlertTriangle, Eye, Megaphone, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
-import { X } from 'lucide-vue-next';
-import CustomSelect from '~/components/CustomSelect.vue';
-import ConfirmModal from '~/components/ConfirmModal.vue';
-import PreviewModal from '~/components/PreviewModal.vue';
-import { QuillEditor } from '@vueup/vue-quill';
-import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
-definePageMeta({ layout: 'default' });
+definePageMeta({ layout: 'admin' });
 
-const config = useRuntimeConfig();
+const campaigns = ref<any[]>([]);
+const events = ref<any[]>([]);
+const loading = ref(true);
+const error = ref('');
+const sending = ref<string | null>(null);
+const sendTarget = ref<any>(null);
+const sendError = ref('');
+const deleteTarget = ref<any>(null);
+const deleteError = ref('');
+const deleting = ref(false);
+const previewTarget = ref<any>(null);
+const recipientInfo = ref('');
 
-const viewMode = ref('list'); // 'list' or 'compose'
-const communications = ref([]);
-const loadingList = ref(false);
-
-const events = ref([]);
-const loading = ref(false);
-const submittingAction = ref(''); // 'draft' or 'send'
-
-const isDeleteModalOpen = ref(false);
-const isSendModalOpen = ref(false);
-const isPreviewModalOpen = ref(false);
-const commToActOn = ref(null);
-const previewContent = ref('');
-
-const audienceOptions = [
-  { value: 'all', label: 'All Attendees (Across all events)' },
-  { value: 'event', label: 'Attendees of a Specific Event' },
-  { value: 'custom', label: 'Custom Email List' }
-];
-
-const eventOptions = computed(() => {
-  return events.value.map(e => ({ value: e._id, label: e.title }));
-});
-
-const form = ref({
-  id: null,
-  audience: '',
-  eventId: '',
+const compose = reactive({
+  open: false,
+  id: '',
   subject: '',
-  message: ''
+  audience: 'event',
+  eventId: '',
+  customEmails: '',
+  message: '',
+  saving: false,
+  error: '',
 });
 
-const customEmailsList = ref([]);
-const emailInput = ref('');
-
-const addEmail = () => {
-  const email = emailInput.value.trim().replace(/,$/, '');
-  if (email && email.includes('@')) {
-    if (!customEmailsList.value.includes(email)) {
-      customEmailsList.value.push(email);
-    }
-  }
-  emailInput.value = '';
-};
-
-const removeEmail = (index) => {
-  customEmailsList.value.splice(index, 1);
-};
-
-const isFormValid = computed(() => {
-  if (!form.value.audience || !form.value.subject || !form.value.message || form.value.message === '<p><br></p>') return false;
-  if (form.value.audience === 'event' && !form.value.eventId) return false;
-  if (form.value.audience === 'custom' && customEmailsList.value.length === 0 && !emailInput.value.trim()) return false;
-  return true;
+const sanitizedPreview = computed(() => {
+  const raw = previewTarget.value?.message || '';
+  return raw
+    .replace(/<\s*(script|style|iframe|object|embed|form|input|meta|link)[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/javascript:/gi, '');
 });
 
-// Quill Configuration
-const quillEditor = ref(null);
-const imageUploadInput = ref(null);
+function stripHtml(value: string) {
+  return String(value || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
-const toolbarOptions = [
-  ['bold', 'italic', 'underline', 'strike'],
-  ['blockquote', 'code-block'],
-  [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-  [{ 'script': 'sub'}, { 'script': 'super' }],
-  [{ 'indent': '-1'}, { 'indent': '+1' }],
-  [{ 'size': ['small', false, 'large', 'huge'] }],
-  [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-  [{ 'color': [] }, { 'background': [] }],
-  [{ 'align': [] }],
-  ['link', 'image', 'video'],
-  ['clean']
-];
+function audienceLabel(campaign: any) {
+  if (campaign.audience === 'all') return 'All attendees';
+  if (campaign.audience === 'event') return 'One event';
+  return 'Custom list';
+}
 
-onMounted(async () => {
-  await fetchEvents();
-  await fetchCommunications();
-});
-
-const fetchCommunications = async () => {
-  loadingList.value = true;
-  try {
-    const res = await fetch(`${config.public.apiBase}/communications`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      }
-    });
-    if (res.ok) {
-      communications.value = await res.json();
-    }
-  } catch (err) {
-    toast.error('Failed to load communications history.');
-  } finally {
-    loadingList.value = false;
-  }
-};
-
-const fetchEvents = async () => {
-  try {
-    const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      }
-    });
-    if (res.ok) {
-      events.value = await res.json();
-    } else {
-      const res2 = await fetch(`${config.public.apiBase}/events/tenant`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-        }
-      });
-      if (res2.ok) {
-         events.value = await res2.json();
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching events:', error);
-  }
-};
-
-const initQuill = () => {
-  setTimeout(() => {
-    if (quillEditor.value) {
-      const quill = quillEditor.value.getQuill();
-      if(quill) {
-        quill.getModule('toolbar').addHandler('image', () => {
-          imageUploadInput.value.click();
-        });
-        if (form.value.message) {
-          quillEditor.value.setHTML(form.value.message);
-        }
-      }
-    }
-  }, 1000);
-};
-
-const openCompose = (comm = null) => {
-  if (comm) {
-    form.value = {
-      id: comm._id,
-      audience: comm.audience,
-      eventId: comm.eventId || '',
-      subject: comm.subject,
-      message: comm.message
-    };
-    customEmailsList.value = comm.customEmails || [];
-  } else {
-    form.value = { id: null, audience: '', eventId: '', subject: '', message: '' };
-    customEmailsList.value = [];
-  }
-  emailInput.value = '';
-  viewMode.value = 'compose';
-  initQuill();
-};
-
-const cancelCompose = () => {
-  viewMode.value = 'list';
-};
-
-const showPreview = (comm) => {
-  previewContent.value = comm.message;
-  isPreviewModalOpen.value = true;
-};
-
-const confirmDelete = (comm) => {
-  commToActOn.value = comm;
-  isDeleteModalOpen.value = true;
-};
-
-const confirmSend = (comm) => {
-  commToActOn.value = comm;
-  isSendModalOpen.value = true;
-};
-
-const executeDelete = async () => {
-  isDeleteModalOpen.value = false;
-  try {
-    const res = await fetch(`${config.public.apiBase}/communications/${commToActOn.value._id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      }
-    });
-    if (res.ok) {
-      toast.success('Deleted successfully');
-      fetchCommunications();
-    } else {
-      toast.error('Failed to delete');
-    }
-  } catch (err) {
-    toast.error('Network error');
-  }
-};
-
-const executeSend = async () => {
-  isSendModalOpen.value = false;
-  
-  // We can optimistically mark it as sending in UI
-  const commIndex = communications.value.findIndex(c => c._id === commToActOn.value._id);
-  if (commIndex > -1) {
-    communications.value[commIndex].status = 'SENDING';
-  }
-  toast.info('Dispatching emails in the background...');
-
-  try {
-    const res = await fetch(`${config.public.apiBase}/communications/${commToActOn.value._id}/send`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || 'Broadcast sent successfully!');
-      } else {
-        toast.error(data.message || 'Failed to send broadcast');
-      }
-    } else {
-      toast.error('Error occurred while dispatching.');
-    }
-  } catch (err) {
-    toast.error('Network error while dispatching.');
-  } finally {
-    fetchCommunications(); // refresh status
-  }
-};
-
-const saveOrSend = async (action) => {
-  if (form.value.audience === 'custom' && emailInput.value.trim()) {
-    addEmail();
-  }
-
-  if (!isFormValid.value) return;
-  
-  // If action is send from the compose view, we first save, then send.
-  submittingAction.value = action;
+async function load() {
   loading.value = true;
-  
+  error.value = '';
   try {
-    const payload = {
-      audience: form.value.audience,
-      eventId: form.value.audience === 'event' ? form.value.eventId : undefined,
-      customEmails: form.value.audience === 'custom' ? customEmailsList.value : undefined,
-      subject: form.value.subject,
-      message: form.value.message
-    };
-
-    const method = form.value.id ? 'PUT' : 'POST';
-    const url = form.value.id 
-      ? `${config.public.apiBase}/communications/${form.value.id}` 
-      : `${config.public.apiBase}/communications`;
-
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    if (res.ok) {
-      const savedComm = await res.json();
-      
-      if (action === 'send') {
-        // Send it now
-        commToActOn.value = savedComm;
-        // Don't show modal, just send it because they clicked Send Broadcast from form
-        await executeSend(); 
-      } else {
-        toast.success('Draft saved successfully');
-      }
-      
-      viewMode.value = 'list';
-      fetchCommunications();
-    } else {
-      const err = await res.json();
-      toast.error(err.message || 'Error occurred while saving.');
-    }
-  } catch (error) {
-    toast.error('Network error. Check your connection.');
+    const [campaignData, eventData] = await Promise.all([
+      apiRequest<any>('/communications?limit=100'),
+      apiRequest<any>('/events/tenant?limit=100'),
+    ]);
+    campaigns.value = campaignData?.data || [];
+    events.value = eventData?.data || [];
+  } catch (err) {
+    error.value = errorMessage(err);
   } finally {
     loading.value = false;
-    submittingAction.value = '';
   }
-};
+}
 
-const handleImageUpload = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+function openCompose(campaign?: any) {
+  compose.open = true;
+  compose.error = '';
+  compose.id = campaign?._id || '';
+  compose.subject = campaign?.subject || '';
+  compose.audience = campaign?.audience || 'event';
+  compose.eventId = campaign?.eventId || events.value[0]?._id || '';
+  compose.customEmails = (campaign?.customEmails || []).join(', ');
+  compose.message = campaign?.message || '';
+}
 
-  const quill = quillEditor.value.getQuill();
-  const range = quill.getSelection(true);
+async function saveCampaign(): Promise<any> {
+  compose.error = '';
+  if (compose.subject.length < 3) {
+    compose.error = 'Add a subject line.';
+    return null;
+  }
+  if (compose.message.length < 3) {
+    compose.error = 'Write your message.';
+    return null;
+  }
+  if (compose.audience === 'event' && !compose.eventId) {
+    compose.error = 'Select the event.';
+    return null;
+  }
 
-  toast.info('Uploading image...', { id: 'image-upload' });
-
-  const formData = new FormData();
-  formData.append('image', file);
-
+  compose.saving = true;
   try {
-    const res = await fetch(`${config.public.apiBase}/communications/upload-image`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      },
-      body: formData
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success) {
-        quill.insertEmbed(range.index, 'image', data.url);
-        quill.setSelection(range.index + 1);
-        toast.success('Image uploaded successfully', { id: 'image-upload' });
-      }
-    } else {
-      toast.error('Failed to upload image', { id: 'image-upload' });
-    }
+    const payload = {
+      subject: compose.subject,
+      message: compose.message,
+      audience: compose.audience,
+      eventId: compose.audience === 'event' ? compose.eventId : undefined,
+      customEmails:
+        compose.audience === 'custom'
+          ? compose.customEmails.split(',').map((email) => email.trim()).filter(Boolean)
+          : [],
+    };
+    const saved = compose.id
+      ? await apiRequest<any>(`/communications/${compose.id}`, { method: 'PUT', body: payload })
+      : await apiRequest<any>('/communications', { method: 'POST', body: payload });
+    toast.success('Campaign saved');
+    compose.open = false;
+    await load();
+    return saved;
   } catch (err) {
-    toast.error('Network error while uploading image', { id: 'image-upload' });
+    compose.error = errorMessage(err);
+    return null;
   } finally {
-    event.target.value = '';
+    compose.saving = false;
   }
-};
-</script>
+}
 
-<style>
-.quill-wrapper .ql-toolbar {
-  border: none !important;
-  border-bottom: 1px solid #e5e7eb !important;
-  background-color: #f9fafb;
-  border-top-left-radius: 0.75rem;
-  border-top-right-radius: 0.75rem;
-  padding: 12px !important;
+function askSend(campaign: any) {
+  if (!campaign) return;
+  sendTarget.value = campaign;
+  sendError.value = '';
 }
-.quill-wrapper .ql-container {
-  border: none !important;
-  font-family: inherit !important;
-  font-size: 14px !important;
+
+async function confirmSend() {
+  if (!sendTarget.value) return;
+  sending.value = sendTarget.value._id;
+  sendError.value = '';
+  try {
+    const result = await apiRequest<any>(`/communications/${sendTarget.value._id}/send`, {
+      method: 'POST',
+      body: { force: sendTarget.value.status === 'SENT' },
+    });
+    toast.success(result?.message || 'Campaign sent');
+    sendTarget.value = null;
+    await load();
+  } catch (err) {
+    sendError.value = errorMessage(err);
+  } finally {
+    sending.value = null;
+  }
 }
-.quill-wrapper .ql-editor {
-  min-height: 250px;
-  padding: 16px !important;
+
+function openPreview(campaign: any) {
+  previewTarget.value = campaign;
+  recipientInfo.value = '';
 }
-</style>
+
+async function loadRecipientCount(campaign: any) {
+  try {
+    const data = await apiRequest<any>(`/communications/${campaign._id}/preview-recipients`);
+    recipientInfo.value = `${data.count} recipient${data.count === 1 ? '' : 's'} match this audience.`;
+  } catch (err) {
+    recipientInfo.value = errorMessage(err);
+  }
+}
+
+function askDelete(campaign: any) {
+  deleteTarget.value = campaign;
+  deleteError.value = '';
+}
+
+async function confirmDelete() {
+  deleting.value = true;
+  deleteError.value = '';
+  try {
+    await apiRequest(`/communications/${deleteTarget.value._id}`, { method: 'DELETE' });
+    toast.success('Campaign deleted');
+    deleteTarget.value = null;
+    await load();
+  } catch (err) {
+    deleteError.value = errorMessage(err);
+  } finally {
+    deleting.value = false;
+  }
+}
+
+onMounted(load);
+useSeoMeta({ title: 'Communications', robots: 'noindex, nofollow' });
+</script>

@@ -10,8 +10,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.ticketr.org/api/v1',
-      paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_live_d5b52cde98ef0ddb8ca12f6e64f29be814e3b18e',
+      paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
       adminUrl: process.env.NUXT_PUBLIC_ADMIN_URL || 'https://admin.ticketr.org',
+      publicUrl: process.env.NUXT_PUBLIC_PUBLIC_URL || 'https://ticketr.org',
+      superAdminUrl: process.env.NUXT_PUBLIC_SUPERADMIN_URL || 'https://superadmin.ticketr.org',
     },
   },
   app: {
@@ -28,8 +30,8 @@ export default defineNuxtConfig({
       script: [
         {
           children: `
-            if (window.location.hostname.startsWith('admin-') && window.location.pathname === '/') {
-              window.location.replace('/admin/login');
+            if ((window.location.hostname.startsWith('admin-') || window.location.hostname.startsWith('admin.')) && window.location.pathname === '/') {
+              window.location.replace('/admin/dashboard');
             }
           `
         }

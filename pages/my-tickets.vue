@@ -1,251 +1,476 @@
 <template>
-  <div>
-    <!-- Navbar -->
-    
+  <div class="bg-paper min-h-[70vh]">
+    <!-- ================= LOOKUP ================= -->
+    <section v-if="!token" class="relative overflow-hidden border-b border-line">
+      <div class="absolute inset-0 bg-grid opacity-60" />
+      <div class="shell relative py-14 sm:py-20">
+        <div class="max-w-2xl">
+          <span class="chip-ink !py-1.5"><TicketCheck class="w-3.5 h-3.5" /> Ticket wallet</span>
+          <h1 class="font-display text-4xl sm:text-5xl font-semibold text-ink leading-[1.02] tracking-[-0.035em] mt-5">
+            Your tickets,<br />behind a private link.
+          </h1>
+          <p class="text-[15px] text-muted mt-4 max-w-md leading-relaxed">
+            Enter the email you used at checkout. We’ll send a private wallet link — no public ticket search, so nobody can pull up your QR codes.
+          </p>
 
-    <main class="flex-grow w-full max-w-5xl mx-auto px-6 py-12 md:py-20 flex flex-col items-center">
-      
-      <!-- Header Section -->
-      <div class="text-center max-w-2xl mx-auto mb-12">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">Find Your Tickets</h1>
-        <p class="text-gray-500 text-base md:text-lg">
-          Enter the email address used during checkout to retrieve your orders, download passes, and view QR codes.
-        </p>
-      </div>
+          <form class="mt-7 surface p-2 flex flex-col sm:flex-row gap-2 shadow-lift max-w-xl" @submit.prevent="requestLink">
+            <div class="relative flex-1">
+              <Mail class="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                v-model.trim="email"
+                type="email"
+                required
+                autocomplete="email"
+                placeholder="you@example.com"
+                aria-label="Email used at checkout"
+                class="w-full bg-transparent border-0 pl-11 pr-4 py-3.5 text-sm text-ink placeholder:text-muted/60 focus:outline-none focus:ring-0"
+              />
+            </div>
+            <button type="submit" class="btn-primary shrink-0" :disabled="linkPending">
+              <span v-if="linkPending" class="w-4 h-4 border-2 border-paper/40 border-t-paper rounded-full animate-spin" />
+              <Send v-else class="w-4 h-4" />
+              {{ linkPending ? 'Sending…' : 'Email my tickets' }}
+            </button>
+          </form>
 
-      <!-- Search Form -->
-      <div class="w-full max-w-lg mb-16 relative z-10">
-        <div class="absolute -inset-1 bg-gradient-to-r from-primary/30 to-violet-500/30 rounded-[2rem] blur opacity-40"></div>
-        <form @submit.prevent="lookupTickets" class="relative bg-white rounded-3xl p-2 shadow-xl shadow-gray-200/50 flex flex-col sm:flex-row gap-2 border border-gray-100">
-          <div class="relative flex-grow flex items-center">
-            <Mail class="w-5 h-5 text-gray-400 absolute left-4" />
-            <input
-              v-model="emailInput"
-              type="email"
-              placeholder="e.g. attendee@example.com"
-              required
-              class="w-full bg-transparent pl-12 pr-4 py-3.5 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
-            />
+          <p v-if="linkMessage" class="mt-4 text-sm font-medium text-forest bg-forest/5 border border-forest/15 rounded-xl px-4 py-3 max-w-xl">
+            {{ linkMessage }}
+          </p>
+          <p v-if="linkError" class="mt-4 text-sm font-medium text-coral bg-coral/10 border border-coral/20 rounded-xl px-4 py-3 max-w-xl">
+            {{ linkError }}
+          </p>
+
+          <NuxtLink v-if="devLink" :to="devLink" class="btn-accent btn-sm mt-4">
+            Open demo wallet <ArrowRight class="w-4 h-4" />
+          </NuxtLink>
+
+          <div class="mt-8 grid sm:grid-cols-3 gap-3 max-w-xl">
+            <div v-for="item in reassurance" :key="item.title" class="surface p-3.5">
+              <component :is="item.icon" class="w-4 h-4 text-forest" />
+              <p class="text-[12px] font-semibold text-ink mt-2">{{ item.title }}</p>
+              <p class="text-[11px] text-muted mt-0.5 leading-snug">{{ item.body }}</p>
+            </div>
           </div>
-          <button type="submit" :disabled="searching || !emailInput" class="btn-primary whitespace-nowrap px-8 py-3.5 rounded-2xl font-semibold shadow-md shadow-primary/20 flex items-center justify-center gap-2 transition-all">
-            <span v-if="searching" class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-            <span v-if="!searching"><Search class="w-5 h-5" /></span>
-            <span>{{ searching ? 'Searching...' : 'Retrieve Tickets' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= WALLET ================= -->
+    <section v-else class="shell py-8 sm:py-12">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-7">
+        <div>
+          <span class="chip-soft"><ShieldCheck class="w-3 h-3" /> Private wallet</span>
+          <h1 class="font-display text-3xl sm:text-4xl font-semibold text-ink mt-3">Your tickets</h1>
+          <p class="text-sm text-muted mt-1.5">
+            {{ orders.length }} order{{ orders.length === 1 ? '' : 's' }} · {{ ticketCount }} pass{{ ticketCount === 1 ? '' : 'es' }}
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn-secondary btn-sm" type="button" @click="refreshWallet">
+            <RefreshCcw class="w-4 h-4" :class="{ 'animate-spin': loading }" /> Refresh
           </button>
-        </form>
+          <button class="btn-ghost btn-sm" type="button" @click="forgetWallet">
+            <LogOut class="w-4 h-4" /> Lock wallet
+          </button>
+        </div>
       </div>
 
-      <!-- Results List -->
-      <div v-if="searched && orders.length === 0" class="w-full max-w-md bg-white border border-gray-100 rounded-3xl p-10 text-center shadow-lg shadow-gray-100 mx-auto">
-        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Ticket class="w-8 h-8 text-gray-300" />
+      <div v-if="loading" class="space-y-6">
+        <div v-for="n in 2" :key="n" class="surface p-6">
+          <div class="skeleton h-6 w-1/3 mb-3" />
+          <div class="skeleton h-4 w-1/2" />
         </div>
-        <h3 class="text-lg font-bold text-gray-900 mb-2">No tickets found</h3>
-        <p class="text-gray-500 text-sm">We couldn't find any paid orders associated with <strong>{{ emailInput }}</strong>. Please check the email and try again.</p>
       </div>
 
-      <div v-else-if="orders.length > 0" class="w-full space-y-12">
-        <div class="flex items-center justify-between border-b border-gray-200 pb-4">
-          <h2 class="text-2xl font-bold text-gray-900">Your Orders</h2>
-          <span class="bg-gray-100 text-gray-600 text-sm font-semibold px-3 py-1 rounded-full">{{ orders.length }} order{{ orders.length > 1 ? 's' : '' }}</span>
-        </div>
+      <div v-else-if="error" class="surface max-w-lg mx-auto p-8 text-center">
+        <span class="w-12 h-12 rounded-2xl bg-coral/10 text-coral flex items-center justify-center mx-auto mb-4">
+          <KeyRound class="w-6 h-6" />
+        </span>
+        <h2 class="font-display text-xl font-semibold text-ink">This link cannot open a wallet</h2>
+        <p class="text-sm text-muted mt-2">{{ error }}</p>
+        <button class="btn-primary mt-5" type="button" @click="forgetWallet">Request a new link</button>
+      </div>
 
-        <div v-for="order in orders" :key="order._id" class="space-y-6">
-          <!-- Order Header -->
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <div class="flex gap-4 items-center">
-              <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Calendar class="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <span class="text-xs font-bold tracking-wider text-gray-400 uppercase">Order #{{ order.orderNumber }}</span>
-                <h3 class="text-xl font-bold text-gray-900 leading-tight">{{ order.eventId?.title || 'Event Pass' }}</h3>
-                <span class="text-sm font-medium text-gray-500 mt-0.5 block">{{ new Date(order.paidAt || order.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
-              </div>
-            </div>
-            <div class="md:text-right flex md:flex-col items-center md:items-end justify-between gap-3">
-              <div>
-                <span class="text-2xl font-extrabold text-gray-900 block">₦{{ order.totalAmount?.toLocaleString() }}</span>
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wide mt-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> {{ order.status }}
-                </span>
-              </div>
-              <button 
-                @click="copyReferralLink(order)"
-                class="btn-secondary !py-1.5 !px-3 text-[11px] flex items-center gap-1 mt-2 text-primary border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
-                title="Refer friends to earn rewards!"
-              >
-                <Share class="w-3.5 h-3.5" /> Share Referral Link
-              </button>
-            </div>
-          </div>
+      <UiEmpty
+        v-else-if="!orders.length"
+        title="No tickets in this wallet yet"
+        message="If you completed a purchase, your tickets may still be issuing. Refresh in a moment."
+      >
+        <template #icon><Ticket class="w-6 h-6" /></template>
+        <template #action>
+          <NuxtLink to="/" class="btn-primary btn-sm">Browse events</NuxtLink>
+        </template>
+      </UiEmpty>
 
-          <!-- Tickets Grid -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div v-for="ticket in order.tickets" :key="ticket._id" class="relative flex flex-col sm:flex-row bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
-              
-              <!-- Ticket Stub (Left) -->
-              <div class="bg-gradient-to-br from-primary to-violet-600 p-6 flex flex-col justify-between sm:w-2/5 relative text-white">
-                <!-- Cutout circles -->
-                <div class="absolute -right-3 -top-3 w-6 h-6 bg-[#FAFAFA] rounded-full sm:block hidden"></div>
-                <div class="absolute -right-3 -bottom-3 w-6 h-6 bg-[#FAFAFA] rounded-full sm:block hidden"></div>
-                
-                <!-- Mobile cutouts -->
-                <div class="absolute -bottom-3 -left-3 w-6 h-6 bg-[#FAFAFA] rounded-full sm:hidden block z-10"></div>
-                <div class="absolute -bottom-3 -right-3 w-6 h-6 bg-[#FAFAFA] rounded-full sm:hidden block z-10"></div>
-
-                <div>
-                  <span class="text-white/70 text-xs font-bold uppercase tracking-widest mb-1 block">Pass Type</span>
-                  <p class="text-lg font-bold leading-tight">{{ ticket.tierId?.name || 'Standard Admission' }}</p>
+      <div v-else class="space-y-8">
+        <section v-for="order in orders" :key="order.orderId">
+          <!-- Order header -->
+          <div class="surface p-5 sm:p-6 mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-start gap-3 min-w-0">
+                <img
+                  v-if="order.event?.bannerUrl"
+                  :src="order.event.bannerUrl"
+                  alt=""
+                  class="w-14 h-14 rounded-xl object-cover border border-line shrink-0"
+                />
+                <div v-else class="w-14 h-14 rounded-xl bg-paper border border-line flex items-center justify-center shrink-0">
+                  <Ticket class="w-5 h-5 text-ink/40" />
                 </div>
-                
-                <div class="mt-6">
-                  <span class="text-white/70 text-[10px] font-bold uppercase tracking-widest block mb-1">Ticket ID</span>
-                  <p class="font-mono text-sm tracking-wider">{{ ticket.ticketNumber }}</p>
-                </div>
-              </div>
-
-              <!-- Dashed Divider (Desktop) -->
-              <div class="hidden sm:flex flex-col justify-center items-center relative -mx-0.5 z-10 text-gray-300">
-                <div class="w-px h-full border-l-2 border-dashed border-gray-200"></div>
-              </div>
-
-              <!-- Dashed Divider (Mobile) -->
-              <div class="sm:hidden flex w-full relative -my-0.5 z-10 text-gray-300 px-6">
-                <div class="h-px w-full border-t-2 border-dashed border-gray-200"></div>
-              </div>
-
-              <!-- Ticket Info (Right) -->
-              <div class="p-6 flex flex-col justify-between sm:w-3/5 bg-white relative">
-                 <div class="absolute -left-3 -top-3 w-6 h-6 bg-[#FAFAFA] rounded-full sm:block hidden"></div>
-                 <div class="absolute -left-3 -bottom-3 w-6 h-6 bg-[#FAFAFA] rounded-full sm:block hidden"></div>
-                 
-                 <!-- Mobile cutouts -->
-                 <div class="absolute -top-3 -left-3 w-6 h-6 bg-[#FAFAFA] rounded-full sm:hidden block"></div>
-                 <div class="absolute -top-3 -right-3 w-6 h-6 bg-[#FAFAFA] rounded-full sm:hidden block"></div>
-
-                <div class="mb-6">
-                  <div class="flex items-start justify-between mb-2">
-                    <div>
-                      <span class="text-gray-400 text-xs font-semibold uppercase tracking-wider block">Attendee</span>
-                      <div class="flex items-center gap-2">
-                        <p class="text-base font-bold text-gray-900">{{ getCleanName(ticket.attendeeName) }}</p>
-                        <span v-if="getGenderTag(ticket.attendeeName) === 'Male'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider border border-blue-200">Male</span>
-                        <span v-if="getGenderTag(ticket.attendeeName) === 'Female'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-100 text-pink-700 uppercase tracking-wider border border-pink-200">Female</span>
-                      </div>
-                    </div>
-                    <span
-                      :class="ticket.status === 'CHECKED_IN' ? 'bg-purple-50 text-purple-600 border-purple-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'"
-                      class="px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider whitespace-nowrap"
-                    >
-                      {{ ticket.status }}
-                    </span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <UiBadge :value="order.status" dot />
+                    <span class="mono text-[10px] text-muted">{{ order.orderNumber }}</span>
                   </div>
-                  <p class="text-sm text-gray-500 font-medium truncate">{{ ticket.attendeeEmail }}</p>
+                  <h2 class="font-display text-xl font-semibold text-ink mt-1 truncate">{{ order.event?.title }}</h2>
+                  <p class="text-[12.5px] text-muted mt-0.5">
+                    {{ formatDate(order.event?.startDate, { weekday: 'long', day: 'numeric', month: 'long' }) }} · {{ formatTime(order.event?.startDate) }} · {{ order.event?.location }}
+                  </p>
                 </div>
+              </div>
 
-                <NuxtLink :to="`/order/confirmation?reference=${order.paystackReference}`" class="w-full btn-secondary text-sm !py-2.5 flex items-center justify-center gap-2 group-hover:bg-gray-50 transition-colors border-gray-200">
-                  <QrCode class="w-4 h-4 text-gray-500" />
-                  View & Download Pass
+              <div class="flex items-center gap-2 shrink-0">
+                <button class="btn-ghost btn-sm" type="button" @click="addToCalendar(order)">
+                  <CalendarPlus class="w-4 h-4" /> Calendar
+                </button>
+                <NuxtLink
+                  v-if="order.event?.slug && order.tenant?.slug"
+                  :to="`/event/${order.event.slug}?tenant=${order.tenant.slug}`"
+                  class="btn-secondary btn-sm"
+                >
+                  Event page <ArrowUpRight class="w-3.5 h-3.5" />
                 </NuxtLink>
               </div>
             </div>
+
+            <div v-if="order.status === 'AWAITING_APPROVAL'" class="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+              <p class="text-[12.5px] text-amber-900 font-medium">
+                Your proof of payment is with the organizer. Tickets will appear here and in your inbox as soon as it is verified.
+              </p>
+            </div>
+            <div v-else-if="order.status === 'PENDING'" class="mt-4 rounded-xl bg-paper border border-line px-4 py-3">
+              <p class="text-[12.5px] text-ink font-medium">
+                This order is still awaiting payment. Seats are held for a limited time — complete checkout on the event page to keep them.
+              </p>
+            </div>
+            <div v-else-if="order.status === 'PARTIALLY_PAID' && order.amountRemaining > 0" class="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <p class="text-[12.5px] text-amber-900 font-medium">
+                Balance of {{ formatMoney(order.amountRemaining) }} outstanding. Tickets are issued once paid.
+              </p>
+              <button class="btn-primary btn-sm shrink-0" type="button" @click="payBalance(order)">Pay balance</button>
+            </div>
+            <div v-else-if="order.status === 'REFUNDED'" class="mt-4 rounded-xl bg-coral/5 border border-coral/20 px-4 py-3">
+              <p class="text-[12.5px] text-coral font-medium">
+                This order was refunded{{ order.refundAmount ? ` (${formatMoney(order.refundAmount)})` : '' }}. The tickets below are cancelled and cannot be used at the gate.
+              </p>
+              <p v-if="order.refundReference" class="mono text-[10.5px] text-muted mt-1">Refund ref: {{ order.refundReference }}</p>
+            </div>
+            <div v-else-if="order.status === 'CANCELLED' || order.status === 'FAILED'" class="mt-4 rounded-xl bg-coral/5 border border-coral/20 px-4 py-3">
+              <p class="text-[12.5px] text-coral font-medium">
+                This order was {{ order.status === 'CANCELLED' ? 'cancelled' : 'not completed' }}. No tickets were issued and any held seats were released.
+              </p>
+            </div>
+            <div v-else-if="!order.tickets?.length" class="mt-4 rounded-xl bg-paper border border-line px-4 py-3">
+              <p class="text-[12.5px] text-ink font-medium">Tickets are being issued. Refresh in a moment.</p>
+            </div>
           </div>
+
+          <div class="grid gap-4">
+            <TicketPass
+              v-for="ticket in order.tickets"
+              :key="ticket.id"
+              :ticket="ticket"
+              :event="order.event"
+              :wallet-token="token"
+              @transfer="openTransfer(ticket, order)"
+              @resale="openResale(ticket, order)"
+            />
+          </div>
+        </section>
+
+        <div class="surface p-4 flex items-start gap-3">
+          <ShieldCheck class="w-4 h-4 text-forest shrink-0 mt-0.5" />
+          <p class="text-[12px] text-muted leading-relaxed">
+            This wallet is private to your email. Never forward the link or share a screenshot of your QR — a used QR is refused at the gate, and transfers rotate the code.
+          </p>
         </div>
       </div>
-      
-      <!-- Custom Toast -->
-      <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-        enter-to-class="transform translate-y-0 opacity-100 sm:translate-x-0"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="transform translate-y-0 opacity-100 sm:translate-x-0"
-        leave-to-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-      >
-        <div v-if="customToast.show" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-xl shadow-2xl">
-          <div class="bg-emerald-500/20 text-emerald-400 rounded-full p-1"><Share class="w-4 h-4" /></div>
-          <span class="text-sm font-medium tracking-wide">{{ customToast.message }}</span>
+    </section>
+
+    <!-- ================= MODALS ================= -->
+    <UiModal :open="modal === 'transfer'" title="Transfer this ticket" eyebrow="Verified handover" @close="modal = null">
+      <div v-if="activeTicket" class="space-y-4">
+        <div class="rounded-xl bg-paper border border-line p-3.5 text-sm flex justify-between gap-3">
+          <div class="min-w-0">
+            <p class="font-semibold text-ink truncate">{{ activeTicket.tier }}</p>
+            <p class="mono text-[11px] text-muted">{{ activeTicket.ticketNumber }}</p>
+          </div>
+          <span class="chip-muted shrink-0">{{ activeOrder?.event?.title }}</span>
         </div>
-      </Transition>
-    </main>
+        <p class="text-sm text-muted leading-relaxed">
+          We’ll rotate the QR immediately. Your old pass stops working and the new attendee gets a fresh one by email.
+        </p>
+        <div>
+          <label class="label">New attendee name</label>
+          <input v-model.trim="transfer.name" type="text" class="input" placeholder="Full name" />
+        </div>
+        <div>
+          <label class="label">New attendee email</label>
+          <input v-model.trim="transfer.email" type="email" class="input" placeholder="name@example.com" />
+        </div>
+        <p v-if="transferError" class="field-error">{{ transferError }}</p>
+        <p v-if="activeTicket.transferCount" class="text-[11px] text-muted">
+          This ticket has been transferred {{ activeTicket.transferCount }} time(s) already.
+        </p>
+      </div>
+      <template #footer>
+        <button class="btn-primary" type="button" :disabled="transferPending" @click="submitTransfer">
+          {{ transferPending ? 'Transferring…' : 'Transfer ticket' }}
+        </button>
+        <button class="btn-secondary" type="button" @click="modal = null">Cancel</button>
+      </template>
+    </UiModal>
+
+    <UiModal :open="modal === 'resale'" title="List for resale" eyebrow="Face-value resale" @close="modal = null">
+      <div v-if="activeTicket" class="space-y-4">
+        <div class="rounded-xl bg-paper border border-line p-3.5 text-sm flex justify-between gap-3">
+          <div>
+            <p class="font-semibold text-ink">{{ activeTicket.tier }}</p>
+            <p class="mono text-[11px] text-muted">{{ activeTicket.ticketNumber }}</p>
+          </div>
+          <span class="chip-lime shrink-0">Capped at face value</span>
+        </div>
+        <div>
+          <label class="label">Asking price</label>
+          <input v-model.number="resale.price" type="number" min="1" :max="resaleCap" class="input" />
+          <p class="field-hint">
+            Maximum {{ formatMoney(resaleCap) }} for this tier. Ticketr verifies the buyer and rotates your QR when it sells.
+          </p>
+        </div>
+        <p v-if="resaleError" class="field-error">{{ resaleError }}</p>
+        <p class="text-[11px] text-muted">
+          If it sells, 90% of the price is paid out after the event. Your ticket stays valid until a buyer completes payment.
+        </p>
+      </div>
+      <template #footer>
+        <button class="btn-primary" type="button" :disabled="resalePending" @click="submitResale">
+          {{ resalePending ? 'Listing…' : 'List ticket' }}
+        </button>
+        <button class="btn-secondary" type="button" @click="modal = null">Cancel</button>
+      </template>
+    </UiModal>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import {
+  ArrowRight,
+  ArrowUpRight,
+  CalendarPlus,
+  KeyRound,
+  LogOut,
+  Mail,
+  RefreshCcw,
+  Send,
+  ShieldCheck,
+  Ticket,
+  TicketCheck,
+} from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
+
 definePageMeta({ layout: 'default' });
 
-import { ref } from 'vue';
-import { Ticket, Search, Mail, Calendar, QrCode, Share } from 'lucide-vue-next';
-
 const config = useRuntimeConfig();
+const route = useRoute();
 
-const emailInput = ref('');
-const searching = ref(false);
-const searched = ref(false);
-const orders = ref([]);
-
-function getCleanName(name) {
-  if (!name) return '';
-  return name.replace(/\s*\((Male|Female)\)\s*/i, '');
+const token = ref(typeof route.query.token === 'string' ? route.query.token : '');
+if (typeof window !== 'undefined') {
+  if (token.value) sessionStorage.setItem('ticketr_wallet_token', token.value);
+  else token.value = sessionStorage.getItem('ticketr_wallet_token') || '';
 }
 
-function getGenderTag(name) {
-  if (!name) return null;
-  const match = name.match(/\((Male|Female)\)/i);
-  if (match) {
-    return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-  }
-  return null;
-}
+const email = ref('');
+const linkPending = ref(false);
+const linkMessage = ref('');
+const linkError = ref('');
+const devLink = ref('');
 
-async function lookupTickets() {
-  searching.value = true;
-  searched.value = false;
-  orders.value = [];
+const orders = ref<any[]>([]);
+const loading = ref(false);
+const error = ref('');
 
+const ticketCount = computed(() =>
+  orders.value.reduce((sum, order) => sum + (order.tickets?.length || 0), 0),
+);
+
+const reassurance = [
+  { icon: ShieldCheck, title: 'Single-use QR', body: 'Scanned once, then refused.' },
+  { icon: RefreshCcw, title: 'Rotating transfers', body: 'Old codes are voided instantly.' },
+  { icon: KeyRound, title: 'Private by default', body: 'No public ticket lookup.' },
+];
+
+async function requestLink() {
+  linkPending.value = true;
+  linkMessage.value = '';
+  linkError.value = '';
+  devLink.value = '';
   try {
-    const res = await fetch(`${config.public.apiBase}/orders/lookup?email=${encodeURIComponent(emailInput.value.trim())}`);
-    if (res.ok) {
-      orders.value = await res.json();
-    }
+    const data = await apiRequest<any>('/orders/wallet/request-link', {
+      method: 'POST',
+      auth: false,
+      body: { email: email.value },
+    });
+    linkMessage.value = data?.message || 'If that email has tickets, a private link is on its way.';
+    if (data?.devLink) devLink.value = data.devLink;
   } catch (err) {
-    console.error('Error looking up tickets:', err);
+    linkError.value = errorMessage(err, 'We could not send that link.');
   } finally {
-    searching.value = false;
-    searched.value = true;
+    linkPending.value = false;
   }
 }
 
-const customToast = ref({ show: false, message: '' });
-let toastTimeout;
-
-function copyReferralLink(order) {
-  if (typeof window !== 'undefined' && navigator.clipboard) {
-    // Generate referral link based on order _id and event slug
-    const eventSlug = order.eventId?.slug || '';
-    const origin = window.location.origin;
-    let url = `${origin}/event/${eventSlug}?ref=${order._id}`;
-    
-    // Check if we are not on a subdomain and a tenant id is available (for local testing mostly)
-    if (order.tenantId?.slug && origin.includes('localhost')) {
-      url += `&tenant=${order.tenantId.slug}`;
-    }
-    
-    navigator.clipboard.writeText(url);
-    
-    customToast.value.message = 'Referral Link Copied!';
-    customToast.value.show = true;
-    
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-      customToast.value.show = false;
-    }, 3000);
+async function loadWallet(showLoading = true) {
+  if (!token.value) return;
+  if (showLoading) loading.value = true;
+  error.value = '';
+  try {
+    const data = await apiRequest<any[]>(`/orders/wallet/${encodeURIComponent(token.value)}`, { auth: false });
+    orders.value = Array.isArray(data) ? data : [];
+  } catch (err) {
+    error.value = errorMessage(err, 'This wallet link is invalid or has expired.');
+    orders.value = [];
+  } finally {
+    loading.value = false;
   }
 }
+
+function refreshWallet() {
+  loadWallet();
+}
+
+function forgetWallet() {
+  if (typeof window !== 'undefined') sessionStorage.removeItem('ticketr_wallet_token');
+  token.value = '';
+  orders.value = [];
+  error.value = '';
+  if (typeof window !== 'undefined') navigateTo('/my-tickets');
+}
+
+function addToCalendar(order: any) {
+  if (!order?.event?.startDate) return;
+  downloadCalendarFile({
+    title: order.event.title,
+    description: order.event.description,
+    location: order.event.location,
+    startDate: order.event.startDate,
+    endDate: order.event.endDate,
+    slug: order.event.slug,
+  });
+}
+
+async function payBalance(order: any) {
+  try {
+    const res = await apiRequest<any>(`/orders/${order.orderId}/pay-balance`, {
+      method: 'POST',
+      auth: false,
+      body: { callbackUrl: `${window.location.origin}/order/confirmation` },
+    });
+    if (res?.authorizationUrl) window.location.href = res.authorizationUrl;
+  } catch (err) {
+    toast.error(errorMessage(err));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Transfer
+// ---------------------------------------------------------------------------
+const modal = ref<null | 'transfer' | 'resale'>(null);
+const activeTicket = ref<any>(null);
+const activeOrder = ref<any>(null);
+const transfer = reactive({ name: '', email: '' });
+const transferPending = ref(false);
+const transferError = ref('');
+const resale = reactive({ price: 0 });
+const resalePending = ref(false);
+const resaleError = ref('');
+const resaleCap = ref(0);
+
+function openTransfer(ticket: any, order: any) {
+  activeTicket.value = ticket;
+  activeOrder.value = order;
+  transfer.name = '';
+  transfer.email = '';
+  transferError.value = '';
+  modal.value = 'transfer';
+}
+
+function openResale(ticket: any, order: any) {
+  activeTicket.value = ticket;
+  activeOrder.value = order;
+  const capPercent = Number(order?.event?.resalePriceCapPercent ?? 100);
+  resaleCap.value = Math.max(1, Math.round(Number(ticket.tierPrice || 0) * (capPercent / 100) * 100) / 100);
+  resale.price = resaleCap.value;
+  resaleError.value = '';
+  modal.value = 'resale';
+}
+
+async function submitTransfer() {
+  transferError.value = '';
+  if (!transfer.name || !transfer.email.includes('@')) {
+    transferError.value = 'Enter the new attendee’s name and email.';
+    return;
+  }
+  transferPending.value = true;
+  try {
+    await apiRequest(`/tickets/${activeTicket.value.id}/transfer`, {
+      method: 'POST',
+      auth: false,
+      body: {
+        walletToken: token.value,
+        newAttendeeName: transfer.name,
+        newAttendeeEmail: transfer.email,
+      },
+    });
+    toast.success('Ticket transferred. The old QR is now void.');
+    modal.value = null;
+    await loadWallet(false);
+  } catch (err) {
+    transferError.value = errorMessage(err);
+  } finally {
+    transferPending.value = false;
+  }
+}
+
+async function submitResale() {
+  resaleError.value = '';
+  if (!resale.price || resale.price <= 0) {
+    resaleError.value = 'Enter a valid asking price.';
+    return;
+  }
+  resalePending.value = true;
+  try {
+    await apiRequest(`/tickets/${activeTicket.value.id}/resale`, {
+      method: 'POST',
+      auth: false,
+      body: { walletToken: token.value, askingPrice: resale.price },
+    });
+    toast.success('Listed for verified resale.');
+    modal.value = null;
+    await loadWallet(false);
+  } catch (err) {
+    resaleError.value = errorMessage(err);
+  } finally {
+    resalePending.value = false;
+  }
+}
+
+onMounted(() => {
+  if (token.value) loadWallet();
+});
 
 useSeoMeta({
-  title: 'Find My Tickets | Ticketr',
-  description: 'Retrieve your purchased event tickets, view QR codes, and download passes.',
+  title: 'My tickets | Ticketr',
+  description: 'Open your private ticket wallet, view QR codes, transfer or resell tickets safely.',
+  robots: 'noindex, nofollow',
 });
 </script>

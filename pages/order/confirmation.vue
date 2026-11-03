@@ -1,157 +1,310 @@
 <template>
-  <div class="min-h-screen   flex flex-col items-center justify-center p-6">
-    <div class="w-full max-w-lg">
-      <!-- Loading State -->
-      <div v-if="loading" class="glass-card rounded-2xl p-12 text-center">
-        <div class="inline-block w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-        <h3 class="text-lg font-bold text-gray-900 mt-4">Verifying Payment & Generating Tickets...</h3>
-        <p class="text-xs text-gray-600 mt-1">Please do not refresh this page.</p>
+  <div class="bg-paper min-h-[72vh]">
+    <div class="shell py-12 sm:py-16 max-w-3xl">
+      <!-- Verifying -->
+      <div v-if="loading" class="surface p-8 sm:p-12 text-center">
+        <div class="relative w-16 h-16 mx-auto mb-5">
+          <div class="absolute inset-0 rounded-full border-4 border-line" />
+          <div class="absolute inset-0 rounded-full border-4 border-forest border-t-transparent animate-spin" />
+          <ShieldCheck class="w-6 h-6 text-forest absolute inset-0 m-auto" />
+        </div>
+        <h1 class="font-display text-2xl font-semibold text-ink">Confirming your payment</h1>
+        <p class="text-sm text-muted mt-2 max-w-sm mx-auto">
+          We are verifying with the payment provider and issuing your tickets. This usually takes a few seconds — please keep this page open.
+        </p>
+        <div class="mt-6 flex justify-center gap-1.5">
+          <span v-for="n in 3" :key="n" class="w-1.5 h-1.5 rounded-full bg-forest/40 animate-pulse" :style="{ animationDelay: `${n * 150}ms` }" />
+        </div>
       </div>
 
-      <!-- Error State -->
-      <div v-else-if="error" class="glass-card rounded-2xl p-8 text-center border-rose-500/40">
-        <div class="w-16 h-16 bg-rose-500/10 text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertTriangle class="w-8 h-8" />
+      <!-- Error -->
+      <div v-else-if="error" class="surface p-8 sm:p-12 text-center">
+        <span class="w-14 h-14 rounded-2xl bg-coral/10 text-coral flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle class="w-7 h-7" />
+        </span>
+        <h1 class="font-display text-2xl font-semibold text-ink">We could not confirm this payment</h1>
+        <p class="text-sm text-muted mt-2 max-w-md mx-auto">{{ error }}</p>
+        <div class="flex flex-wrap justify-center gap-2 mt-6">
+          <button class="btn-primary" type="button" @click="verify">Try again</button>
+          <NuxtLink to="/my-tickets" class="btn-secondary">Open ticket wallet</NuxtLink>
+          <a href="mailto:support@ticketr.org" class="btn-ghost">Contact support</a>
         </div>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">Payment Verification Error</h3>
-        <p class="text-gray-600 text-sm mb-6">{{ error }}</p>
-        <NuxtLink to="/" class="btn-primary text-xs">Return to Events</NuxtLink>
+        <p class="text-[11px] text-muted mt-6">
+          Keep your payment reference: <span class="mono font-semibold text-ink">{{ reference || '—' }}</span>
+        </p>
       </div>
 
-      <!-- Success Ticket Card -->
-      <div v-else-if="orderData" class="space-y-6">
-        <div class="text-center">
-          <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-3">
-            <CheckCircle class="w-8 h-8" />
+      <!-- Awaiting approval (manual transfer) -->
+      <div v-else-if="mandate" class="surface p-8 sm:p-12 text-center">
+        <span class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-4">
+          <Clock class="w-7 h-7" />
+        </span>
+        <h1 class="font-display text-2xl font-semibold text-ink">Payment under review</h1>
+        <p class="text-sm text-muted mt-2 max-w-md mx-auto">{{ mandate }}</p>
+        <NuxtLink to="/my-tickets" class="btn-primary mt-6">Open my wallet</NuxtLink>
+      </div>
+
+      <!-- Resale success -->
+      <div v-else-if="resale" class="surface overflow-hidden">
+        <div class="bg-ink text-paper px-6 sm:px-8 py-8 relative overflow-hidden">
+          <div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-lime/20 blur-[70px]" />
+          <div class="relative flex items-start gap-4">
+            <span class="w-12 h-12 rounded-2xl bg-lime text-ink flex items-center justify-center shrink-0">
+              <Check class="w-6 h-6" />
+            </span>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-paper/50">Verified resale confirmed</p>
+              <h1 class="font-display text-2xl sm:text-3xl font-semibold leading-tight mt-1">This pass is now yours.</h1>
+              <p class="text-sm text-paper/70 mt-2">
+                The seller’s QR was cancelled. Your fresh pass is in your private wallet and on its way to your email.
+              </p>
+            </div>
           </div>
-          <h2 class="text-2xl font-extrabold text-gray-900">Payment Confirmed!</h2>
-          <p class="text-sm text-gray-600 mt-1">Order #{{ orderData.orderNumber }}</p>
         </div>
+        <div class="p-6 sm:p-8">
+          <div class="grid sm:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Order</p>
+              <p class="mono font-semibold text-ink">{{ resale.orderNumber || '—' }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Ticket</p>
+              <p class="mono font-semibold text-ink">{{ resale.ticketNumber || '—' }}</p>
+            </div>
+          </div>
+          <NuxtLink :to="resale.walletToken ? `/my-tickets?token=${resale.walletToken}` : '/my-tickets'" class="btn-primary mt-5">
+            <Wallet class="w-4 h-4" /> Open my wallet
+          </NuxtLink>
+          <p class="text-[11px] text-muted mt-4">The seller is paid after the event. Ticketr’s fee covers verification and buyer protection.</p>
+        </div>
+      </div>
 
-        <!-- E-Ticket Render -->
-        <div v-for="ticket in orderData.tickets" :key="ticket._id" class="glass-card rounded-2xl overflow-hidden border-primary/40 print:bg-white print:text-black">
-          <div class="bg-gradient-to-r from-primary to-primary-700 p-6 text-white text-center">
-            <span class="text-xs font-semibold uppercase tracking-wider opacity-80 block">Official Event Pass</span>
-            <h3 class="text-xl font-bold mt-1">{{ ticket.ticketNumber }}</h3>
+      <!-- Success -->
+      <div v-else-if="order" class="space-y-5">
+        <div class="surface overflow-hidden">
+          <div class="bg-ink text-paper px-6 sm:px-8 py-8 relative overflow-hidden">
+            <div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-lime/20 blur-[70px]" />
+            <div class="relative flex items-start gap-4">
+              <span class="w-12 h-12 rounded-2xl bg-lime text-ink flex items-center justify-center shrink-0 animate-pulse-ring">
+                <Check class="w-6 h-6" />
+              </span>
+              <div class="min-w-0">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-paper/50">
+                  {{ order.status === 'PARTIALLY_PAID' ? 'Deposit received' : 'Payment confirmed' }}
+                </p>
+                <h1 class="font-display text-2xl sm:text-3xl font-semibold leading-tight mt-1">
+                  {{ order.status === 'PARTIALLY_PAID'
+                    ? `Half paid. ${formatMoney(order.amountRemaining)} left.`
+                    : `You’re in. ${order.tickets?.length || 0} pass${(order.tickets?.length || 0) === 1 ? '' : 'es'} issued.` }}
+                </h1>
+                <p class="text-sm text-paper/70 mt-2">
+                  {{ order.event?.title }} · {{ formatDate(order.event?.startDate, { weekday: 'short', day: 'numeric', month: 'long' }) }}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div class="p-6 space-y-4">
-            <div class="grid grid-cols-2 gap-4 text-sm">
+          <div class="p-6 sm:p-8">
+            <div class="grid sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <span class="text-xs text-gray-500 uppercase font-medium block">Attendee</span>
-                <div class="flex items-center gap-2 mt-0.5">
-                  <span class="font-semibold text-gray-900">{{ getCleanName(ticket.attendeeName) }}</span>
-                  <span v-if="getGenderTag(ticket.attendeeName) === 'Male'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider border border-blue-200">Male</span>
-                  <span v-if="getGenderTag(ticket.attendeeName) === 'Female'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-100 text-pink-700 uppercase tracking-wider border border-pink-200">Female</span>
-                </div>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Order</p>
+                <p class="mono font-semibold text-ink">{{ order.orderNumber }}</p>
               </div>
               <div>
-                <span class="text-xs text-gray-500 uppercase font-medium block">Email</span>
-                <span class="font-semibold text-gray-700 text-xs truncate block mt-0.5">{{ ticket.attendeeEmail }}</span>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Paid</p>
+                <p class="font-semibold text-ink">{{ formatMoney(order.amountPaid || order.totalAmount) }}</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Tickets sent to</p>
+                <p class="font-semibold text-ink truncate">{{ order.customerEmail }}</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Venue</p>
+                <p class="font-semibold text-ink truncate">{{ order.event?.location }}</p>
               </div>
             </div>
 
-            <!-- QR Code Render -->
-            <div class=" rounded-xl p-6 text-center border border-gray-200 my-4">
-              <canvas :ref="el => setCanvasRef(el, ticket.qrCodeHash)" class="mx-auto w-48 h-48 rounded-lg bg-white p-2"></canvas>
-              <span class="text-[11px] text-primary font-medium block mt-3">Scan at entrance gate for admission</span>
+            <div v-if="order.amountRemaining > 0" class="mt-5 rounded-xl bg-amber-50 border border-amber-200 p-4">
+              <p class="text-[12.5px] font-semibold text-amber-900">
+                Your seats are held. Balance {{ formatMoney(order.amountRemaining) }} is due within 14 days — tickets are issued as soon as it is paid.
+              </p>
+              <button class="btn-primary btn-sm mt-2" type="button" @click="payBalance">Pay balance now</button>
             </div>
 
-            <div class="flex items-center justify-between text-xs text-gray-600 pt-3 border-t border-gray-200">
-              <span>Status: <strong class="text-emerald-400 uppercase">{{ ticket.status }}</strong></span>
-              <span>Issued by Ticketr</span>
-            </div>
-
-            <div class="flex gap-2 mt-4">
-              <a :href="`${config.public.apiBase}/tickets/${ticket._id}/pdf`" download class="flex-1 flex items-center justify-center gap-1 bg-gray-900 text-white rounded-lg py-2 text-xs font-semibold hover:bg-gray-800 transition">
-                <Download class="w-4 h-4" /> Download PDF
-              </a>
-              <button @click="downloadQRCode(ticket.qrCodeHash, ticket.ticketNumber)" class="flex-1 flex items-center justify-center gap-1 bg-gray-100 text-gray-900 rounded-lg py-2 text-xs font-semibold hover:bg-gray-200 transition border border-gray-200">
-                <Smartphone class="w-4 h-4" /> Save QR
+            <div class="flex flex-wrap gap-2.5 mt-6">
+              <NuxtLink :to="walletLink" class="btn-primary">
+                <Wallet class="w-4 h-4" /> Open my wallet
+              </NuxtLink>
+              <button class="btn-secondary" type="button" @click="addToCalendar">
+                <CalendarPlus class="w-4 h-4" /> Add to calendar
+              </button>
+              <button class="btn-ghost" type="button" @click="shareWallet">
+                <Share2 class="w-4 h-4" /> Copy wallet link
               </button>
             </div>
+            <p class="text-[11px] text-muted mt-4">
+              We also emailed each ticket and the private wallet link. If it doesn’t arrive in a minute, check spam or
+              <NuxtLink to="/my-tickets" class="underline decoration-lime decoration-2 underline-offset-2 text-ink">request a new link</NuxtLink>.
+            </p>
           </div>
         </div>
 
-        <div class="flex items-center justify-center gap-4 pt-2">
-          <NuxtLink to="/" class="btn-secondary text-xs">
-            Back to Portal
-          </NuxtLink>
+        <!-- Ticket previews -->
+        <div v-if="order.tickets?.length" class="grid sm:grid-cols-2 gap-4">
+          <div v-for="ticket in order.tickets" :key="ticket._id" class="surface p-4 flex gap-3 items-center">
+            <div class="bg-white p-1.5 rounded-lg border border-line shrink-0">
+              <QrCode :value="ticket.qrCodeHash" :size="72" />
+            </div>
+            <div class="min-w-0">
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{{ ticket.tierId?.name || 'Pass' }}</p>
+              <p class="text-sm font-semibold text-ink truncate">{{ cleanAttendeeName(ticket.attendeeName) || 'Guest' }}</p>
+              <p class="mono text-[11px] text-muted truncate">{{ ticket.ticketNumber }}</p>
+              <UiBadge :value="ticket.status" class="mt-1 !text-[9px]" />
+            </div>
+          </div>
+        </div>
+
+        <p class="text-center text-[11px] text-muted">
+          Need help? <a href="mailto:support@ticketr.org" class="underline decoration-lime decoration-2 underline-offset-2 text-ink">support@ticketr.org</a>
+        </p>
+      </div>
+
+      <!-- Missing reference -->
+      <div v-else class="surface p-8 sm:p-12 text-center">
+        <span class="w-14 h-14 rounded-2xl bg-paper border border-line text-ink/50 flex items-center justify-center mx-auto mb-4">
+          <Link2Off class="w-7 h-7" />
+        </span>
+        <h1 class="font-display text-2xl font-semibold text-ink">Nothing to confirm yet</h1>
+        <p class="text-sm text-muted mt-2 max-w-md mx-auto">
+          This page confirms a payment after checkout. If you already paid, open your private ticket wallet instead.
+        </p>
+        <div class="flex flex-wrap justify-center gap-2 mt-6">
+          <NuxtLink to="/my-tickets" class="btn-primary">Open my tickets</NuxtLink>
+          <NuxtLink to="/" class="btn-secondary">Browse events</NuxtLink>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, nextTick } from 'vue';
-import QRCode from 'qrcode';
-import { AlertTriangle, CheckCircle, Download, Smartphone } from 'lucide-vue-next';
+<script setup lang="ts">
+import { AlertTriangle, CalendarPlus, Check, Clock, Link2Off, Share2, ShieldCheck, Wallet } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
+
+definePageMeta({ layout: 'default' });
 
 const config = useRuntimeConfig();
 const route = useRoute();
 
+const reference = computed(() => (typeof route.query.reference === 'string' ? route.query.reference : ''));
 const loading = ref(true);
-const error = ref(null);
-const orderData = ref(null);
-const canvasRefs = ref({});
+const error = ref('');
+const mandate = ref('');
+const order = ref<any>(null);
+const resale = ref<any>(null);
 
-function setCanvasRef(el, hash) {
-  if (el && hash) {
-    canvasRefs.value[hash] = el;
-    QRCode.toCanvas(el, hash, { width: 200, margin: 1 });
-  }
-}
+const walletLink = computed(() =>
+  order.value?.walletToken
+    ? `/my-tickets?token=${order.value.walletToken}`
+    : '/my-tickets',
+);
 
-function downloadQRCode(hash, ticketNumber) {
-  const canvas = canvasRefs.value[hash];
-  if (!canvas) return;
-  const url = canvas.toDataURL('image/png');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `QR-${ticketNumber.replace(/\//g, '-')}.png`;
-  a.click();
-}
-
-async function verifyOrder() {
-  const reference = route.query.reference;
-  if (!reference) {
+async function verify() {
+  if (!reference.value) {
     loading.value = false;
-    error.value = 'No transaction reference provided in URL';
     return;
   }
+  loading.value = true;
+  error.value = '';
+  mandate.value = '';
+
+  const isResale = reference.value.startsWith('RSL-');
 
   try {
-    const res = await fetch(`${config.public.apiBase}/orders/verify?reference=${encodeURIComponent(reference)}`);
-    if (res.ok) {
-      orderData.value = await res.json();
-    } else {
-      const err = await res.json();
-      error.value = err.message || 'Payment verification failed';
+    const data = isResale
+      ? await apiRequest<any>(`/tickets/resale/verify?reference=${encodeURIComponent(reference.value)}`, { auth: false })
+      : await apiRequest<any>(`/orders/verify?reference=${encodeURIComponent(reference.value)}`, { auth: false });
+
+    if (isResale) {
+      resale.value = data;
+      if (data?.walletToken) sessionStorage.setItem('ticketr_wallet_token', data.walletToken);
+      return;
     }
-  } catch (err) {
-    console.error('Verification error:', err);
-    error.value = 'Network error while verifying payment';
+
+    if (data?.status === 'PARTIALLY_PAID') {
+      order.value = data;
+      if (data.walletToken) sessionStorage.setItem('ticketr_wallet_token', data.walletToken);
+      return;
+    }
+
+    if (data?.status === 'AWAITING_APPROVAL') {
+      mandate.value = 'Your proof of payment is with the organizer. Tickets are issued as soon as it is verified.';
+      return;
+    }
+
+    if (!data?.orderNumber) {
+      error.value = 'We could not find an order for this payment reference.';
+      return;
+    }
+
+    order.value = data;
+    if (data.walletToken) sessionStorage.setItem('ticketr_wallet_token', data.walletToken);
+  } catch (err: any) {
+    const message = errorMessage(err);
+    if (message.toLowerCase().includes('being issued')) {
+      // Webhook and this request are racing; retry once after a moment.
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      try {
+        const retry = await apiRequest<any>(`/orders/verify?reference=${encodeURIComponent(reference.value)}`, { auth: false });
+        if (retry?.orderNumber) {
+          order.value = retry;
+          if (retry.walletToken) sessionStorage.setItem('ticketr_wallet_token', retry.walletToken);
+          return;
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    error.value = message;
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(() => {
-  verifyOrder();
-});
-
-function getCleanName(name) {
-  if (!name) return '';
-  return name.replace(/\s*\((Male|Female)\)\s*/i, '');
-}
-
-function getGenderTag(name) {
-  if (!name) return null;
-  const match = name.match(/\((Male|Female)\)/i);
-  if (match) {
-    return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+async function payBalance() {
+  if (!order.value?.orderId) return;
+  try {
+    const res = await apiRequest<any>(`/orders/${order.value.orderId}/pay-balance`, {
+      method: 'POST',
+      auth: false,
+      body: { callbackUrl: `${window.location.origin}/order/confirmation` },
+    });
+    if (res?.authorizationUrl) window.location.href = res.authorizationUrl;
+  } catch (err) {
+    toast.error(errorMessage(err));
   }
-  return null;
 }
+
+function addToCalendar() {
+  if (!order.value?.event) return;
+  downloadCalendarFile({
+    title: order.value.event.title,
+    description: order.value.event.description,
+    location: order.value.event.location,
+    startDate: order.value.event.startDate,
+    endDate: order.value.event.endDate,
+    slug: order.value.event.slug,
+  });
+}
+
+async function shareWallet() {
+  if (!order.value?.walletToken) return;
+  const url = `${window.location.origin}/my-tickets?token=${order.value.walletToken}`;
+  const ok = await copyText(url);
+  toast[ok ? 'success' : 'error'](ok ? 'Private wallet link copied' : 'Could not copy the link');
+}
+
+onMounted(verify);
+
+useSeoMeta({ title: 'Payment confirmation | Ticketr', robots: 'noindex, nofollow' });
 </script>

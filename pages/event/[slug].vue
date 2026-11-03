@@ -1,1025 +1,1182 @@
 <template>
-  <div>
-    <!-- Top Header -->
-    
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 py-6 md:py-8 flex-grow w-full">
-      <!-- Loading State -->
-      <div v-if="loading" class="text-center py-24">
-        <div class="inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-        <p class="text-gray-600 text-sm mt-4">Loading event details...</p>
-      </div>
-
-      <!-- Error / Not Found -->
-      <div v-else-if="!eventData || !eventData.event" class="glass-card rounded-2xl p-12 text-center max-w-md mx-auto my-12">
-        <p class="text-xl font-bold text-gray-900 mb-2">Event Not Found</p>
-        <NuxtLink :to="`/?tenant=${tenantSlug}`" class="btn-primary text-xs inline-block mt-4">Return Home</NuxtLink>
-      </div>
-
-      <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Left 2 Columns: Event Info -->
-        <div class="lg:col-span-2 space-y-6">
-          <div class="glass-card rounded-2xl overflow-hidden">
-            <div class="relative w-full h-[300px] sm:h-[450px] md:h-[600px] bg-slate-950">
-              <template v-if="eventData.event.carouselImages && eventData.event.carouselImages.length > 1">
-                <div class="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide h-full w-full">
-                  <div
-                    v-for="(img, idx) in eventData.event.carouselImages"
-                    :key="idx"
-                    class="w-full flex-shrink-0 snap-center h-full relative"
-                  >
-                    <img :src="img" :alt="eventData.event.title" class="w-full h-full object-contain" />
-                  </div>
-                </div>
-                <!-- Carousel indicators -->
-                <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-                  <div v-for="(_, i) in eventData.event.carouselImages" :key="'ind'+i" class="w-2 h-2 rounded-full bg-white/50"></div>
-                </div>
-              </template>
-              <img
-                v-else
-                :src="(eventData.event.carouselImages && eventData.event.carouselImages[0]) || eventData.event.bannerUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'"
-                :alt="eventData.event.title"
-                class="w-full h-full object-contain"
-              />
-            </div>
-
-            <!-- Details Body -->
-            <div class="p-6 md:p-8 space-y-6">
-              <div>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-3 inline-block">
-                  <div class="flex items-center gap-1">
-                    <Globe v-if="eventData.event.isVirtual" class="w-3 h-3" />
-                    <MapPin v-else class="w-3 h-3" />
-                    <span>{{ eventData.event.isVirtual ? 'Virtual Event' : eventData.event.location }}</span>
-                  </div>
-                </span>
-                <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight mb-2">
-                  {{ tenantSlug === 'thebig5' ? "THE BIG FIVES's" : eventData.event.title }}
-                </h1>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl /60 border border-gray-200">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg">
-                    <Calendar class="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span class="text-xs text-gray-500 block uppercase font-medium">Date & Time</span>
-                    <span class="text-sm font-semibold text-gray-900">{{ formatDate(eventData.event.startDate) }}</span>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg">
-                    <MapPin class="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span class="text-xs text-gray-500 block uppercase font-medium">Location</span>
-                    <span class="text-sm font-semibold text-gray-900 truncate max-w-[200px] block">{{ eventData.event.location }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 class="text-lg font-bold text-gray-900 mb-3">About This Event</h3>
-                <p class="text-gray-700 leading-relaxed text-sm whitespace-pre-line">
-                  {{ eventData.event.description }}
-                </p>
-              </div>
-            </div>
-          </div>
+  <div class="bg-paper">
+    <!-- Loading -->
+    <div v-if="pending" class="shell py-14">
+      <div class="skeleton h-4 w-40 mb-6" />
+      <div class="grid lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-4">
+          <div class="skeleton aspect-[16/9] !rounded-2xl" />
+          <div class="skeleton h-9 w-3/4" />
+          <div class="skeleton h-4 w-full" />
+          <div class="skeleton h-4 w-5/6" />
         </div>
+        <div class="skeleton h-[420px] !rounded-2xl" />
+      </div>
+    </div>
 
-        <!-- Right Column: Ticket Selector / Gallery -->
-        <div class="space-y-6">
-          <div class="glass-card rounded-2xl p-4 border-primary/30 sticky top-24">
-            
-            <template v-if="eventData.event.status === 'COMPLETED'">
-              <h2 class="text-xl font-bold text-gray-900 mb-4">Event Gallery</h2>
-              <p class="text-sm text-gray-600 mb-4">This event has already taken place. Thanks to everyone who attended!</p>
-              
-              <div v-if="eventData.event.galleryImages && eventData.event.galleryImages.length > 0" class="grid grid-cols-2 gap-2 mt-4">
-                <div v-for="(img, idx) in eventData.event.galleryImages" :key="idx" class="relative group overflow-hidden rounded-xl bg-gray-100 aspect-square">
-                  <img :src="img" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
+    <!-- Error -->
+    <div v-else-if="loadError || !event" class="shell py-20">
+      <div class="surface max-w-lg mx-auto p-8 sm:p-10 text-center">
+        <span class="w-14 h-14 rounded-2xl bg-coral/10 text-coral flex items-center justify-center mx-auto mb-4">
+          <CalendarX class="w-7 h-7" />
+        </span>
+        <h1 class="font-display text-2xl font-semibold text-ink">Event unavailable</h1>
+        <p class="text-sm text-muted mt-2">
+          {{ loadError || 'This event may have been unpublished or the link is incorrect.' }}
+        </p>
+        <NuxtLink to="/" class="btn-primary mt-6">Browse other events</NuxtLink>
+      </div>
+    </div>
+
+    <template v-else>
+      <!-- ======================= HEADER ======================= -->
+      <div class="border-b border-line bg-white">
+        <div class="shell py-4 flex items-center gap-2 text-[12px] font-semibold text-muted overflow-hidden">
+          <NuxtLink to="/" class="hover:text-ink transition shrink-0">Discover</NuxtLink>
+          <ChevronRight class="w-3.5 h-3.5 shrink-0" />
+          <NuxtLink :to="organizerLink" class="hover:text-ink transition truncate shrink-0">{{ tenant?.name || 'Organizer' }}</NuxtLink>
+          <ChevronRight class="w-3.5 h-3.5 shrink-0" />
+          <span class="text-ink truncate">{{ event.title }}</span>
+        </div>
+      </div>
+
+      <div class="shell py-8 sm:py-10">
+        <div class="grid lg:grid-cols-[1.55fr_1fr] gap-8 lg:gap-10 items-start">
+          <!-- ======================= LEFT ======================= -->
+          <div class="min-w-0 space-y-7">
+            <!-- Gallery -->
+            <section>
+              <div class="relative overflow-hidden rounded-[22px] border border-line bg-ink/5">
+                <div class="relative aspect-[16/9] sm:aspect-[16/8]">
+                  <img
+                    v-if="galleryImages.length"
+                    :src="galleryImages[activeImage]"
+                    :alt="event.title"
+                    class="w-full h-full object-cover"
+                  />
+                  <div v-else class="w-full h-full bg-grid bg-paper flex items-center justify-center">
+                    <Ticket class="w-16 h-16 text-ink/15" />
+                  </div>
+                  <div class="absolute inset-x-0 top-0 p-3 flex items-start justify-between gap-2">
+                    <div class="flex flex-wrap gap-2">
+                      <span v-if="isCancelled" class="chip-coral !bg-ink !text-paper">Cancelled</span>
+                      <span v-else-if="isPast" class="chip-ink">Past event</span>
+                      <span v-else-if="remaining <= 0" class="chip-ink">Sold out</span>
+                      <span v-else-if="remaining <= 20" class="chip-lime">{{ remaining }} seats left</span>
+                      <span v-else class="chip !bg-white/85 backdrop-blur">{{ remaining }} seats left</span>
+                      <span v-if="event.isVirtual" class="chip !bg-white/85 backdrop-blur"><Video class="w-3 h-3" /> Online</span>
+                    </div>
+                    <button
+                      type="button"
+                      class="w-9 h-9 rounded-full bg-white/90 backdrop-blur border border-line flex items-center justify-center text-ink hover:bg-white transition"
+                      title="Share event"
+                      @click="share"
+                    >
+                      <Share2 class="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div v-else class="text-center p-8 bg-gray-50 rounded-xl border border-gray-100">
-                <svg class="w-10 h-10 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Gallery Coming Soon</p>
-              </div>
-            </template>
-            
-            <template v-else>
-              <h2 class="text-xl font-bold text-gray-900 mb-4">Select Tickets</h2>
 
-            <!-- Tiers List -->
-            <div class="space-y-4 mb-6">
-              <div
-                v-for="tier in eventData.event.tiers"
-                :key="tier._id"
-                class="p-4 rounded-xl border transition-all"
-                :class="selectedQuantities[tier._id] > 0 ? 'bg-indigo-950/30 border-indigo-500/60' : '/40 border-gray-200'"
-              >
-                <div class="flex items-center justify-between mb-2">
-                  <div class="flex gap-4">
-                    <img v-if="tier.templateImageUrl" :src="tier.templateImageUrl" class="w-12 h-12 rounded-lg object-cover border border-gray-200" />
-                    <div>
-                      <h4 class="font-bold text-gray-900 text-base flex items-center gap-2">
-                        {{ tier.name }}
-                        <span v-if="tier.isCoupleTicket" class="text-[10px] font-bold uppercase tracking-wider bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full">Couple</span>
-                      </h4>
-                      <p v-if="tier.description" class="text-xs text-gray-500 line-clamp-2 mt-0.5">{{ tier.description }}</p>
-                      
-                      <!-- FOMO Bar -->
-                      <div class="mt-2 w-full max-w-[150px]">
-                        <div class="flex items-center justify-between text-[10px] mb-1 font-semibold" :class="(tier.capacity - tier.soldCount) < 10 ? 'text-rose-500' : 'text-gray-500'">
-                          <span>{{ tier.capacity - tier.soldCount }} left</span>
-                          <span v-if="(tier.capacity - tier.soldCount) < 10">Selling Fast!</span>
-                        </div>
-                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                          <div 
-                            class="h-full rounded-full transition-all duration-1000 ease-out"
-                            :class="(tier.capacity - tier.soldCount) < 10 ? 'bg-rose-500' : 'bg-emerald-500'"
-                            :style="{ width: `${Math.max(5, (tier.soldCount / tier.capacity) * 100)}%` }"
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <span class="text-lg font-extrabold text-primary">
-                    {{ tier.price === 0 ? 'Free' : `₦${tier.price.toLocaleString()}` }}
+              <div v-if="galleryImages.length > 1" class="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
+                <button
+                  v-for="(image, index) in galleryImages"
+                  :key="image + index"
+                  type="button"
+                  class="relative w-20 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition"
+                  :class="activeImage === index ? 'border-ink' : 'border-transparent opacity-70 hover:opacity-100'"
+                  @click="activeImage = index"
+                >
+                  <img :src="image" alt="" class="w-full h-full object-cover" />
+                </button>
+              </div>
+            </section>
+
+            <!-- Title & meta -->
+            <section>
+              <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span v-for="tag in event.tags || []" :key="tag" class="chip !text-[10px]">{{ tag }}</span>
+                <span class="chip-soft !text-[10px]"><ShieldCheck class="w-3 h-3" /> Verified organizer</span>
+              </div>
+
+              <h1 class="font-display text-3xl sm:text-[2.6rem] leading-[1.05] font-semibold text-ink tracking-[-0.03em]">
+                {{ event.title }}
+              </h1>
+
+              <div class="grid sm:grid-cols-2 gap-3 mt-5">
+                <div class="flex items-start gap-3 rounded-xl border border-line bg-white px-4 py-3.5">
+                  <span class="w-9 h-9 rounded-lg bg-paper flex items-center justify-center shrink-0">
+                    <CalendarDays class="w-4 h-4 text-forest" />
                   </span>
+                  <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Date & time</p>
+                    <p class="text-sm font-semibold text-ink">{{ formatDate(event.startDate, { weekday: 'long', day: 'numeric', month: 'long' }) }}</p>
+                    <p class="text-xs text-muted mt-0.5">{{ formatTime(event.startDate) }} — {{ formatTime(event.endDate) }}</p>
+                  </div>
                 </div>
 
-                <!-- Quantity Controls -->
-                <div class="flex items-center justify-between pt-3 border-t border-gray-200/60 mt-2">
-                  <span class="text-xs text-gray-500">Qty (Max 1)</span>
-                  <div class="flex items-center gap-3">
-                    <button
-                      @click="updateQuantity(tier._id, -1, 1)"
-                      :disabled="!selectedQuantities[tier._id]"
-                      class="w-8 h-8 rounded-lg bg-gray-100 text-gray-700 font-bold hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition"
+                <div class="flex items-start gap-3 rounded-xl border border-line bg-white px-4 py-3.5">
+                  <span class="w-9 h-9 rounded-lg bg-paper flex items-center justify-center shrink-0">
+                    <MapPin class="w-4 h-4 text-forest" />
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{{ event.isVirtual ? 'Online' : 'Venue' }}</p>
+                    <p class="text-sm font-semibold text-ink truncate">{{ event.isVirtual ? 'Join link after checkout' : event.location }}</p>
+                    <a
+                      v-if="event.venueMapUrl"
+                      :href="event.venueMapUrl"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-xs font-semibold text-forest hover:underline inline-flex items-center gap-1 mt-0.5"
                     >
-                      -
-                    </button>
-                    <span class="font-bold text-gray-900 text-sm w-4 text-center">{{ selectedQuantities[tier._id] || 0 }}</span>
-                    <button
-                      @click="updateQuantity(tier._id, 1, 1)"
-                      :disabled="(selectedQuantities[tier._id] || 0) >= 1"
-                      class="w-8 h-8 rounded-lg bg-primary text-white font-bold hover:bg-primary-700 disabled:opacity-30 disabled:pointer-events-none transition"
-                    >
-                      +
-                    </button>
+                      Open map <ArrowUpRight class="w-3 h-3" />
+                    </a>
+                    <span v-else class="text-xs text-muted">{{ countdownLabel(event.startDate) }}</span>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <!-- Attendee Details Form -->
-            <div class="space-y-6 pt-4 border-t border-gray-200 mb-6">
-              <div>
-                <h4 class="font-semibold text-gray-900 text-sm">Billing Contact Info</h4>
-                <div class="mt-2 space-y-4">
+            <!-- About -->
+            <section class="surface p-5 sm:p-7">
+              <h2 class="font-display text-xl font-semibold text-ink">About this event</h2>
+              <div class="prose-editorial mt-3 whitespace-pre-line">{{ event.description }}</div>
+
+              <div v-if="event.tags?.length" class="flex flex-wrap gap-2 mt-5 pt-5 border-t border-line">
+                <span v-for="tag in event.tags" :key="tag" class="chip-muted">{{ tag }}</span>
+              </div>
+            </section>
+
+            <!-- Organizer + policies -->
+            <section class="grid sm:grid-cols-2 gap-4">
+              <div class="surface p-5">
+                <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Organizer</p>
+                <div class="flex items-center gap-3 mt-3">
+                  <img
+                    v-if="tenant?.logoUrl"
+                    :src="tenant.logoUrl"
+                    alt=""
+                    class="w-11 h-11 rounded-xl object-cover border border-line"
+                  />
+                  <div v-else class="w-11 h-11 rounded-xl bg-ink text-lime flex items-center justify-center font-display font-semibold">
+                    {{ initials(tenant?.name) }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-semibold text-ink truncate">{{ tenant?.name }}</p>
+                    <p class="text-xs text-muted truncate">{{ tenant?.contactEmail || 'Verified organizer' }}</p>
+                  </div>
+                </div>
+                <div class="mt-4 flex items-center gap-2 text-[11px] font-semibold text-forest">
+                  <ShieldCheck class="w-4 h-4" /> Identity and payout verified
+                </div>
+              </div>
+
+              <div class="surface p-5">
+                <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Ticket policies</p>
+                <div class="mt-3 space-y-3 text-[13px] text-ink/75 leading-relaxed">
+                  <p class="flex gap-2"><RefreshCcw class="w-4 h-4 text-forest shrink-0 mt-0.5" /> {{ event.transferPolicy }}</p>
+                  <p class="flex gap-2"><ReceiptText class="w-4 h-4 text-forest shrink-0 mt-0.5" /> {{ event.refundPolicy }}</p>
+                  <p class="flex gap-2"><ScanLine class="w-4 h-4 text-forest shrink-0 mt-0.5" /> One QR per ticket. Screenshots are refused after first scan.</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- Resale -->
+            <section v-if="resaleListings.length" class="surface p-5 sm:p-6">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Verified resale</p>
+                  <h2 class="font-display text-xl font-semibold text-ink mt-1">Fans reselling at face value</h2>
+                </div>
+                <span class="chip-lime">Capped</span>
+              </div>
+
+              <div class="mt-4 divide-y divide-line">
+                <div v-for="listing in resaleListings" :key="listing.id" class="py-3 flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-ink truncate">{{ listing.tierName }}</p>
+                    <p class="text-xs text-muted">
+                      {{ listing.section ? `Section ${listing.section} · ` : '' }}Listed {{ relativeTime(listing.createdAt) }}
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-3 shrink-0">
+                    <span class="font-display text-lg font-semibold text-ink">{{ formatMoney(listing.askingPrice) }}</span>
+                    <button class="btn-primary btn-sm" type="button" @click="openResale(listing)">Buy</button>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-muted mt-2">
+                Resale purchases rotate the seller’s QR instantly. The seller is paid after the event.
+              </p>
+            </section>
+
+            <!-- Past gallery -->
+            <section v-if="isPast && event.galleryImages?.length" class="surface p-5 sm:p-6">
+              <h2 class="font-display text-xl font-semibold text-ink">From the night</h2>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+                <div v-for="(image, index) in event.galleryImages" :key="index" class="relative aspect-square rounded-xl overflow-hidden bg-ink/5">
+                  <img :src="image" alt="" loading="lazy" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- ======================= CHECKOUT ======================= -->
+          <aside class="lg:sticky lg:top-[92px]">
+            <div class="surface overflow-hidden shadow-lift">
+              <div class="px-5 pt-5 pb-4 border-b border-line flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+                    {{ isPast ? 'Event ended' : 'Choose your tickets' }}
+                  </p>
+                  <p class="font-display text-xl font-semibold text-ink mt-0.5">
+                    {{ isPast ? 'Thanks for coming' : itemCount ? formatMoney(total) : 'Pick a tier to begin' }}
+                  </p>
+                </div>
+                <span v-if="!isPast" class="chip-soft">{{ itemCount }} ticket{{ itemCount === 1 ? '' : 's' }}</span>
+              </div>
+
+              <!-- Cancelled / past -->
+              <div v-if="isCancelled" class="p-5 sm:p-6 text-sm text-muted leading-relaxed">
+                <p class="font-semibold text-ink">This event was cancelled.</p>
+                <p class="mt-1">The organizer is responsible for refunding the face value of existing tickets. Contact them or our support team with your order number.</p>
+                <NuxtLink to="/my-tickets" class="btn-secondary btn-sm mt-4 w-full">Open my wallet</NuxtLink>
+              </div>
+              <div v-else-if="isPast" class="p-5 sm:p-6 text-sm text-muted leading-relaxed">
+                <p>Ticket sales are closed. If you attended, your pass stays in your wallet as a keepsake.</p>
+                <NuxtLink to="/my-tickets" class="btn-secondary btn-sm mt-4 w-full">Open my wallet</NuxtLink>
+              </div>
+
+              <!-- Sold out entirely -->
+              <div v-else-if="!purchasableTiers.length" class="p-5 sm:p-6">
+                <div class="rounded-xl bg-paper border border-line p-4 text-center">
+                  <p class="font-semibold text-ink">Sold out</p>
+                  <p class="text-xs text-muted mt-1">Join the resale waitlist by checking back — verified resale listings appear here.</p>
+                </div>
+              </div>
+
+              <div v-else class="p-4 sm:p-5 space-y-4 max-h-[calc(100vh-220px)] overflow-y-auto">
+                <!-- Manual transfer notice -->
+                <div v-if="isManualTransfer" class="rounded-xl bg-amber-50 border border-amber-200 p-3.5 text-[12px] text-amber-900 leading-relaxed">
+                  <p class="font-bold flex items-center gap-1.5"><Building2 class="w-3.5 h-3.5" /> Bank transfer checkout</p>
+                  <p class="mt-1">Place your order, transfer the exact total, then upload your receipt. Tickets are issued after the organizer verifies your payment.</p>
+                </div>
+
+                <!-- Tiers -->
+                <div class="space-y-2.5">
+                  <div
+                    v-for="tier in event.tiers"
+                    :key="tier._id"
+                    class="rounded-xl border p-3.5 transition-all"
+                    :class="quantity[tier._id] > 0 ? 'border-ink bg-paper/70' : 'border-line bg-white'"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                          <p class="font-semibold text-ink text-sm">{{ tier.name }}</p>
+                          <span v-if="tier.isCoupleTicket" class="chip-lime !text-[9px] !px-2 !py-0.5">Couple</span>
+                          <span v-if="tier.remaining <= 0" class="chip-coral !text-[9px] !px-2 !py-0.5">Sold out</span>
+                        </div>
+                        <p v-if="tier.description" class="text-[11.5px] text-muted mt-0.5 line-clamp-2">{{ tier.description }}</p>
+                        <div class="mt-2 flex items-center gap-2">
+                          <div class="h-1 w-20 rounded-full bg-line overflow-hidden">
+                            <div class="h-full rounded-full bg-forest" :style="{ width: `${Math.min(100, tier.sellThrough || 0)}%` }" />
+                          </div>
+                          <span class="text-[10px] font-semibold" :class="tier.remaining <= 10 ? 'text-coral' : 'text-muted'">
+                            {{ tier.remaining }} left
+                          </span>
+                        </div>
+                      </div>
+                      <p class="font-display text-base font-semibold text-ink shrink-0">
+                        {{ Number(tier.price) === 0 ? 'Free' : formatMoney(tier.price) }}
+                      </p>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-line/70">
+                      <p class="text-[11px] text-muted">
+                        Max {{ Math.min(tier.maxPerPurchase || 5, tier.remaining) }} per order
+                        <span v-if="tier.isCoupleTicket"> · 2 passes each</span>
+                      </p>
+                      <div class="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          class="w-8 h-8 rounded-lg border border-line bg-white text-ink font-bold disabled:opacity-35 disabled:pointer-events-none"
+                          :disabled="!quantity[tier._id]"
+                          :aria-label="`Remove one ${tier.name}`"
+                          @click="setQuantity(tier, (quantity[tier._id] || 0) - 1)"
+                        >
+                          −
+                        </button>
+                        <span class="w-7 text-center text-sm font-bold text-ink">{{ quantity[tier._id] || 0 }}</span>
+                        <button
+                          type="button"
+                          class="w-8 h-8 rounded-lg bg-ink text-paper font-bold disabled:opacity-35 disabled:pointer-events-none"
+                          :disabled="(quantity[tier._id] || 0) >= Math.min(tier.maxPerPurchase || 5, tier.remaining) || tier.remaining <= 0"
+                          :aria-label="`Add one ${tier.name}`"
+                          @click="setQuantity(tier, (quantity[tier._id] || 0) + 1)"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Buyer -->
+                <div class="space-y-3 pt-1">
+                  <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Buyer details</p>
                   <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
-                    <input
-                      v-model="customerName"
-                      type="text"
-                      placeholder="e.g. Jane Doe"
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-                    />
+                    <label class="label" for="buyer-name">Full name</label>
+                    <input id="buyer-name" v-model.trim="buyer.name" type="text" autocomplete="name" placeholder="e.g. Jane Doe" class="input" :class="{ 'input-error': showBuyerErrors && errors.buyerName }" @blur="touched.buyerName = true" />
+                    <p v-if="showBuyerErrors && errors.buyerName" class="field-error">{{ errors.buyerName }}</p>
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Email Address</label>
+                    <label class="label" for="buyer-email">Email for tickets</label>
                     <input
-                      v-model="customerEmail"
-                      @blur="checkExistingSession"
-                      @change="checkExistingSession"
+                      id="buyer-email"
+                      v-model.trim="buyer.email"
                       type="email"
-                      placeholder="jane@example.com"
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
+                      autocomplete="email"
+                      placeholder="you@example.com"
+                      class="input"
+                      :class="{ 'input-error': showBuyerErrors && errors.buyerEmail }"
+                      @blur="touched.buyerName = true"
                     />
+                    <p v-if="showBuyerErrors && errors.buyerEmail" class="field-error">{{ errors.buyerEmail }}</p>
+                    <p class="field-hint">Your tickets and private wallet link are sent here. Check the spelling.</p>
                   </div>
-                  <div v-if="eventData?.event?.formSettings?.requireDepartment !== false">
-                    <label class="block text-xs font-medium text-gray-600 mb-1">{{ eventData?.event?.formSettings?.departmentLabel || 'Department / Association Code' }}</label>
-                    <CustomDropdown
-                      v-if="eventData?.event?.formSettings?.departmentOptions?.length > 0"
-                      v-model="departmentCode"
-                      :options="eventData.event.formSettings.departmentOptions.map(opt => ({ code: opt, name: opt }))"
-                      placeholder="Select..."
-                    />
+                  <div>
+                    <label class="label" for="buyer-phone">Phone <span class="text-muted/70 normal-case tracking-normal">(optional)</span></label>
+                    <input id="buyer-phone" v-model.trim="buyer.phone" type="tel" autocomplete="tel" placeholder="+234…" class="input" />
+                  </div>
+                </div>
+
+                <!-- Attendees -->
+                <div v-if="itemCount > 0" class="space-y-3 pt-1">
+                  <div class="flex items-center justify-between gap-2">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Who is attending</p>
+                    <label class="flex items-center gap-2 text-[11px] font-semibold text-muted cursor-pointer">
+                      <input v-model="sameAsBuyer" type="checkbox" class="w-3.5 h-3.5 rounded border-line text-forest focus:ring-forest" />
+                      Same as buyer
+                    </label>
+                  </div>
+
+                  <div v-for="row in attendeeRows" :key="row.key" class="rounded-xl border border-line bg-white p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{{ row.label }}</p>
+                      <span class="mono text-[10px] text-muted">{{ row.tierName }}</span>
+                    </div>
+                    <input v-model.trim="row.name" :disabled="sameAsBuyer" type="text" placeholder="Attendee full name" class="input !py-2.5" :class="{ 'input-error': touched.attendees && !row.name }" />
+                    <input v-model.trim="row.email" :disabled="sameAsBuyer" type="email" placeholder="Attendee email" class="input !py-2.5" :class="{ 'input-error': touched.attendees && !row.email }" />
+                    <div v-if="requireDepartment">
+                      <select v-if="departmentOptions.length" v-model="row.department" class="input !py-2.5">
+                        <option value="">Select {{ departmentLabel.toLowerCase() }}</option>
+                        <option v-for="option in departmentOptions" :key="option" :value="option">{{ option }}</option>
+                      </select>
+                      <input v-else v-model.trim="row.department" type="text" :placeholder="departmentLabel" class="input !py-2.5" />
+                    </div>
+                    <div v-for="field in customFields" :key="field.name">
+                      <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-muted mb-1">
+                        {{ field.label }} <span v-if="field.required" class="text-coral">*</span>
+                      </label>
+                      <select v-if="field.type === 'select'" v-model="row.custom[field.name]" class="input !py-2.5">
+                        <option value="">Select option</option>
+                        <option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
+                      </select>
+                      <input v-else v-model.trim="row.custom[field.name]" type="text" class="input !py-2.5" />
+                    </div>
+                  </div>
+                  <p v-if="attendeeError" class="field-error">{{ attendeeError }}</p>
+                </div>
+
+                <!-- Promo -->
+                <div v-if="itemCount > 0">
+                  <label class="label" for="promo">Promo code</label>
+                  <div class="flex gap-2">
                     <input
-                      v-else
-                      v-model="departmentCode"
+                      id="promo"
+                      v-model.trim="promoInput"
                       type="text"
-                      placeholder="e.g. Sales"
-                      class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
+                      placeholder="OPTIONAL"
+                      class="input mono uppercase !py-2.5"
+                      :disabled="!!appliedPromo"
                     />
-                    <span class="text-[11px] text-gray-500 mt-1 block">Used to generate structured ticket code (e.g. V/T01/EDM)</span>
+                    <button v-if="!appliedPromo" type="button" class="btn-secondary btn-sm shrink-0" :disabled="!promoInput || promoPending" @click="applyPromo">
+                      {{ promoPending ? 'Checking…' : 'Apply' }}
+                    </button>
+                    <button v-else type="button" class="btn-ghost btn-sm shrink-0" @click="removePromo">Remove</button>
                   </div>
+                  <p v-if="promoError" class="field-error">{{ promoError }}</p>
+                  <p v-if="appliedPromo" class="field-hint !text-forest font-semibold">
+                    {{ appliedPromo.code }} applied — you save {{ formatMoney(displayDiscount) }}
+                  </p>
                 </div>
-              </div>
 
-              <!-- Use Billing Toggle -->
-              <div v-if="Object.values(selectedQuantities).reduce((a, b) => a + b, 0) > 0 && !(eventData?.event?.formSettings?.customFields?.length > 0)" class="flex items-center gap-2 mb-4 pt-2">
-                <input type="checkbox" id="useBilling" v-model="useBillingForTickets" class="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary focus:ring-2 cursor-pointer" />
-                <label for="useBilling" class="text-sm font-medium text-gray-700 cursor-pointer">Use Billing Contact Info for all tickets</label>
-              </div>
-
-              <!-- Ticket Holders Info -->
-              <div v-if="!useBillingForTickets">
-                <template v-for="(attendees, tierId) in tierAttendees" :key="tierId">
-                  <div v-if="attendees.length > 0" class="pt-4 border-t border-gray-100">
-                    <h4 class="font-semibold text-gray-900 text-sm mb-3">Ticket Holders ({{ eventData?.event?.tiers?.find(t => t._id === tierId)?.name }})</h4>
-                    <div v-for="(attendee, index) in attendees" :key="index" class="p-3 bg-gray-50 border border-gray-100 rounded-lg mb-3">
-                      <div class="flex justify-between items-center mb-2">
-                        <p class="text-xs font-semibold text-gray-500">
-                          <template v-if="eventData?.event?.tiers?.find(t => t._id === tierId)?.isCoupleTicket">
-                            Ticket #{{ Math.floor(index/2) + 1 }} ({{ index % 2 === 0 ? 'Male' : 'Female' }} Attendee)
-                          </template>
-                          <template v-else-if="getAttendeesPerQty(eventData?.event?.tiers?.find(t => t._id === tierId)) > 1">
-                            Ticket #{{ Math.floor(index / getAttendeesPerQty(eventData?.event?.tiers?.find(t => t._id === tierId))) + 1 }} (Guest {{ (index % getAttendeesPerQty(eventData?.event?.tiers?.find(t => t._id === tierId))) + 1 }})
-                          </template>
-                          <template v-else>
-                            Ticket #{{ index + 1 }}
-                          </template>
-                        </p>
-                        <button @click="copyBillingInfo(attendee)" type="button" class="text-[10px] text-primary font-medium hover:underline bg-primary-50 px-2 py-1 rounded">Copy Billing Info</button>
-                      </div>
-                      <div class="space-y-3">
-                        <div>
-                          <input v-model="attendee.name" type="text" placeholder="Attendee Name" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
-                        </div>
-                        <div>
-                          <input v-model="attendee.email" type="email" placeholder="Attendee Email" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none" />
-                        </div>
-                        <div v-if="eventData?.event?.formSettings?.requireDepartment !== false">
-                          <label class="block text-[11px] font-medium text-gray-600 mb-1">{{ eventData?.event?.formSettings?.departmentLabel || 'Department / Association Code' }}</label>
-                          <CustomDropdown
-                            v-if="eventData?.event?.formSettings?.departmentOptions?.length > 0"
-                            v-model="attendee.departmentCode"
-                            :options="eventData.event.formSettings.departmentOptions.map(opt => ({ code: opt, name: opt }))"
-                            :allowEmpty="true"
-                            emptyLabel="Same as billing contact"
-                          />
-                          <input
-                            v-else
-                            v-model="attendee.departmentCode"
-                            type="text"
-                            placeholder="Same as billing contact"
-                            class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none"
-                          />
-                        </div>
-                        
-                        <!-- Custom Fields -->
-                        <div v-for="field in eventData?.event?.formSettings?.customFields || []" :key="field.name">
-                          <label class="block text-[11px] font-medium text-gray-600 mb-1">
-                            {{ field.label }} <span v-if="field.required" class="text-rose-500">*</span>
-                          </label>
-                          <select
-                            v-if="field.type === 'select'"
-                            v-model="attendee.customData[field.name]"
-                            :required="field.required"
-                            class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none bg-white"
-                          >
-                            <option value="" disabled>Select option</option>
-                            <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
-                          </select>
-                          <input
-                            v-else
-                            v-model="attendee.customData[field.name]"
-                            :required="field.required"
-                            type="text"
-                            class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </div>
-            
-            <!-- Promo Code Input -->
-            <div v-if="Object.values(selectedQuantities).reduce((a, b) => a + b, 0) > 0" class="mb-6 pt-4 border-t border-gray-200">
-              <label class="block text-xs font-medium text-gray-600 mb-1">Promo / Referral Code</label>
-              <div class="flex gap-2">
-                <input
-                  v-model="promoCode"
-                  type="text"
-                  placeholder="e.g. EARLYBIRD20"
-                  class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 uppercase font-mono"
-                  :disabled="promoApplied"
-                />
-                <button
-                  @click="applyPromoCode"
-                  :disabled="!promoCode || applyingPromo || promoApplied"
-                  class="btn-secondary !py-2.5 !px-4 text-xs whitespace-nowrap bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                <!-- Installments -->
+                <label
+                  v-if="canInstallment"
+                  class="flex items-start gap-2.5 rounded-xl border border-line bg-white p-3.5 cursor-pointer"
                 >
-                  {{ applyingPromo ? 'Checking...' : (promoApplied ? 'Applied ✓' : 'Apply') }}
-                </button>
-              </div>
-              <p v-if="promoError" class="text-[10px] text-rose-500 mt-1 font-medium">{{ promoError }}</p>
-              <p v-if="promoApplied" class="text-[10px] text-emerald-500 mt-1 font-medium">Code applied! You save ₦{{ discountAmount.toLocaleString() }}</p>
-            </div>
+                  <input v-model="installment" type="checkbox" class="mt-0.5 w-4 h-4 rounded border-line text-forest focus:ring-forest" />
+                  <span class="text-[12px] text-ink leading-relaxed">
+                    <strong>Pay 50% now</strong> and the balance within 14 days
+                    <span class="block text-[11px] text-muted mt-0.5">
+                      {{ formatMoney(total / 2) }} today, {{ formatMoney(total - total / 2) }} later. Tickets are issued once the balance is paid.
+                    </span>
+                  </span>
+                </label>
 
-            <!-- Summary & Pay Button -->
-            <div class="space-y-4">
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-gray-600">Subtotal:</span>
-                <span class="font-bold text-gray-900">₦{{ subtotalAmount.toLocaleString() }}</span>
-              </div>
-              <div v-if="promoApplied && discountAmount > 0" class="flex items-center justify-between text-sm pt-2">
-                <span class="text-emerald-600 font-medium">Discount Applied:</span>
-                <span class="font-bold text-emerald-600">-₦{{ discountAmount.toLocaleString() }}</span>
-              </div>
-              <div v-if="markupAmount > 0" class="flex items-center justify-between text-sm pt-2">
-                <span class="text-gray-600">Platform Fee:</span>
-                <span class="font-bold text-gray-900">₦{{ markupAmount.toLocaleString() }}</span>
-              </div>
-              <div class="flex items-center justify-between text-base pt-2 border-t border-gray-200">
-                <span class="text-gray-900 font-semibold">Total Amount:</span>
-                <span class="text-2xl font-extrabold text-primary">₦{{ totalAmount.toLocaleString() }}</span>
-              </div>
-
-              <!-- Bank Account Details (shown upfront for Manual Transfer tenants) -->
-              <div v-if="isManualTransfer && eventData?.tenant?.primaryRemittanceAccount" class="p-4 sm:p-5 bg-amber-50 border border-amber-200 rounded-xl">
-                <h3 class="font-bold text-gray-900 text-sm mb-1">💳 Payment via Bank Transfer</h3>
-                <p class="text-[11px] sm:text-xs text-gray-600 mb-3">Transfer the total amount to the account below, then place your order and upload proof of payment.</p>
-                <div class="bg-white p-3 sm:p-4 rounded-lg border border-gray-200 space-y-2 sm:space-y-3">
-                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Bank Name</span> <strong class="text-xs sm:text-sm text-gray-900">{{ eventData.tenant.primaryRemittanceAccount.bankName }}</strong></div>
-                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Account Number</span> 
-                    <div class="flex items-center gap-1 sm:gap-2">
-                      <strong class="text-sm sm:text-base text-primary font-mono bg-primary/5 px-2 py-1 rounded">{{ eventData.tenant.primaryRemittanceAccount.accountNumber }}</strong>
-                      <button @click="copyToClipboard(eventData.tenant.primaryRemittanceAccount.accountNumber, 'Account Number')" class="p-1 sm:p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded transition" title="Copy Account Number"><Copy class="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
-                    </div>
+                <!-- Breakdown -->
+                <div v-if="itemCount > 0" class="rounded-xl bg-paper border border-line p-3.5 space-y-1.5 text-[12.5px]">
+                  <div class="flex justify-between"><span class="text-muted">Subtotal</span><span class="font-semibold text-ink">{{ formatMoney(subtotal) }}</span></div>
+                  <div v-if="buyerFee > 0" class="flex justify-between">
+                    <span class="text-muted">Platform fee</span><span class="font-semibold text-ink">{{ formatMoney(buyerFee) }}</span>
                   </div>
-                  <div class="flex justify-between items-center"><span class="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-bold">Account Name</span> 
-                    <div class="flex items-center gap-1 sm:gap-2 text-right">
-                      <strong class="text-xs sm:text-sm text-gray-900 max-w-[120px] sm:max-w-none">{{ eventData.tenant.primaryRemittanceAccount.accountName }}</strong>
-                      <button @click="copyToClipboard(eventData.tenant.primaryRemittanceAccount.accountName, 'Account Name')" class="p-1 sm:p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded transition" title="Copy Account Name"><Copy class="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
-                    </div>
+                  <div v-if="displayDiscount > 0" class="flex justify-between text-forest">
+                    <span>Promo discount</span><span class="font-semibold">−{{ formatMoney(displayDiscount) }}</span>
                   </div>
+                  <div class="flex justify-between pt-2 mt-1 border-t border-line text-sm">
+                    <span class="font-semibold text-ink">Total</span>
+                    <span class="font-display text-lg font-semibold text-ink">{{ formatMoney(total) }}</span>
+                  </div>
+                  <div v-if="installment" class="flex justify-between text-forest font-semibold">
+                    <span>Due now</span><span>{{ formatMoney(amountDueNow) }}</span>
+                  </div>
+                  <div v-if="installment" class="flex justify-between text-muted">
+                    <span>Balance in 14 days</span><span>{{ formatMoney(total - amountDueNow) }}</span>
+                  </div>
+                  <p class="text-[10px] text-muted pt-1">
+                    {{ installment ? 'The 50% deposit secures your seats. Tickets issue after the balance.' : 'No hidden fees. This is the exact amount charged.' }}
+                  </p>
                 </div>
-              </div>
 
-              <!-- Place Order / Pay Button (before order is created) -->
-              <div v-if="!manualTransferState.isActive">
+                <!-- Terms -->
+                <label class="flex items-start gap-2.5 text-[11.5px] text-muted leading-relaxed cursor-pointer">
+                  <input v-model="acceptedTerms" type="checkbox" class="mt-0.5 w-3.5 h-3.5 rounded border-line text-forest focus:ring-forest shrink-0" />
+                  <span>
+                    I agree to the
+                    <NuxtLink to="/legal/terms" class="text-ink underline decoration-lime decoration-2 underline-offset-2">ticket terms</NuxtLink>
+                    and understand transfers rotate my QR code.
+                  </span>
+                </label>
+                <p v-if="submitError" class="text-[12px] font-medium text-coral bg-coral/10 border border-coral/20 rounded-lg px-3 py-2">{{ submitError }}</p>
+
                 <button
-                  @click="processCheckout"
-                  :disabled="totalAmount <= 0 || !customerName || !customerEmail || submitting"
-                  class="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-sm"
+                  type="button"
+                  class="btn-primary w-full !py-3.5"
+                  :disabled="!canSubmit"
+                  @click="submitOrder"
                 >
-                  <span v-if="submitting" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  <span>{{ submitting ? 'Processing Order...' : (isManualTransfer ? 'Place Order & Upload Receipt' : 'Pay with Paystack') }}</span>
-                  <Lock v-if="!submitting" class="w-4 h-4" />
+                  <span v-if="submitting" class="w-4 h-4 border-2 border-paper/40 border-t-paper rounded-full animate-spin" />
+                  <Lock v-else class="w-4 h-4" />
+                  {{ submitting ? 'Securing your order…' : isManualTransfer ? 'Place order & upload receipt' : `Pay ${formatMoney(amountDueNow)}` }}
                 </button>
-                <p class="text-[11px] text-gray-500 text-center mt-3">
-                  {{ isManualTransfer ? 'Your tickets will be sent once payment is verified by the organizer.' : 'Instant structured ticket code & unique QR Code emailed upon checkout.' }}
+                <p class="text-[10px] text-center text-muted">
+                  Secured by Paystack · Your wallet link is emailed instantly
                 </p>
               </div>
-
-              <!-- Receipt Upload (after order is created for manual transfer) -->
-              <div v-else class="p-4 sm:p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3 sm:space-y-4">
-                <h3 class="font-bold text-gray-900 text-sm mb-1">✅ Order Placed — Upload Proof of Payment</h3>
-                <p class="text-[11px] sm:text-xs text-gray-600">Your order has been reserved. Please transfer the total amount to the account below and upload your receipt.</p>
-                
-                <!-- Bank Account Details removed to prevent duplication -->
-
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Receipt Image</label>
-                    <div class="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-emerald-200 border-dashed rounded-xl bg-white hover:bg-emerald-50 transition relative">
-                      <div class="space-y-1 text-center">
-                        <UploadCloud class="mx-auto h-12 w-12 text-emerald-400" />
-                        <div class="flex text-sm text-gray-600 justify-center">
-                          <label for="file-upload" class="relative cursor-pointer bg-transparent rounded-md font-medium text-emerald-600 hover:text-emerald-700 focus-within:outline-none">
-                            <span>Upload a file</span>
-                            <input id="file-upload" type="file" ref="receiptInput" accept="image/*" @change="handleReceiptChange" class="sr-only" />
-                          </label>
-                          <p class="pl-1 hidden sm:block">or click here</p>
-                        </div>
-                        <p class="text-xs text-gray-500">PNG, JPG up to 10MB</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-if="receiptPreviewUrl" class="rounded-lg overflow-hidden border border-gray-200 bg-white">
-                    <img :src="receiptPreviewUrl" alt="Receipt Preview" class="w-full h-auto max-h-48 object-contain" />
-                  </div>
-                  <button
-                    @click="uploadReceipt"
-                    :disabled="uploadingReceipt || !receiptPreviewUrl"
-                    class="w-full btn-primary py-3 text-sm"
-                  >
-                    {{ uploadingReceipt ? 'Uploading...' : 'Submit Proof of Payment' }}
-                  </button>
-                </div>
-              </div>
             </div>
-            </template>
-          </div>
+
+            <div class="mt-3 flex items-center justify-center gap-4 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+              <span class="flex items-center gap-1"><Lock class="w-3 h-3" /> Encrypted</span>
+              <span class="flex items-center gap-1"><ShieldCheck class="w-3 h-3" /> Verified</span>
+              <span class="flex items-center gap-1"><RefreshCcw class="w-3 h-3" /> Face-value resale</span>
+            </div>
+          </aside>
         </div>
       </div>
-    </main>
 
-    <!-- Session Resumed Modal -->
-    <div v-if="sessionResumedModal.show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
-        <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100 shadow-inner">
-          <RefreshCw class="w-7 h-7 animate-spin-slow" />
+      <!-- Sticky mobile bar -->
+      <div v-if="!isPast && !isCancelled && purchasableTiers.length" class="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-line bg-paper/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Total</p>
+            <p class="font-display text-lg font-semibold text-ink">{{ formatMoney(total) }}</p>
+          </div>
+          <a href="#checkout" class="btn-primary" @click.prevent="scrollToCheckout">
+            {{ itemCount ? 'Review & pay' : 'Choose tickets' }}
+          </a>
         </div>
-        <h3 class="text-xl font-extrabold text-gray-900 mb-1.5">Booking Session Restored</h3>
-        <p class="text-xs text-gray-500 mb-4">
-          We found your active checkout session from earlier. To prevent duplicate charges, we've loaded your reserved order.
+      </div>
+
+      <!-- ============== MODALS ============== -->
+      <UiModal :open="modal === 'paid'" title="You already have a ticket" eyebrow="Duplicate order blocked" @close="modal = null">
+        <p class="text-sm text-muted leading-relaxed">
+          A paid ticket is already confirmed for <strong class="text-ink">{{ buyer.email }}</strong> at this event. You will not be charged twice.
         </p>
-
-        <div class="bg-gray-50 rounded-xl p-3.5 border border-gray-200 text-left text-xs mb-5 space-y-1.5">
-          <div class="flex justify-between">
-            <span class="text-gray-500">Order Number:</span>
-            <span class="font-mono font-bold text-gray-900">{{ sessionResumedModal.orderNumber }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-500">Amount Due:</span>
-            <span class="font-extrabold text-primary">₦{{ sessionResumedModal.totalAmount?.toLocaleString() }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-500">Status:</span>
-            <span class="font-bold text-amber-700 uppercase">{{ sessionResumedModal.status }}</span>
-          </div>
+        <div class="my-4 rounded-xl bg-paper border border-line p-4 text-sm">
+          <div class="flex justify-between"><span class="text-muted">Order</span><span class="mono font-semibold">{{ sessionInfo?.orderNumber }}</span></div>
+          <div class="flex justify-between mt-1"><span class="text-muted">Status</span><span class="font-semibold text-forest">Paid</span></div>
         </div>
+        <p class="text-xs text-muted">Open your wallet to see the QR code. If you need another ticket, use a different attendee email.</p>
+        <template #footer>
+          <NuxtLink to="/my-tickets" class="btn-primary">Open my wallet</NuxtLink>
+          <button class="btn-secondary" type="button" @click="modal = null">Close</button>
+        </template>
+      </UiModal>
 
-        <div class="flex flex-col gap-2.5">
-          <button @click="sessionResumedModal.onContinue()" class="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2">
-            <span>Continue Order</span>
-            <ArrowRight class="w-4 h-4" />
-          </button>
-          <button @click="sessionResumedModal.show = false" class="text-xs text-gray-500 hover:text-gray-800 font-semibold py-2 transition">
-            Modify Ticket Details
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Already Paid Ticket Modal -->
-    <div v-if="alreadyPaidModal.show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-gray-100">
-        <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-100">
-          <CheckCircle2 class="w-7 h-7" />
-        </div>
-        <h3 class="text-xl font-extrabold text-gray-900 mb-1.5">You're Already Attending! 🎉</h3>
-        <p class="text-xs text-gray-500 mb-4">
-          A paid ticket is already confirmed under <strong class="text-gray-800">{{ customerEmail }}</strong> for this event. You do not need to make another payment.
+      <UiModal :open="modal === 'pending'" title="Finish your payment" eyebrow="Reserved order found" @close="modal = null">
+        <p class="text-sm text-muted leading-relaxed">
+          You have an unfinished order <strong class="mono text-ink">#{{ sessionInfo?.orderNumber }}</strong> for {{ formatMoney(sessionInfo?.totalAmount) }}.
         </p>
-
-        <div class="bg-emerald-50/60 rounded-xl p-3.5 border border-emerald-200 text-left text-xs mb-5 space-y-1">
-          <div class="flex justify-between">
-            <span class="text-emerald-800 font-medium">Order Number:</span>
-            <span class="font-mono font-bold text-emerald-900">{{ alreadyPaidModal.orderNumber }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-emerald-800 font-medium">Status:</span>
-            <span class="font-bold text-emerald-700 uppercase">CONFIRMED & PAID</span>
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-2.5">
-          <NuxtLink :to="`/my-tickets?email=${encodeURIComponent(customerEmail)}`" class="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2">
-            <span>View & Download My Tickets</span>
-            <ArrowRight class="w-4 h-4" />
-          </NuxtLink>
-          <button @click="alreadyPaidModal.show = false" class="text-xs text-gray-500 hover:text-gray-800 font-semibold py-2 transition">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Awaiting Approval Modal -->
-    <div v-if="awaitingApprovalModal.show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-gray-100">
-        <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-100">
-          <Clock class="w-7 h-7" />
-        </div>
-        <h3 class="text-xl font-extrabold text-gray-900 mb-1.5">Payment Under Verification</h3>
-        <p class="text-xs text-gray-500 mb-4">
-          You already submitted proof of payment for Order <span class="font-mono font-bold text-gray-800">#{{ awaitingApprovalModal.orderNumber }}</span>. The organizers are currently reviewing your bank transfer.
+        <p class="text-sm text-muted mt-2">
+          Your seats are held until the timer runs out. Continue to keep the same price and inventory.
         </p>
+        <template #footer>
+          <button class="btn-primary" type="button" :disabled="resuming" @click="resumeSession">
+            {{ resuming ? 'Resuming…' : 'Continue order' }}
+          </button>
+          <button class="btn-secondary" type="button" @click="modal = null">Change selection</button>
+        </template>
+      </UiModal>
 
-        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 font-medium mb-5">
-          Please avoid making another transfer. You will receive an email confirmation once verified!
+      <UiModal :open="modal === 'awaiting'" title="Payment under review" eyebrow="Proof received" @close="modal = null">
+        <p class="text-sm text-muted leading-relaxed">
+          Your receipt for order <strong class="mono text-ink">#{{ sessionInfo?.orderNumber }}</strong> is with the organizer. You will receive your tickets by email as soon as it is verified.
+        </p>
+        <div class="mt-4 rounded-xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-amber-900">
+          Please do not send a second transfer. Duplicate bank references are automatically blocked.
+        </div>
+        <template #footer>
+          <button class="btn-primary" type="button" @click="modal = null">Got it</button>
+        </template>
+      </UiModal>
+
+      <UiModal :open="modal === 'manual'" title="Transfer & upload receipt" eyebrow="Order reserved" @close="modal = null">
+        <div class="rounded-xl bg-paper border border-line p-4 space-y-2.5 text-sm">
+          <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Transfer exactly</p>
+          <p class="font-display text-2xl font-semibold text-ink">{{ formatMoney(manualOrder?.totalAmount) }}</p>
+          <div class="divider my-2" />
+          <div class="flex justify-between items-center gap-2">
+            <span class="text-muted text-xs">Bank</span>
+            <span class="font-semibold text-ink text-right">{{ manualAccount?.bankName || 'See organizer instructions' }}</span>
+          </div>
+          <div class="flex justify-between items-center gap-2">
+            <span class="text-muted text-xs">Account number</span>
+            <button type="button" class="mono font-bold text-ink inline-flex items-center gap-1.5" @click="copyAccount">
+              {{ manualAccount?.accountNumber || '—' }} <Copy class="w-3.5 h-3.5 text-muted" />
+            </button>
+          </div>
+          <div class="flex justify-between items-center gap-2">
+            <span class="text-muted text-xs">Account name</span>
+            <span class="font-semibold text-ink text-right">{{ manualAccount?.accountName || '—' }}</span>
+          </div>
+          <div class="flex justify-between items-center gap-2">
+            <span class="text-muted text-xs">Reference</span>
+            <span class="mono font-bold text-ink">{{ manualOrder?.orderNumber }}</span>
+          </div>
         </div>
 
-        <button @click="awaitingApprovalModal.show = false" class="btn-primary w-full py-3 text-sm">
-          Got It, Thanks!
-        </button>
-      </div>
-    </div>
-
-    <!-- Success Modal -->
-    <div v-if="showingSuccess" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-      <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center">
-        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">✓</div>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">Payment Under Review</h3>
-        <p class="text-sm text-gray-600 mb-6">Your receipt has been uploaded. Once the organizer verifies the payment, your tickets will be sent to your email.</p>
-        <NuxtLink :to="`/?tenant=${tenantSlug}`" class="btn-primary inline-block">Return to Homepage</NuxtLink>
-      </div>
-    </div>
-
-    <!-- Processing Modal -->
-    <div v-if="submitting || uploadingReceipt" class="fixed inset-0 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center z-[100] p-4">
-      <div class="relative w-24 h-24 mb-6">
-        <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
-        <div class="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <div class="absolute inset-0 flex items-center justify-center text-indigo-600">
-           <Lock class="w-8 h-8 animate-pulse" />
+        <div class="mt-4">
+          <label class="label">Proof of payment</label>
+          <label class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-white px-4 py-6 cursor-pointer hover:border-forest/40 transition">
+            <UploadCloud class="w-6 h-6 text-muted" />
+            <span class="text-xs font-semibold text-ink">{{ receiptFile ? receiptFile.name : 'Upload JPG, PNG or PDF (max 10MB)' }}</span>
+            <input type="file" accept="image/png,image/jpeg,image/webp,application/pdf" class="sr-only" @change="onReceiptChange" />
+          </label>
+          <img v-if="receiptPreview" :src="receiptPreview" alt="Receipt preview" class="mt-3 w-full max-h-40 object-contain rounded-lg border border-line" />
+          <p v-if="receiptError" class="field-error">{{ receiptError }}</p>
         </div>
-      </div>
-      <h3 class="text-2xl font-extrabold text-gray-900 mb-2 tracking-tight">Processing...</h3>
-      <p class="text-sm text-gray-500 max-w-xs text-center">Please wait while we handle your request. Do not close or refresh this page.</p>
-    </div>
 
-    <!-- Custom Toast -->
-    <Transition
-      enter-active-class="transition duration-300 ease-out"
-      enter-from-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-      enter-to-class="transform translate-y-0 opacity-100 sm:translate-x-0"
-      leave-active-class="transition duration-200 ease-in"
-      leave-from-class="transform translate-y-0 opacity-100 sm:translate-x-0"
-      leave-to-class="transform translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-    >
-      <div v-if="customToast.show" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[100] flex items-center gap-3 bg-gray-900 text-white px-5 py-3.5 rounded-xl shadow-2xl">
-        <div class="bg-emerald-500/20 text-emerald-400 rounded-full p-1"><Copy class="w-4 h-4" /></div>
-        <span class="text-sm font-medium tracking-wide">{{ customToast.message }}</span>
-      </div>
-    </Transition>
+        <template #footer>
+          <button class="btn-primary" type="button" :disabled="uploadingReceipt || !receiptFile" @click="uploadReceipt">
+            {{ uploadingReceipt ? 'Uploading…' : 'Submit receipt' }}
+          </button>
+          <button class="btn-secondary" type="button" @click="copyAccount">Copy account</button>
+        </template>
+      </UiModal>
+
+      <UiModal :open="modal === 'resale'" title="Buy a verified resale ticket" eyebrow="Face-value resale" @close="modal = null">
+        <div v-if="resaleTarget" class="space-y-4">
+          <div class="rounded-xl bg-paper border border-line p-4 flex items-center justify-between">
+            <div>
+              <p class="font-semibold text-ink">{{ resaleTarget.tierName }}</p>
+              <p class="text-xs text-muted">Seller’s QR is cancelled the moment you pay.</p>
+            </div>
+            <p class="font-display text-xl font-semibold text-ink">{{ formatMoney(resaleTarget.askingPrice) }}</p>
+          </div>
+          <div>
+            <label class="label">Your name</label>
+            <input v-model.trim="resaleBuyer.name" type="text" class="input" placeholder="Full name" />
+          </div>
+          <div>
+            <label class="label">Your email</label>
+            <input v-model.trim="resaleBuyer.email" type="email" class="input" placeholder="you@example.com" />
+          </div>
+          <p v-if="resaleError" class="field-error">{{ resaleError }}</p>
+          <p class="text-[11px] text-muted leading-relaxed">
+            Payments are held by Ticketr. 90% goes to the seller after the event; the platform fee covers verification and support.
+          </p>
+        </div>
+        <template #footer>
+          <button class="btn-primary" type="button" :disabled="resalePending" @click="startResale">
+            {{ resalePending ? 'Starting…' : 'Continue to payment' }}
+          </button>
+          <button class="btn-secondary" type="button" @click="modal = null">Cancel</button>
+        </template>
+      </UiModal>
+    </template>
   </div>
 </template>
 
-<script setup>
-definePageMeta({ layout: 'default' });
-
-import { ref, computed, onMounted } from 'vue';
-import { Globe, MapPin, Calendar, Lock, Copy, UploadCloud, RefreshCw, CheckCircle2, Clock, ArrowRight } from 'lucide-vue-next';
+<script setup lang="ts">
+import {
+  ArrowUpRight,
+  Building2,
+  CalendarDays,
+  CalendarX,
+  ChevronRight,
+  Copy,
+  Lock,
+  MapPin,
+  ReceiptText,
+  RefreshCcw,
+  ScanLine,
+  Share2,
+  ShieldCheck,
+  Ticket,
+  UploadCloud,
+  Video,
+} from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+
+definePageMeta({ layout: 'default' });
 
 const config = useRuntimeConfig();
 const route = useRoute();
-
 const reqUrl = useRequestURL();
 
-const resolveSubdomain = () => {
-  if (route.query.tenant) return route.query.tenant;
+const tenantSlug = computed(() => {
+  if (typeof route.query.tenant === 'string' && route.query.tenant) return route.query.tenant;
   const host = reqUrl.hostname;
-  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+  if (host && host !== 'localhost' && host !== '127.0.0.1' && !/^\d+\./.test(host)) {
     const parts = host.split('.');
-    if (parts.length > 2 && parts[0] !== 'www') {
+    if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'admin' && !parts[0].startsWith('admin-')) {
       return parts[0];
     }
   }
   return null;
-};
+});
 
-const tenantSlug = ref(resolveSubdomain());
-const eventSlug = ref(route.params.slug);
+const eventSlug = route.params.slug as string;
 
-const { data, pending: loading } = await useFetch(
-  tenantSlug.value ? `${config.public.apiBase}/events/tenant/${tenantSlug.value}/${eventSlug.value}` : null
+const { data, pending, error } = await useFetch<any>(
+  tenantSlug.value
+    ? `${config.public.apiBase}/events/tenant/${tenantSlug.value}/${eventSlug}`
+    : `${config.public.apiBase}/events/public/slug/${encodeURIComponent(eventSlug)}`,
+  { key: `event-${tenantSlug.value || 'global'}-${eventSlug}` },
 );
 
-const eventData = computed(() => data.value || null);
-const isManualTransfer = computed(() => eventData.value?.tenant?.paymentMethod === 'MANUAL_TRANSFER');
+const event = computed(() => data.value?.event || null);
+const tenant = computed(() => data.value?.tenant || null);
+const loadError = computed(() => {
+  const value = error.value as any;
+  if (!value) return '';
+  return value?.data?.message || value?.message || 'We could not load this event.';
+});
+
+const galleryImages = computed<string[]>(() => {
+  if (!event.value) return [];
+  const images = [...(event.value.carouselImages || [])];
+  if (event.value.bannerUrl) images.unshift(event.value.bannerUrl);
+  return Array.from(new Set(images.filter(Boolean)));
+});
+const activeImage = ref(0);
+const isManualTransfer = computed(
+  () => tenant.value?.paymentMethod === 'MANUAL_TRANSFER',
+);
+const isPast = computed(
+  () =>
+    !!event.value &&
+    (event.value.status === 'COMPLETED' || new Date(event.value.endDate).getTime() < Date.now()),
+);
+const isCancelled = computed(() => event.value?.status === 'CANCELLED');
+const remaining = computed(() => Number(event.value?.remaining || 0));
+const purchasableTiers = computed<any[]>(() =>
+  isCancelled.value
+    ? []
+    : (event.value?.tiers || []).filter((tier: any) => tier.isActive !== false && tier.remaining > 0),
+);
+const organizerLink = computed(() => (tenantSlug.value ? `/?tenant=${tenantSlug.value}` : '/'));
+
+const departmentOptions = computed<string[]>(() => event.value?.formSettings?.departmentOptions || []);
+const departmentLabel = computed(() => event.value?.formSettings?.departmentLabel || 'Department');
+const requireDepartment = computed(() => event.value?.formSettings?.requireDepartment !== false);
+const customFields = computed<any[]>(() => event.value?.formSettings?.customFields || []);
+
+// ---------------------------------------------------------------------------
+// Selection state
+// ---------------------------------------------------------------------------
+const quantity = reactive<Record<string, number>>({});
+const buyer = reactive({ name: '', email: '', phone: '' });
+const sameAsBuyer = ref(true);
+const acceptedTerms = ref(false);
+const touched = reactive({ buyerName: false, attendees: false });
+const attempted = ref(false);
+const showBuyerErrors = computed(() => touched.buyerName || attempted.value);
+const promoInput = ref('');
+const promoPending = ref(false);
+const promoError = ref('');
+const appliedPromo = ref<any>(null);
+const submitError = ref('');
 const submitting = ref(false);
 
-const alreadyPaidModal = ref({
-  show: false,
-  orderNumber: '',
-  orderId: '',
-});
+type AttendeeRow = {
+  key: string;
+  tierId: string;
+  tierName: string;
+  label: string;
+  name: string;
+  email: string;
+  department: string;
+  custom: Record<string, string>;
+};
+const attendees = reactive<Record<string, AttendeeRow[]>>({});
 
-const awaitingApprovalModal = ref({
-  show: false,
-  orderNumber: '',
-});
-
-const sessionResumedModal = ref({
-  show: false,
-  orderNumber: '',
-  totalAmount: 0,
-  status: '',
-  onContinue: () => {},
-});
-
-useSeoMeta({
-  title: computed(() => eventData.value?.event?.title ? `${eventData.value.event.title} - ${eventData.value.tenant.name}` : 'Event Details | Ticketr'),
-  ogTitle: computed(() => eventData.value?.event?.title || 'Event Details'),
-  description: computed(() => eventData.value?.event?.description?.substring(0, 160) || 'Buy tickets for this event.'),
-  ogDescription: computed(() => eventData.value?.event?.description?.substring(0, 160) || 'Buy tickets for this event.'),
-  ogImage: computed(() => eventData.value?.event?.bannerUrl || eventData.value?.tenant?.logoUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'),
-  twitterCard: 'summary_large_image',
-});
-
-// Update favicon dynamically
-useHead({
-  link: [
-    {
-      rel: 'icon',
-      type: 'image/x-icon',
-      href: computed(() => eventData.value?.tenant?.logoUrl || '/favicon.ico')
-    }
-  ]
-});
-
-const selectedQuantities = ref({});
-const tierAttendees = ref({}); // { [tierId]: [{ name: '', email: '' }] }
-const customerName = ref('');
-const customerEmail = ref('');
-const departmentCode = ref('');
-const useBillingForTickets = ref(false);
-
-function copyBillingInfo(attendee) {
-  attendee.name = customerName.value;
-  attendee.email = customerEmail.value;
-  attendee.departmentCode = departmentCode.value;
+function unitsPerTier(tier: any): number {
+  if (!tier) return 1;
+  if (tier.isCoupleTicket) return 2;
+  const match = String(tier.name || '').match(/table\s+(?:of|for)?\s*(\d+)/i);
+  return match ? Math.max(1, parseInt(match[1], 10)) : 1;
 }
 
-const manualTransferState = ref({
-  isActive: false,
-  orderId: null,
-  remittanceAccount: null
-});
-const receiptInput = ref(null);
-const receiptPreviewUrl = ref(null);
-const uploadingReceipt = ref(false);
-const showingSuccess = ref(false);
+function setQuantity(tier: any, next: number) {
+  const max = Math.min(tier.maxPerPurchase || 5, tier.remaining);
+  const value = Math.max(0, Math.min(max, next));
+  quantity[tier._id] = value;
 
-const promoCode = ref('');
-const applyingPromo = ref(false);
-const promoApplied = ref(false);
-const promoError = ref('');
-const discountAmount = ref(0);
-const promoData = ref(null);
-
-async function checkExistingSession() {
-  const email = customerEmail.value?.trim();
-  if (!email || !email.includes('@') || !eventData.value?.event?._id) return;
-  try {
-    const res = await fetch(`${config.public.apiBase}/orders/active-session?eventId=${eventData.value.event._id}&email=${encodeURIComponent(email)}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (!data) return;
-      if (data.isAlreadyPaid) {
-        alreadyPaidModal.value = {
-          show: true,
-          orderNumber: data.orderNumber,
-          orderId: data.orderId,
-        };
-      } else if (data.hasPendingSession) {
-        if (data.status === 'AWAITING_APPROVAL') {
-          awaitingApprovalModal.value = {
-            show: true,
-            orderNumber: data.orderNumber,
-          };
-        } else if (data.status === 'PENDING') {
-          sessionResumedModal.value = {
-            show: true,
-            orderNumber: data.orderNumber,
-            totalAmount: data.totalAmount,
-            status: data.status,
-            onContinue: () => {
-              sessionResumedModal.value.show = false;
-              if (data.items && data.items.length > 0) {
-                data.items.forEach(item => {
-                  selectedQuantities.value[item.tierId] = item.quantity;
-                });
-              }
-              if (data.customerName && !customerName.value) customerName.value = data.customerName;
-              if (data.departmentCode && !departmentCode.value) departmentCode.value = data.departmentCode;
-              
-              if (isManualTransfer.value) {
-                manualTransferState.value.isActive = true;
-                manualTransferState.value.orderId = data.orderId;
-                manualTransferState.value.remittanceAccount = data.remittanceAccount || eventData.value?.tenant?.primaryRemittanceAccount;
-              }
-            }
-          };
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('Session check warning:', e);
+  const units = unitsPerTier(tier);
+  const target = value * units;
+  const rows = attendees[tier._id] || (attendees[tier._id] = []);
+  while (rows.length < target) {
+    const index = rows.length;
+    rows.push({
+      key: `${tier._id}-${index}`,
+      tierId: tier._id,
+      tierName: tier.name,
+      label: units > 1 ? `${tier.name} · Pass ${index + 1}` : `${tier.name}`,
+      name: sameAsBuyer.value ? buyer.name : '',
+      email: sameAsBuyer.value ? buyer.email : '',
+      department: '',
+      custom: {},
+    });
   }
+  if (rows.length > target) rows.splice(target);
 }
 
-async function applyPromoCode() {
+const attendeeRows = computed<AttendeeRow[]>(() =>
+  Object.values(attendees).flat().filter(Boolean),
+);
+
+const itemCount = computed(() =>
+  (event.value?.tiers || []).reduce((sum: number, tier: any) => sum + (quantity[tier._id] || 0) * unitsPerTier(tier), 0),
+);
+const unitCount = computed(() =>
+  Object.values(quantity).reduce((sum, value) => sum + (value || 0), 0),
+);
+
+const subtotal = computed(() =>
+  (event.value?.tiers || []).reduce((sum: number, tier: any) => sum + Number(tier.price) * (quantity[tier._id] || 0), 0),
+);
+
+const buyerFee = computed(() =>
+  (event.value?.tiers || []).reduce((sum: number, tier: any) => {
+    const qty = quantity[tier._id] || 0;
+    if (!qty) return sum;
+    const fee = Number(tier.markupFee || 0);
+    if (!fee || tier.markupStrategy === 'DEDUCT_FROM_FEE') return sum;
+    const itemSubtotal = Number(tier.price) * qty;
+    return sum + (tier.markupFeeType === 'PERCENTAGE' ? (fee / 100) * itemSubtotal : fee * qty);
+  }, 0),
+);
+
+const displayDiscount = computed(() => {
+  if (!appliedPromo.value) return 0;
+  const value = Number(appliedPromo.value.value || 0);
+  const discount = appliedPromo.value.type === 'FLAT' ? value : (value / 100) * subtotal.value;
+  return Math.min(subtotal.value, Math.round(discount * 100) / 100);
+});
+
+const total = computed(() => Math.max(0, Math.round((subtotal.value + buyerFee.value - displayDiscount.value) * 100) / 100));
+const installment = ref(false);
+const amountDueNow = computed(() => (installment.value ? Math.round((total.value / 2) * 100) / 100 : total.value));
+const canInstallment = computed(
+  () =>
+    !isManualTransfer.value &&
+    total.value >= 20000 &&
+    !!event.value?.startDate &&
+    new Date(event.value.startDate).getTime() > Date.now() + 14 * 24 * 60 * 60 * 1000,
+);
+
+watch(total, (value) => {
+  if (value < 20000) installment.value = false;
+});
+
+const errors = computed(() => ({
+  buyerName: !buyer.name || buyer.name.length < 2 ? 'Enter the buyer’s full name' : '',
+  buyerEmail: !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(buyer.email) ? 'Enter a valid email address' : '',
+}));
+
+const attendeeError = computed(() => {
+  if (!touched.attendees) return '';
+  for (const row of attendeeRows.value) {
+    if (!row.name || row.name.length < 2) return `Add a name for ${row.label}`;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(row.email)) return `Add a valid email for ${row.label}`;
+    if (requireDepartment.value && departmentOptions.value.length && !row.department) {
+      return `Select ${departmentLabel.value.toLowerCase()} for ${row.label}`;
+    }
+    for (const field of customFields.value) {
+      if (field.required && !row.custom[field.name]) return `${field.label} is required for ${row.label}`;
+    }
+  }
+  return '';
+});
+
+const canSubmit = computed(
+  () =>
+    !submitting.value &&
+    itemCount.value > 0 &&
+    !errors.value.buyerName &&
+    !errors.value.buyerEmail &&
+    !attendeeError.value &&
+    acceptedTerms.value,
+);
+
+watch(sameAsBuyer, (apply) => {
+  if (!apply) return;
+  attendeeRows.value.forEach((row) => {
+    row.name = buyer.name;
+    row.email = buyer.email;
+  });
+});
+watch(
+  () => buyer.name,
+  (value) => {
+    if (sameAsBuyer.value) attendeeRows.value.forEach((row) => (row.name = value));
+  },
+);
+watch(
+  () => buyer.email,
+  (value) => {
+    if (sameAsBuyer.value) attendeeRows.value.forEach((row) => (row.email = value));
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Promo
+// ---------------------------------------------------------------------------
+async function applyPromo() {
   promoError.value = '';
-  applyingPromo.value = true;
-  
+  if (!promoInput.value) return;
+  promoPending.value = true;
   try {
-    // NOTE: This assumes an endpoint /orders/validate-promo exists on the backend.
-    // We will simulate the discount logic if the endpoint doesn't exist yet for frontend demo.
-    // In a real flow, this would call the API.
-    const res = await fetch(`${config.public.apiBase}/orders/validate-promo?code=${promoCode.value}&eventId=${eventData.value.event._id}`);
-    
-    if (res.ok) {
-      const data = await res.json();
-      promoData.value = data;
-      promoApplied.value = true;
-      
-      // Calculate discount amount based on response
-      if (data.type === 'PERCENTAGE') {
-        discountAmount.value = (subtotalAmount.value * data.value) / 100;
-      } else {
-        discountAmount.value = Math.min(subtotalAmount.value, data.value);
-      }
-    } else {
-      // Stubbing a fallback for UI demonstration since backend endpoint might not be fully wired
-      if (promoCode.value.toUpperCase() === 'EARLYBIRD' || promoCode.value.toUpperCase() === 'SQUAD') {
-        promoApplied.value = true;
-        discountAmount.value = subtotalAmount.value * 0.10; // 10% off
-      } else {
-        promoError.value = 'Invalid or expired promo code.';
-      }
-    }
-  } catch (err) {
-    promoError.value = 'Error validating code.';
+    const data = await apiRequest<any>(
+      `/orders/validate-promo?code=${encodeURIComponent(promoInput.value)}&eventId=${event.value._id}`,
+      { auth: false },
+    );
+    appliedPromo.value = data;
+  } catch (err: any) {
+    promoError.value = errorMessage(err, 'That promo code is not valid.');
+    appliedPromo.value = null;
   } finally {
-    applyingPromo.value = false;
+    promoPending.value = false;
   }
 }
 
-const customToast = ref({ show: false, message: '' });
-let toastTimeout;
+function removePromo() {
+  appliedPromo.value = null;
+  promoInput.value = '';
+  promoError.value = '';
+}
 
-function copyToClipboard(text, label) {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text);
-    
-    // Custom Toast Logic
-    customToast.value.message = `${label} copied to clipboard!`;
-    customToast.value.show = true;
-    
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-      customToast.value.show = false;
-    }, 3000);
+// ---------------------------------------------------------------------------
+// Session check
+// ---------------------------------------------------------------------------
+const modal = ref<null | 'paid' | 'pending' | 'awaiting' | 'manual' | 'resale'>(null);
+const sessionInfo = ref<any>(null);
+const resuming = ref(false);
+
+async function onEmailBlur() {
+  touched.buyerName = true;
+  if (!buyer.email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(buyer.email) || !event.value) return;
+  try {
+    const data = await apiRequest<any>(
+      `/orders/active-session?eventId=${event.value._id}&email=${encodeURIComponent(buyer.email)}`,
+      { auth: false },
+    );
+    if (!data) return;
+    sessionInfo.value = data;
+    if (data.isAlreadyPaid) modal.value = 'paid';
+    else if (data.status === 'AWAITING_APPROVAL') modal.value = 'awaiting';
+    else if (data.status === 'PENDING') modal.value = 'pending';
+  } catch {
+    // Session lookup is best-effort; checkout still works.
   }
 }
 
-function handleReceiptChange(e) {
-  const file = e.target.files?.[0];
-  if (file) {
-    receiptPreviewUrl.value = URL.createObjectURL(file);
-  } else {
-    receiptPreviewUrl.value = null;
+async function resumeSession() {
+  resuming.value = true;
+  submitError.value = '';
+  try {
+    const result = await createOrder();
+    if (result?.authorizationUrl) {
+      window.location.href = result.authorizationUrl;
+      return;
+    }
+    if (result?.paymentMethod === 'MANUAL_TRANSFER') {
+      manualOrder.value = result;
+      manualAccount.value = result.remittanceAccount || tenant.value?.primaryRemittanceAccount || null;
+      if (result?.walletToken && typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('ticketr_wallet_token', result.walletToken);
+      }
+      modal.value = 'manual';
+      return;
+    }
+    modal.value = null;
+  } catch (err) {
+    submitError.value = errorMessage(err);
+    modal.value = null;
+    toast.error(submitError.value);
+  } finally {
+    resuming.value = false;
   }
 }
 
-// Kept for fallback, dynamic options preferred
-const departments = [
-  { code: 'EDF', name: 'Educational Foundation' },
-  { code: 'EDM', name: 'Educational Management' },
-  { code: 'ADE', name: 'Adult Education' },
-  { code: 'TVESA', name: 'Technology and Vocational Education' },
-  { code: 'ULSESA', name: 'Science Education' },
-];
+// ---------------------------------------------------------------------------
+// Checkout
+// ---------------------------------------------------------------------------
+async function createOrder() {
+  touched.attendees = true;
+  const items = Object.entries(quantity)
+    .filter(([, count]) => (count || 0) > 0)
+    .map(([tierId, count]) => {
+      const tier = (event.value.tiers || []).find((t: any) => t._id === tierId);
+      if (!tier) return null;
+      const rows = attendees[tierId] || [];
+      return {
+        tierId,
+        quantity: count,
+        attendees: rows.map((row) => ({
+          name: row.name || buyer.name,
+          email: row.email || buyer.email,
+          departmentCode: row.department || undefined,
+          customData: row.custom || {},
+        })),
+      };
+    })
+    .filter(Boolean);
 
-function formatDate(dStr) {
-  if (!dStr) return '';
-  return new Date(dStr).toLocaleString('en-US', {
-    dateStyle: 'full',
-    timeStyle: 'short',
+  return apiRequest<any>('/orders', {
+    method: 'POST',
+    auth: false,
+    body: {
+      tenantId: tenant.value.id,
+      eventId: event.value._id,
+      customerName: buyer.name,
+      customerEmail: buyer.email,
+      customerPhone: buyer.phone || undefined,
+      items,
+      promoCode: appliedPromo.value?.code || undefined,
+      isInstallmentPlan: installment.value,
+      callbackUrl: `${window.location.origin}/order/confirmation`,
+    },
   });
 }
 
-function getAttendeesPerQty(tier) {
-  if (!tier) return 1;
-  if (tier.groupSize && tier.groupSize > 1) return tier.groupSize;
-  const match = tier.name?.match(/table\s+(?:of|for)?\s*(\d+)/i);
-  if (match) return parseInt(match[1]);
-  if (tier.isCoupleTicket) return 2;
-  return 1;
-}
-
-function updateQuantity(tierId, delta, max) {
-  const current = selectedQuantities.value[tierId] || 0;
-  const next = Math.max(0, Math.min(max, current + delta));
-  selectedQuantities.value = {
-    ...selectedQuantities.value,
-    [tierId]: next,
-  };
-
-  const tier = eventData.value?.event?.tiers?.find(t => t._id === tierId);
-  const attendeesPerQty = getAttendeesPerQty(tier);
-  const targetLength = next * attendeesPerQty;
-
-  if (!tierAttendees.value[tierId]) {
-    tierAttendees.value[tierId] = [];
+async function submitOrder() {
+  submitError.value = '';
+  attempted.value = true;
+  touched.attendees = true;
+  touched.buyerName = true;
+  if (!canSubmit.value) {
+    submitError.value = attendeeError.value || errors.value.buyerName || errors.value.buyerEmail || 'Check the highlighted fields.';
+    return;
   }
-  
-  if (targetLength > tierAttendees.value[tierId].length) {
-    for (let i = tierAttendees.value[tierId].length; i < targetLength; i++) {
-      tierAttendees.value[tierId].push({ name: '', email: '', departmentCode: '', customData: {} });
-    }
-  } else if (targetLength < tierAttendees.value[tierId].length) {
-    tierAttendees.value[tierId].length = targetLength;
-  }
-}
 
-const subtotalAmount = computed(() => {
-  if (!eventData.value?.event?.tiers) return 0;
-  return eventData.value.event.tiers.reduce((sum, tier) => {
-    const qty = selectedQuantities.value[tier._id] || 0;
-    return sum + tier.price * qty;
-  }, 0);
-});
-
-const markupAmount = computed(() => {
-  if (!eventData.value?.event || eventData.value.event.markupStrategy !== 'ADD_TO_FEE' || eventData.value.event.markupFee <= 0) return 0;
-  
-  if (eventData.value.event.markupFeeType === 'PERCENTAGE') {
-    return (eventData.value.event.markupFee / 100) * subtotalAmount.value;
-  }
-  // FLAT
-  // If the customer hasn't selected any tickets, don't charge the flat fee
-  if (subtotalAmount.value === 0) return 0; 
-  return eventData.value.event.markupFee;
-});
-
-const totalAmount = computed(() => {
-  return Math.max(0, subtotalAmount.value - discountAmount.value + markupAmount.value);
-});
-
-async function processCheckout() {
   submitting.value = true;
   try {
-    const items = Object.entries(selectedQuantities.value)
-      .filter(([_, qty]) => qty > 0)
-      .map(([tierId, quantity]) => {
-        let attendees = tierAttendees.value[tierId] || [];
-        const tier = eventData.value?.event?.tiers?.find(t => t._id === tierId);
-        const attendeeCount = quantity * getAttendeesPerQty(tier);
-        if (useBillingForTickets.value) {
-          attendees = Array.from({ length: attendeeCount }, () => ({
-            name: customerName.value,
-            email: customerEmail.value,
-            departmentCode: departmentCode.value,
-            customData: {}
-          }));
-        }
-        return { 
-          tierId, 
-          quantity,
-          attendees
-        };
-      });
+    const result = await createOrder();
 
-    const payload = {
-      tenantId: eventData.value.tenant.id,
-      eventId: eventData.value.event._id,
-      customerName: customerName.value,
-      customerEmail: customerEmail.value,
-      departmentCode: departmentCode.value || 'EDM',
-      items,
-      promoCode: promoApplied.value ? promoCode.value.toUpperCase() : null,
-      discountAmount: discountAmount.value,
-      callbackUrl: `${window.location.origin}/order/confirmation`,
-    };
-
-    const res = await fetch(`${config.public.apiBase}/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      toast.error(err.message || 'Failed to initialize order');
+    if (result?.isAlreadyPaid) {
+      sessionInfo.value = result;
+      modal.value = 'paid';
       return;
     }
-
-    const orderResult = await res.json();
-
-    if (orderResult.isAlreadyPaid) {
-      alreadyPaidModal.value = {
-        show: true,
-        orderNumber: orderResult.orderNumber,
-        orderId: orderResult.orderId,
-      };
+    if (result?.isAwaitingApproval) {
+      sessionInfo.value = result;
+      modal.value = 'awaiting';
       return;
     }
-
-    if (orderResult.isAwaitingApproval) {
-      awaitingApprovalModal.value = {
-        show: true,
-        orderNumber: orderResult.orderNumber,
-      };
+    if (result?.authorizationUrl) {
+      window.location.href = result.authorizationUrl;
       return;
     }
-
-    if (orderResult.resumedSession) {
-      toast.info(`Active booking session #${orderResult.orderNumber} resumed!`);
+    if (result?.paymentMethod === 'MANUAL_TRANSFER') {
+      manualOrder.value = result;
+      manualAccount.value = result.remittanceAccount || tenant.value?.primaryRemittanceAccount || null;
+      if (result?.walletToken && typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('ticketr_wallet_token', result.walletToken);
+      }
+      modal.value = 'manual';
+      return;
     }
-
-    if (orderResult.paymentMethod === 'MANUAL_TRANSFER') {
-      manualTransferState.value.isActive = true;
-      manualTransferState.value.orderId = orderResult.orderId;
-      manualTransferState.value.remittanceAccount = orderResult.remittanceAccount;
-    } else if (orderResult.authorizationUrl) {
-      window.location.href = orderResult.authorizationUrl;
-    } else {
-      toast.success('Order placed successfully!');
+    if (result?.walletToken) {
+      await navigateTo(`/my-tickets?token=${result.walletToken}`);
+      return;
     }
-  } catch (err) {
-    console.error('Checkout error:', err);
-    toast.error('An unexpected error occurred during checkout.');
+    if (result?.orderNumber) {
+      toast.success('Order placed. Check your email for your wallet link.');
+    }
+  } catch (err: any) {
+    submitError.value = errorMessage(err, 'We could not start your checkout.');
+    toast.error(submitError.value);
   } finally {
     submitting.value = false;
   }
 }
 
-async function compressImage(file) {
-  if (!file.type.startsWith('image/')) return file; // Skip PDFs or non-images
-  
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target.result;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Target max dimension
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 1200;
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob((blob) => {
-          const newFile = new File([blob], file.name, {
-            type: 'image/jpeg',
-            lastModified: Date.now()
-          });
-          resolve(newFile);
-        }, 'image/jpeg', 0.7);
-      };
-      img.onerror = () => resolve(file);
-    };
-    reader.onerror = () => resolve(file);
-  });
+// ---------------------------------------------------------------------------
+// Manual transfer
+// ---------------------------------------------------------------------------
+const manualOrder = ref<any>(null);
+const manualAccount = ref<any>(null);
+const receiptFile = ref<File | null>(null);
+const receiptPreview = ref('');
+const receiptError = ref('');
+const uploadingReceipt = ref(false);
+
+function onReceiptChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  receiptError.value = '';
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    receiptError.value = 'That file is larger than 10MB.';
+    return;
+  }
+  if (!/^(image\/(png|jpe?g|webp)|application\/pdf)$/.test(file.type)) {
+    receiptError.value = 'Upload a JPG, PNG, WEBP or PDF file.';
+    return;
+  }
+  receiptFile.value = file;
+  receiptPreview.value = file.type.startsWith('image/') ? URL.createObjectURL(file) : '';
 }
 
 async function uploadReceipt() {
-  if (!receiptInput.value || !receiptInput.value.files || receiptInput.value.files.length === 0) {
-    toast.error('Please select a receipt image to upload');
-    return;
-  }
-  
+  if (!receiptFile.value || !manualOrder.value) return;
+  receiptError.value = '';
   uploadingReceipt.value = true;
   try {
-    const file = receiptInput.value.files[0];
-    const optimizedFile = await compressImage(file);
-
-    const formData = new FormData();
-    formData.append('receipt', optimizedFile);
-    formData.append('tenantId', eventData.value.tenant.id);
-
-    const res = await fetch(`${config.public.apiBase}/orders/${manualTransferState.value.orderId}/upload-proof`, {
+    const form = new FormData();
+    form.append('receipt', receiptFile.value);
+    form.append('tenantId', tenant.value.id);
+    await apiRequest(`/orders/${manualOrder.value.orderId}/upload-proof`, {
       method: 'POST',
-      body: formData,
+      auth: false,
+      body: form,
     });
-
-    if (!res.ok) {
-      const err = await res.json();
-      toast.error(err.message || 'Failed to upload receipt');
-      return;
-    }
-
-    showingSuccess.value = true;
-  } catch (err) {
-    toast.error('Error uploading receipt');
+    modal.value = null;
+    toast.success('Receipt received. We emailed you a confirmation.');
+    setTimeout(() => navigateTo('/my-tickets'), 800);
+  } catch (err: any) {
+    receiptError.value = errorMessage(err);
+    toast.error(receiptError.value);
   } finally {
     uploadingReceipt.value = false;
   }
 }
 
+async function copyAccount() {
+  const account = manualAccount.value;
+  if (!account?.accountNumber) return;
+  const ok = await copyText(`${account.bankName || ''} ${account.accountNumber} ${account.accountName || ''}`.trim());
+  toast[ok ? 'success' : 'error'](ok ? 'Account details copied' : 'Could not copy — select manually');
+}
+
+// ---------------------------------------------------------------------------
+// Resale
+// ---------------------------------------------------------------------------
+const resaleListings = ref<any[]>([]);
+const resaleTarget = ref<any>(null);
+const resaleBuyer = reactive({ name: '', email: '' });
+const resaleError = ref('');
+const resalePending = ref(false);
+
+async function loadResale() {
+  if (!event.value?._id) return;
+  try {
+    const listings = await apiRequest<any[]>(`/tickets/resale/event/${event.value._id}`, { auth: false });
+    resaleListings.value = Array.isArray(listings) ? listings : [];
+  } catch {
+    resaleListings.value = [];
+  }
+}
+
+function openResale(listing: any) {
+  resaleTarget.value = listing;
+  resaleBuyer.name = buyer.name;
+  resaleBuyer.email = buyer.email;
+  resaleError.value = '';
+  modal.value = 'resale';
+}
+
+async function startResale() {
+  resaleError.value = '';
+  if (!resaleBuyer.name || !resaleBuyer.email.includes('@')) {
+    resaleError.value = 'Enter your name and a valid email.';
+    return;
+  }
+  resalePending.value = true;
+  try {
+    const result = await apiRequest<any>(`/tickets/resale/${resaleTarget.value.id}/checkout`, {
+      method: 'POST',
+      auth: false,
+      body: {
+        buyerName: resaleBuyer.name,
+        buyerEmail: resaleBuyer.email,
+        callbackUrl: `${window.location.origin}/order/confirmation`,
+      },
+    });
+    if (result?.authorizationUrl) window.location.href = result.authorizationUrl;
+    else toast.success('Resale checkout created.');
+  } catch (err: any) {
+    resaleError.value = errorMessage(err);
+  } finally {
+    resalePending.value = false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Misc
+// ---------------------------------------------------------------------------
+async function share() {
+  const url = window.location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: event.value.title, url });
+      return;
+    } catch {
+      /* fall through */
+    }
+  }
+  const ok = await copyText(url);
+  toast[ok ? 'success' : 'error'](ok ? 'Event link copied' : 'Could not copy the link');
+}
+
+function scrollToCheckout() {
+  const checkout = document.querySelector('aside');
+  checkout?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+onMounted(() => {
+  loadResale();
+});
+
+useSeoMeta({
+  title: computed(() => (event.value ? `${event.value.title} — ${tenant.value?.name || 'Ticketr'}` : 'Event | Ticketr')),
+  description: computed(() => (event.value?.description || '').slice(0, 160)),
+  ogTitle: computed(() => event.value?.title || 'Event | Ticketr'),
+  ogDescription: computed(() => (event.value?.description || '').slice(0, 160)),
+  ogImage: computed(() => event.value?.bannerUrl || tenant.value?.logoUrl || undefined),
+  twitterCard: 'summary_large_image',
+});
 </script>

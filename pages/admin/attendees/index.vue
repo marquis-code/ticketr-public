@@ -1,119 +1,69 @@
 <template>
-  <div>
-    <!-- Main Content -->
-    <main class="w-full max-w-7xl mx-auto space-y-8">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-extrabold text-gray-900">Attendees Management</h1>
-          <p class="text-xs text-gray-600 mt-1">Select an event below to view its attendee roster, check-in statuses, and more.</p>
+  <div class="space-y-4">
+    <section class="surface p-4 sm:p-5">
+      <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+        <div class="flex-1 min-w-0">
+          <label class="label" for="event">Event</label>
+          <select id="event" v-model="eventId" class="input !py-2.5">
+            <option value="">Select an event…</option>
+            <option v-for="event in events" :key="event._id" :value="event._id">
+              {{ event.title }} — {{ formatDate(event.startDate, { day: 'numeric', month: 'short' }) }}
+            </option>
+          </select>
         </div>
-
-        <div class="flex items-center gap-3">
-          <input
-            v-model="search"
-            type="text"
-            placeholder="Filter events..."
-            class=" border border-gray-200 rounded-xl px-4 py-2 text-xs text-gray-900 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
+        <NuxtLink v-if="eventId" :to="`/admin/scanner?eventId=${eventId}`" class="btn-secondary btn-sm shrink-0">
+          <ScanLine class="w-3.5 h-3.5" /> Open scanner
+        </NuxtLink>
       </div>
+    </section>
 
-      <!-- Events Grid -->
-      <TableLoadingState v-if="loading" message="Loading events..." />
-      <TableEmptyState v-else-if="events.length === 0" title="No Events Found" message="Create an event to start managing attendees." />
+    <div v-if="eventsError" class="surface p-4 border-coral/30 bg-coral/5 flex items-start gap-3">
+      <AlertTriangle class="w-5 h-5 text-coral shrink-0 mt-0.5" />
+      <p class="text-sm text-ink flex-1">{{ eventsError }}</p>
+      <button class="btn-secondary btn-sm" type="button" @click="loadEvents">Retry</button>
+    </div>
 
-      <div v-else class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse whitespace-nowrap">
-            <thead class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-              <tr>
-                <th class="px-6 py-4">Event</th>
-                <th class="px-6 py-4 text-center">Tickets Sold</th>
-                <th class="px-6 py-4 text-center">Status</th>
-                <th class="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 bg-white">
-              <tr v-for="ev in events" :key="ev._id" class="hover:bg-gray-50 transition-colors duration-150">
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-4">
-                    <img
-                      :src="ev.carouselImages && ev.carouselImages.length ? ev.carouselImages[0] : ev.bannerUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=100&q=80'"
-                      :alt="ev.title"
-                      class="w-16 h-12 rounded-lg object-cover border border-gray-200"
-                    />
-                    <div>
-                      <p class="font-bold text-gray-900 max-w-xs truncate" :title="ev.title">{{ ev.title }}</p>
-                      <p class="text-xs text-gray-500 mt-1 flex items-center gap-1"><Calendar class="w-3 h-3" /> {{ new Date(ev.startDate).toLocaleDateString() }}</p>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-6 py-4 text-center font-semibold text-gray-900">
-                  {{ ev.totalSold || 0 }} <span class="text-gray-400">/ {{ ev.totalCapacity || 0 }}</span>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                    {{ ev.status }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-right">
-                  <NuxtLink :to="`/admin/events/${ev._id}/attendees`" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold text-xs rounded-xl shadow-sm hover:bg-indigo-700 transition" title="View Attendee Roster">
-                    <Users class="w-4 h-4" /> View Attendees
-                  </NuxtLink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+    <div v-if="!eventId" class="surface">
+      <UiEmpty
+        title="Choose an event"
+        message="Select an event to see its attendee roster, check-in progress and ticket actions."
+        class="!py-14"
+      >
+        <template #icon><Users class="w-6 h-6" /></template>
+      </UiEmpty>
+    </div>
+
+    <AttendeeRoster v-else :event-id="eventId" />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { AlertTriangle, ScanLine, Users } from 'lucide-vue-next';
+
 definePageMeta({ layout: 'admin' });
 
-
-import { ref, computed, onMounted } from 'vue';
-import { Calendar, Users } from 'lucide-vue-next';
-import { useRouter } from 'vue-router';
-
-const config = useRuntimeConfig();
-const router = useRouter();
-
-const events = ref([]);
-const loading = ref(true);
-const search = ref('');
-
+const route = useRoute();
+const events = ref<any[]>([]);
+const eventsError = ref('');
+const eventId = ref(typeof route.query.eventId === 'string' ? route.query.eventId : '');
 
 async function loadEvents() {
-  const token = localStorage.getItem('ticketr_admin_token');
-  if (!token) {
-    router.push('/admin/login');
-    return;
-  }
-
-  loading.value = true;
+  eventsError.value = '';
   try {
-    const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.metadata) {
-        events.value = data.data;
-      } else {
-        events.value = data;
-      }
-    }
+    const data = await apiRequest<any>('/events/tenant?limit=100');
+    events.value = data?.data || [];
+    if (!eventId.value && events.value.length === 1) eventId.value = events.value[0]._id;
   } catch (err) {
-    console.error('Error loading events:', err);
-  } finally {
-    loading.value = false;
+    eventsError.value = errorMessage(err, 'Could not load events.');
   }
 }
 
-onMounted(() => {
-  loadEvents();
+watch(eventId, (value) => {
+  if (typeof window !== 'undefined') {
+    window.history.replaceState({}, '', `/admin/attendees${value ? `?eventId=${value}` : ''}`);
+  }
 });
+
+onMounted(loadEvents);
+useSeoMeta({ title: 'Attendees', robots: 'noindex, nofollow' });
 </script>

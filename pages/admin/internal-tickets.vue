@@ -1,239 +1,192 @@
-
 <template>
-  <div>
-    <main class="max-w-5xl mx-auto px-4 md:px-6 py-10 flex-grow w-full space-y-8">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <div class="grid lg:grid-cols-[1.2fr_1fr] gap-4 items-start">
+    <!-- Issue form -->
+    <section class="surface p-5 sm:p-6 space-y-3.5">
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">No payment</p>
+        <h2 class="font-display text-xl font-semibold text-ink mt-0.5">Issue a complimentary ticket</h2>
+        <p class="text-[12.5px] text-muted mt-1">For guests, speakers, sponsors and staff. Every issue is audit-logged with a reason and consumes real inventory.</p>
+      </div>
+
+      <div>
+        <label class="label">Event</label>
+        <select v-model="form.eventId" class="input" @change="onEventChange">
+          <option value="">Select event…</option>
+          <option v-for="event in events" :key="event._id" :value="event._id">{{ event.title }}</option>
+        </select>
+      </div>
+
+      <div v-if="form.eventId">
+        <label class="label">Tier</label>
+        <select v-model="form.tierId" class="input">
+          <option value="">Select tier…</option>
+          <option v-for="tier in tiers" :key="tier._id" :value="tier._id" :disabled="tier.remaining <= 0">
+            {{ tier.name }} — {{ formatMoney(tier.price) }} ({{ tier.remaining }} left)
+          </option>
+        </select>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-3">
         <div>
-          <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Internal & Special Tickets</h1>
-          <p class="text-sm text-gray-500 mt-2 font-medium">Issue complimentary or internal tickets directly to Excos, VIPs, or partners.</p>
+          <label class="label">Attendee name</label>
+          <input v-model.trim="form.customerName" type="text" class="input" placeholder="Full name" />
         </div>
-        <div class="flex items-center gap-2 text-sm font-medium text-amber-700 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-200 shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          Bypasses payment gateway
+        <div>
+          <label class="label">Attendee email</label>
+          <input v-model.trim="form.customerEmail" type="email" class="input" placeholder="guest@example.com" />
         </div>
       </div>
-
-      <div class="bg-white rounded-2xl shadow-xl border border-gray-100 relative overflow-visible">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-t-2xl"></div>
-        <form @submit.prevent="generateTicket" class="p-8 sm:p-10 space-y-10">
-          
-          <!-- Event Details Section -->
-          <div class="space-y-6">
-            <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
-              <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">1</div>
-              <h2 class="text-lg font-bold text-gray-900">Event & Ticket Selection</h2>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Select Event <span class="text-red-500">*</span></label>
-                <div class="relative">
-                  <select v-model="form.eventId" required @change="fetchTiers" class="w-full text-base border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm appearance-none cursor-pointer">
-                    <option value="" disabled>Choose an event...</option>
-                    <option v-for="event in events" :key="event._id" :value="event._id">
-                      {{ event.title }}
-                    </option>
-                  </select>
-                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                  </div>
-                </div>
-              </div>
-
-              <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Select Ticket Tier <span class="text-red-500">*</span></label>
-                <div class="relative">
-                  <select v-model="form.tierId" required :disabled="!form.eventId" class="w-full text-base border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm appearance-none disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-                    <option value="" disabled>Choose a ticket tier...</option>
-                    <option v-for="tier in activeTiers" :key="tier._id" :value="tier._id">
-                      {{ tier.name }} — ₦{{ tier.price.toLocaleString() }}
-                    </option>
-                  </select>
-                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Attendee Details Section -->
-          <div class="space-y-6">
-            <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
-              <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold">2</div>
-              <h2 class="text-lg font-bold text-gray-900">Attendee Information</h2>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Full Name <span class="text-red-500">*</span></label>
-                <input type="text" v-model="form.customerName" required placeholder="e.g. John Doe" class="w-full text-base border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" />
-              </div>
-
-              <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Email Address <span class="text-red-500">*</span></label>
-                <input type="email" v-model="form.customerEmail" required placeholder="e.g. john@example.com" class="w-full text-base border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" />
-              </div>
-              
-              <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Department or Organization</label>
-                <input type="text" v-model="form.departmentCode" placeholder="e.g. TVESA, NAAES (Optional)" class="w-full text-base border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" />
-              </div>
-
-              <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700">Reason for Issuance <span class="text-red-500">*</span></label>
-                <input type="text" v-model="form.reason" required placeholder="e.g. Exco Registration, VIP Guest" class="w-full text-base border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" />
-              </div>
-            </div>
-          </div>
-
-          <div class="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="text-sm text-gray-500 flex-1">
-              The ticket will be instantly generated and emailed to the attendee.
-            </div>
-            <button type="submit" :disabled="loading || !form.eventId || !form.tierId" class="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-gray-900 text-white rounded-xl text-base font-bold hover:bg-indigo-600 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-900 disabled:hover:translate-y-0">
-              <svg v-if="loading" class="w-5 h-5 text-white animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path></svg>
-              {{ loading ? 'Generating Ticket...' : 'Generate Internal Ticket' }}
-            </button>
-          </div>
-        </form>
+      <div>
+        <label class="label">Department / association (optional)</label>
+        <input v-model.trim="form.departmentCode" type="text" class="input" placeholder="e.g. SPEAKER" />
       </div>
-      
-      <!-- Notifications -->
-      <transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0 translate-y-4" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-4">
-        <div v-if="successMessage" class="bg-emerald-50 border border-emerald-200 shadow-sm p-5 rounded-2xl flex items-start gap-3">
-          <div class="bg-emerald-100 p-1.5 rounded-full text-emerald-600 mt-0.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
-          <div>
-            <h3 class="text-sm font-bold text-emerald-800">Ticket Issued Successfully</h3>
-            <p class="text-sm text-emerald-700 mt-1">{{ successMessage }}</p>
-          </div>
+      <div>
+        <label class="label">Reason <span class="text-coral">*</span></label>
+        <textarea v-model.trim="form.reason" rows="2" class="input resize-y" placeholder="e.g. Keynote speaker — approved by ops" />
+      </div>
+
+      <p v-if="error" class="field-error">{{ error }}</p>
+      <button class="btn-primary w-full" type="button" :disabled="!canSubmit || submitting" @click="issue">
+        <span v-if="submitting" class="w-4 h-4 border-2 border-paper/40 border-t-paper rounded-full animate-spin" />
+        {{ submitting ? 'Issuing…' : 'Issue complimentary ticket' }}
+      </button>
+      <p class="text-[10.5px] text-muted text-center">The guest receives a real QR pass by email.</p>
+    </section>
+
+    <!-- Recent comps -->
+    <section class="surface overflow-hidden">
+      <div class="px-4 py-3 border-b border-line flex items-center justify-between">
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Ledger</p>
+          <p class="font-display text-base font-semibold text-ink">Recent complimentary issues</p>
         </div>
-      </transition>
-      
-      <transition enter-active-class="transition ease-out duration-300" enter-from-class="opacity-0 translate-y-4" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-200" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-4">
-        <div v-if="errorMessage" class="bg-red-50 border border-red-200 shadow-sm p-5 rounded-2xl flex items-start gap-3">
-          <div class="bg-red-100 p-1.5 rounded-full text-red-600 mt-0.5"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div>
-          <div>
-            <h3 class="text-sm font-bold text-red-800">Error Issuing Ticket</h3>
-            <p class="text-sm text-red-700 mt-1">{{ errorMessage }}</p>
+        <button class="btn-ghost btn-sm" type="button" @click="loadRecent">
+          <RefreshCcw class="w-3.5 h-3.5" :class="{ 'animate-spin': loadingRecent }" />
+        </button>
+      </div>
+      <div v-if="loadingRecent" class="p-4 space-y-2">
+        <div v-for="n in 4" :key="n" class="skeleton h-12" />
+      </div>
+      <UiEmpty
+        v-else-if="!recent.length"
+        title="No comps issued"
+        message="Issued complimentary tickets will appear here."
+        class="!py-10"
+      >
+        <template #icon><Ticket class="w-6 h-6" /></template>
+      </UiEmpty>
+      <div v-else class="divide-y divide-line max-h-[460px] overflow-y-auto">
+        <div v-for="order in recent" :key="order._id" class="px-4 py-3">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-[12.5px] font-semibold text-ink truncate">{{ order.customerName }}</p>
+            <span class="mono text-[10px] text-muted shrink-0">{{ relativeTime(order.createdAt) }}</span>
           </div>
+          <p class="text-[11px] text-muted truncate">{{ order.eventId?.title }} · {{ order.items?.[0]?.tierName }}</p>
+          <p class="text-[10.5px] text-muted/80 truncate mt-0.5">{{ order.forceApproveReason }}</p>
         </div>
-      </transition>
-    </main>
+      </div>
+    </section>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRuntimeConfig } from '#app';
+<script setup lang="ts">
+import { RefreshCcw, Ticket } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 
-definePageMeta({
-  layout: 'default'
-});
+definePageMeta({ layout: 'admin' });
 
-const config = useRuntimeConfig();
+const events = ref<any[]>([]);
+const tiers = ref<any[]>([]);
+const recent = ref<any[]>([]);
+const loadingRecent = ref(true);
+const submitting = ref(false);
+const error = ref('');
 
-const form = ref({
+const form = reactive({
   eventId: '',
   tierId: '',
   customerName: '',
   customerEmail: '',
   departmentCode: '',
-  reason: 'Internal Issuance'
+  reason: '',
 });
 
-const events = ref([]);
-const tiers = ref([]);
-const loading = ref(false);
-const successMessage = ref('');
-const errorMessage = ref('');
+const canSubmit = computed(
+  () =>
+    form.eventId &&
+    form.tierId &&
+    form.customerName.length > 1 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.customerEmail) &&
+    form.reason.length > 3,
+);
 
-const activeTiers = computed(() => {
-  return tiers.value.filter(t => t.eventId === form.value.eventId);
-});
-
-onMounted(async () => {
-  await fetchEvents();
-});
-
-const fetchEvents = async () => {
+async function loadEvents() {
   try {
-    const res = await fetch(`${config.public.apiBase}/events/admin/my-events`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      events.value = data;
-    } else {
-       const res2 = await fetch(`${config.public.apiBase}/events/tenant`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-        }
-      });
-      if (res2.ok) {
-         events.value = await res2.json();
-      }
+    const data = await apiRequest<any>('/events/tenant?limit=100');
+    events.value = data?.data || [];
+    if (!form.eventId && events.value.length === 1) {
+      form.eventId = events.value[0]._id;
+      await onEventChange();
     }
-  } catch (error) {
-    console.error('Error fetching events:', error);
+  } catch (err) {
+    toast.error(errorMessage(err, 'Could not load events.'));
   }
-};
+}
 
-const fetchTiers = async () => {
-  form.value.tierId = '';
-  if (!form.value.eventId) return;
+async function onEventChange() {
+  form.tierId = '';
+  tiers.value = [];
+  if (!form.eventId) return;
   try {
-    const res = await fetch(`${config.public.apiBase}/events/${form.value.eventId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      tiers.value = data.tiers || [];
-    }
-  } catch (error) {
-    console.error('Error fetching tiers:', error);
+    const data = await apiRequest<any>(`/events/${form.eventId}`);
+    tiers.value = (data?.tiers || []).filter((tier: any) => tier.isActive !== false);
+  } catch (err) {
+    toast.error(errorMessage(err));
   }
-};
+}
 
-const generateTicket = async () => {
-  loading.value = true;
-  successMessage.value = '';
-  errorMessage.value = '';
-  
+async function loadRecent() {
+  loadingRecent.value = true;
   try {
-    const res = await fetch(`${config.public.apiBase}/orders/admin/internal-ticket`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('ticketr_admin_token')}`
-      },
-      body: JSON.stringify(form.value)
-    });
-    
-    if (res.ok) {
-      successMessage.value = `Ticket successfully generated for ${form.value.customerName}! The barcode receipt has been dispatched to ${form.value.customerEmail}.`;
-      form.value.customerName = '';
-      form.value.customerEmail = '';
-      form.value.departmentCode = '';
-      
-      // Clear success message after 5 seconds
-      setTimeout(() => {
-        successMessage.value = '';
-      }, 5000);
-    } else {
-      const errorData = await res.json();
-      errorMessage.value = errorData.message || 'Failed to generate ticket.';
-    }
-  } catch (error) {
-    console.error('Error generating ticket:', error);
-    errorMessage.value = 'Network error while attempting to generate ticket. Check your connection.';
+    const data = await apiRequest<any>('/orders/tenant?status=PAID&limit=100&page=1');
+    const orders = data?.data || [];
+    recent.value = orders.filter((order: any) => order.paymentMethod === 'INTERNAL_ISSUANCE');
+  } catch {
+    recent.value = [];
   } finally {
-    loading.value = false;
+    loadingRecent.value = false;
   }
-};
+}
+
+async function issue() {
+  error.value = '';
+  if (!canSubmit.value) {
+    error.value = 'Complete every required field.';
+    return;
+  }
+  submitting.value = true;
+  try {
+    await apiRequest('/orders/admin/internal-ticket', {
+      method: 'POST',
+      body: { ...form },
+    });
+    toast.success('Complimentary ticket issued and emailed');
+    form.customerName = '';
+    form.customerEmail = '';
+    form.departmentCode = '';
+    form.reason = '';
+    await loadRecent();
+    await onEventChange();
+  } catch (err) {
+    error.value = errorMessage(err);
+  } finally {
+    submitting.value = false;
+  }
+}
+
+onMounted(() => {
+  loadEvents();
+  loadRecent();
+});
+useSeoMeta({ title: 'Complimentary tickets', robots: 'noindex, nofollow' });
 </script>

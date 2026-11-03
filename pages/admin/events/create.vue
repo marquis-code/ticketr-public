@@ -1,465 +1,451 @@
 <template>
-  <div >
-    <!-- Navbar -->
-    
+  <form class="space-y-5" @submit.prevent="submit">
+    <!-- Progress / actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">New event</p>
+        <h2 class="font-display text-2xl font-semibold text-ink mt-0.5">Build your event</h2>
+      </div>
+      <div class="flex gap-2">
+        <NuxtLink to="/admin/events" class="btn-secondary btn-sm">Cancel</NuxtLink>
+        <button type="submit" class="btn-primary btn-sm" :disabled="submitting">
+          <span v-if="submitting" class="w-4 h-4 border-2 border-paper/40 border-t-paper rounded-full animate-spin" />
+          {{ submitting ? 'Publishing…' : 'Publish event' }}
+        </button>
+      </div>
+    </div>
 
-    <main class="max-w-4xl mx-auto px-2 sm:px-4 md:px-6 py-6 md:py-8 flex-grow w-full">
-      <div class="glass-card rounded-2xl p-4 sm:p-6 md:p-8 border-primary/30">
-        <h1 class="text-2xl font-extrabold text-gray-900 mb-6">Create New Event</h1>
+    <p v-if="error" class="rounded-xl bg-coral/10 border border-coral/20 px-4 py-3 text-[12.5px] font-medium text-coral">
+      {{ error }}
+    </p>
 
-        <form @submit.prevent="submitForm" class="space-y-6">
-          <!-- Event Details -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="md:col-span-2">
-              <label class="block text-xs font-medium text-gray-600 mb-1">Event Title</label>
-              <input
-                v-model="form.title"
-                @input="generateSlug"
-                type="text"
-                placeholder="e.g. Annual Nursing & Clinical Excellence Gala"
-                required
-                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-              />
+    <div class="grid lg:grid-cols-[1.6fr_1fr] gap-5 items-start">
+      <div class="space-y-5 min-w-0">
+        <!-- Basics -->
+        <section class="surface p-5 sm:p-6 space-y-4">
+          <header>
+            <h3 class="font-display text-lg font-semibold text-ink">Event basics</h3>
+            <p class="text-xs text-muted mt-0.5">What people see on the storefront.</p>
+          </header>
+
+          <div>
+            <label class="label" for="title">Event title</label>
+            <input id="title" v-model.trim="form.title" type="text" maxlength="120" class="input" placeholder="e.g. Dinner & Awards Night 2026" @input="onTitleInput" />
+            <p v-if="fieldErrors.title" class="field-error">{{ fieldErrors.title }}</p>
+          </div>
+
+          <div>
+            <label class="label" for="slug">Event link</label>
+            <div class="flex items-center gap-1 rounded-xl border border-line bg-paper px-3 py-2.5 text-sm">
+              <span class="text-muted shrink-0 hidden sm:inline">/event/</span>
+              <input id="slug" v-model.trim="form.slug" type="text" class="flex-1 bg-transparent border-0 p-0 text-sm font-medium text-ink focus:ring-0 focus:outline-none mono" placeholder="dinner-awards-2026" @input="slugEdited = true" />
             </div>
+            <p class="field-hint">Lowercase letters, numbers and dashes. Must be unique for your organization.</p>
+          </div>
 
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">URL Slug</label>
-              <input
-                v-model="form.slug"
-                type="text"
-                placeholder="nursing-gala-2026"
-                required
-                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Venue / Location</label>
-              <input
-                v-model="form.location"
-                type="text"
-                placeholder="Main Campus Auditorium"
-                required
-                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Start Date & Time</label>
-              <input
-                v-model="form.startDate"
-                type="datetime-local"
-                required
-                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">End Date & Time</label>
-              <input
-                v-model="form.endDate"
-                type="datetime-local"
-                required
-                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Check-In Starts (Optional)</label>
-              <input
-                v-model="form.checkInStart"
-                type="datetime-local"
-                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Check-In Ends (Optional)</label>
-              <input
-                v-model="form.checkInEnd"
-                type="datetime-local"
-                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-              />
-            </div>
-
-            <div class="md:col-span-2">
-              <label class="block text-xs font-medium text-gray-600 mb-1">Event Description</label>
-              <textarea
-                v-model="form.description"
-                rows="4"
-                placeholder="Provide details about schedule, dress code, and highlights..."
-                required
-                class="w-full  border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 transition"
-              ></textarea>
-            </div>
-
-            <!-- Carousel Gallery Selection -->
-            <div class="md:col-span-2">
-              <label class="block text-xs font-medium text-gray-600 mb-2">Cover / Carousel Images (Select multiple)</label>
-              <div class="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                <div
-                  v-for="(url, i) in galleryOptions"
-                  :key="i"
-                  @click="toggleCarouselImage(url)"
-                  :class="[
-                    'relative rounded-lg overflow-hidden border-2 cursor-pointer transition aspect-video',
-                    form.carouselImages.includes(url) ? 'border-primary' : 'border-transparent hover:border-gray-300'
-                  ]"
-                >
-                  <img :src="url" class="w-full h-full object-cover" />
-                  <div v-if="form.carouselImages.includes(url)" class="absolute top-1 right-1 bg-primary text-white rounded-full p-0.5">
-                    <Check class="w-3 h-3" />
-                  </div>
-                </div>
-              </div>
-              <p class="text-[10px] text-gray-400 mt-2">Select one image for a static banner, or multiple for a carousel header.</p>
+          <div>
+            <label class="label" for="description">Description</label>
+            <textarea id="description" v-model.trim="form.description" rows="6" maxlength="8000" class="input resize-y" placeholder="What happens, who it's for, what's included…" />
+            <div class="flex justify-between mt-1">
+              <p v-if="fieldErrors.description" class="field-error">{{ fieldErrors.description }}</p>
+              <p class="field-hint ml-auto">{{ form.description.length }}/8000</p>
             </div>
           </div>
 
-          <!-- Ticket & QR Code Settings -->
-          <div class="pt-6 border-t border-gray-200">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Ticket & QR Code Settings</h3>
-            
-            <div class="p-4 rounded-xl border border-gray-200 bg-gray-50/50 space-y-3">
-              <div>
-                <label class="block text-sm font-semibold text-gray-800 mb-1">QR Code Delivery Method</label>
-                <p class="text-[11px] text-gray-500 mb-3">Configure how you want to deliver QR codes to your attendees.</p>
-                <div class="flex flex-col space-y-2">
-                  <label class="flex items-center space-x-2">
-                    <input type="radio" v-model="form.qrCodeDelivery" value="STAMP_ON_TICKET" class="text-primary focus:ring-primary" />
-                    <span class="text-xs text-gray-700 font-medium">Stamp on PDF Ticket (Standard)</span>
-                  </label>
-                  <label class="flex items-center space-x-2">
-                    <input type="radio" v-model="form.qrCodeDelivery" value="STANDALONE" class="text-primary focus:ring-primary" />
-                    <span class="text-xs text-gray-700 font-medium">Standalone (QR code in email only, no PDF ticket generated)</span>
-                  </label>
-                  <label class="flex items-center space-x-2">
-                    <input type="radio" v-model="form.qrCodeDelivery" value="NONE" class="text-primary focus:ring-primary" />
-                    <span class="text-xs text-gray-700 font-medium">None (Do not generate PDF tickets or QR codes)</span>
-                  </label>
-                </div>
-              </div>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="label" for="startDate">Starts</label>
+              <input id="startDate" v-model="form.startDate" type="datetime-local" class="input" />
+              <p v-if="fieldErrors.startDate" class="field-error">{{ fieldErrors.startDate }}</p>
+            </div>
+            <div>
+              <label class="label" for="endDate">Ends</label>
+              <input id="endDate" v-model="form.endDate" type="datetime-local" class="input" />
+              <p v-if="fieldErrors.endDate" class="field-error">{{ fieldErrors.endDate }}</p>
             </div>
           </div>
 
-          <!-- Checkout Form Configuration -->
-          <div class="pt-6 border-t border-gray-200">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">Checkout Form Settings</h3>
-            
-            <div class="space-y-4 p-4 rounded-xl border border-gray-200 bg-gray-50/50">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h4 class="text-sm font-semibold text-gray-800">Legacy Department Field</h4>
-                  <p class="text-[11px] text-gray-500">Enable this if your event requires attendees to specify their department or organization.</p>
-                </div>
-                <input type="checkbox" v-model="form.formSettings.requireDepartment" class="w-5 h-5 text-primary rounded border-gray-300 focus:ring-primary">
-              </div>
-
-              <div v-if="form.formSettings.requireDepartment" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label class="block text-[11px] font-medium text-gray-600 mb-1">Field Label</label>
-                  <input type="text" v-model="form.formSettings.departmentLabel" placeholder="e.g. Company, Group, Department" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:border-primary focus:outline-none bg-white" />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-medium text-gray-600 mb-1">Dropdown Options (Comma separated)</label>
-                  <input type="text" v-model="form.formSettings.departmentOptionsStr" placeholder="e.g. Sales, Marketing, IT (Leave blank for text input)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:border-primary focus:outline-none bg-white" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Custom Fields Builder -->
-            <div class="mt-4 p-4 rounded-xl border border-gray-200">
-              <div class="flex items-center justify-between mb-4">
-                <div>
-                  <h4 class="text-sm font-semibold text-gray-800">Custom Questions</h4>
-                  <p class="text-[11px] text-gray-500">Ask attendees for T-shirt size, dietary requirements, etc.</p>
-                </div>
-                <button type="button" @click="addCustomField" class="text-xs font-bold text-primary hover:text-primary-600">+ Add Question</button>
-              </div>
-
-              <div v-for="(field, idx) in form.formSettings.customFields" :key="idx" class="p-3 bg-gray-50 border border-gray-100 rounded-lg mb-3 relative">
-                <button type="button" @click="removeCustomField(idx)" class="absolute top-2 right-2 text-rose-400 hover:text-rose-600"><X class="w-4 h-4" /></button>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-6">
-                  <div>
-                    <label class="block text-[11px] font-medium text-gray-600 mb-1">Question Label</label>
-                    <input type="text" v-model="field.label" placeholder="e.g. T-Shirt Size" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:border-primary focus:outline-none bg-white" />
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-medium text-gray-600 mb-1">Field Type</label>
-                    <select v-model="field.type" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:border-primary focus:outline-none bg-white">
-                      <option value="text">Short Text</option>
-                      <option value="select">Dropdown Options</option>
-                    </select>
-                  </div>
-                  <div class="sm:col-span-2" v-if="field.type === 'select'">
-                    <label class="block text-[11px] font-medium text-gray-600 mb-1">Options (Comma separated)</label>
-                    <input type="text" v-model="field.optionsStr" placeholder="e.g. S, M, L, XL" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:border-primary focus:outline-none bg-white" />
-                  </div>
-                  <div class="sm:col-span-2 flex items-center gap-2 mt-1">
-                    <input type="checkbox" :id="'req-'+idx" v-model="field.required" class="w-3.5 h-3.5 text-primary rounded border-gray-300 focus:ring-primary" />
-                    <label :for="'req-'+idx" class="text-[11px] text-gray-600">Required field</label>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div>
+            <label class="label" for="location">Venue or link</label>
+            <input id="location" v-model.trim="form.location" type="text" class="input" placeholder="e.g. J.F. Ade Ajayi Hall, UNILAG" />
+            <label class="flex items-center gap-2 mt-2 text-[12px] font-medium text-muted cursor-pointer">
+              <input v-model="form.isVirtual" type="checkbox" class="w-3.5 h-3.5 rounded border-line text-forest focus:ring-forest" />
+              This is an online event
+            </label>
+            <p v-if="fieldErrors.location" class="field-error">{{ fieldErrors.location }}</p>
           </div>
 
-          <!-- Ticket Tiers Builder -->
-          <div class="pt-6 border-t border-gray-200">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="text-lg font-bold text-gray-900">Ticket Tiers & Pricing</h3>
-                <p class="text-xs text-gray-600">Add tickets like VIP, Regular, or Student Passes.</p>
-              </div>
-              <button type="button" @click="addTier" class="text-xs font-bold text-primary hover:text-primary">
-                + Add Ticket Tier
+          <div>
+            <label class="label" for="tags">Tags</label>
+            <input id="tags" v-model="form.tags" type="text" class="input" placeholder="Campus, Awards, Dinner" />
+            <p class="field-hint">Comma separated. Used for discovery filters.</p>
+          </div>
+        </section>
+
+        <!-- Media -->
+        <section class="surface p-5 sm:p-6 space-y-4">
+          <header>
+            <h3 class="font-display text-lg font-semibold text-ink">Cover & gallery</h3>
+            <p class="text-xs text-muted mt-0.5">The first image becomes the cover. Up to 10 images, 10MB each.</p>
+          </header>
+
+          <label class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line bg-paper/60 px-4 py-8 cursor-pointer hover:border-forest/40 transition">
+            <ImagePlus class="w-6 h-6 text-muted" />
+            <span class="text-xs font-semibold text-ink">Choose images</span>
+            <span class="text-[11px] text-muted">JPG, PNG or WEBP</span>
+            <input type="file" accept="image/png,image/jpeg,image/webp" multiple class="sr-only" @change="onFiles" />
+          </label>
+
+          <div v-if="imagePreviews.length" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div v-for="(preview, index) in imagePreviews" :key="preview" class="relative aspect-[4/3] rounded-xl overflow-hidden border border-line group">
+              <img :src="preview" alt="" class="w-full h-full object-cover" />
+              <span v-if="index === 0" class="absolute top-1.5 left-1.5 chip-lime !text-[8px] !px-1.5 !py-0.5">Cover</span>
+              <button type="button" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-ink/80 text-paper flex items-center justify-center opacity-0 group-hover:opacity-100 transition" @click="removeImage(index)">
+                <X class="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tiers -->
+        <section class="surface p-5 sm:p-6 space-y-4">
+          <header class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-display text-lg font-semibold text-ink">Ticket tiers</h3>
+              <p class="text-xs text-muted mt-0.5">Price in Naira. Capacity counts physical passes.</p>
+            </div>
+            <button type="button" class="btn-secondary btn-sm" @click="addTier"><Plus class="w-3.5 h-3.5" /> Add tier</button>
+          </header>
+
+          <div v-if="!form.tiers.length" class="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">
+            Add at least one ticket tier to publish.
+          </div>
+
+          <div v-for="(tier, index) in form.tiers" :key="index" class="rounded-xl border border-line bg-paper/40 p-4 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Tier {{ index + 1 }}</p>
+              <button v-if="form.tiers.length > 1" type="button" class="text-coral hover:bg-coral/10 rounded-lg p-1.5" title="Remove tier" @click="form.tiers.splice(index, 1)">
+                <Trash2 class="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div class="space-y-4">
-              <div
-                v-for="(tier, index) in form.tiers"
-                :key="index"
-                class="p-4 rounded-xl /60 border border-gray-200 grid grid-cols-1 sm:grid-cols-4 gap-4 items-center"
-              >
-                <div>
-                  <label class="block text-[11px] text-gray-500 mb-1">Tier Name</label>
-                  <input
-                    v-model="tier.name"
-                    type="text"
-                    placeholder="VIP / Standard"
-                    required
-                    class="w-full  border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-900"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-[11px] text-gray-500 mb-1">Price (₦)</label>
-                  <input
-                    v-model.number="tier.price"
-                    type="number"
-                    min="0"
-                    placeholder="2500"
-                    required
-                    class="w-full  border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-900"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-[11px] text-gray-500 mb-1">Capacity</label>
-                  <input
-                    v-model.number="tier.capacity"
-                    type="number"
-                    min="1"
-                    placeholder="100"
-                    required
-                    class="w-full  border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-900"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-[11px] text-gray-500 mb-1">Max Per Purchase</label>
-                  <input
-                    v-model.number="tier.maxPerPurchase"
-                    type="number"
-                    min="1"
-                    placeholder="700"
-                    required
-                    class="w-full  border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-900"
-                  />
-                </div>
-
-                <div class="col-span-1 sm:col-span-4 flex items-center justify-between pt-2 border-t border-gray-100">
-                  <div class="flex items-center gap-2">
-                    <input type="checkbox" :id="'couple-' + index" v-model="tier.isCoupleTicket" class="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary" />
-                    <label :for="'couple-' + index" class="text-[11px] font-medium text-gray-600">Is a Couple Ticket (Admits 2 Attendees)</label>
-                  </div>
-                  <button
-                    type="button"
-                    @click="removeTier(index)"
-                    :disabled="form.tiers.length === 1"
-                    class="text-xs text-rose-400 hover:text-rose-300 font-semibold disabled:opacity-30"
-                  >
-                    Remove
-                  </button>
-                </div>
+            <div class="grid sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="label">Name</label>
+                <input v-model.trim="tier.name" type="text" class="input !py-2.5" placeholder="e.g. VIP, Regular, Table for 10" />
               </div>
+              <div>
+                <label class="label">Price (₦)</label>
+                <input v-model.number="tier.price" type="number" min="0" step="50" class="input !py-2.5" />
+              </div>
+              <div>
+                <label class="label">Capacity</label>
+                <input v-model.number="tier.capacity" type="number" min="1" class="input !py-2.5" />
+              </div>
+              <div>
+                <label class="label">Max per order</label>
+                <input v-model.number="tier.maxPerPurchase" type="number" min="1" class="input !py-2.5" />
+              </div>
+              <div>
+                <label class="label">Description</label>
+                <input v-model.trim="tier.description" type="text" class="input !py-2.5" placeholder="Optional" />
+              </div>
+            </div>
+
+            <label class="flex items-center gap-2 text-[12px] font-medium text-muted cursor-pointer">
+              <input v-model="tier.isCoupleTicket" type="checkbox" class="w-3.5 h-3.5 rounded border-line text-forest focus:ring-forest" />
+              Couple ticket (issues 2 passes per unit)
+            </label>
+          </div>
+
+          <p v-if="fieldErrors.tiers" class="field-error">{{ fieldErrors.tiers }}</p>
+        </section>
+
+        <!-- Form settings -->
+        <section class="surface p-5 sm:p-6 space-y-4">
+          <header>
+            <h3 class="font-display text-lg font-semibold text-ink">Attendee questions</h3>
+            <p class="text-xs text-muted mt-0.5">Optional details collected per pass at checkout.</p>
+          </header>
+
+          <label class="flex items-center gap-2 text-[13px] font-medium text-ink cursor-pointer">
+            <input v-model="form.formSettings.requireDepartment" type="checkbox" class="w-4 h-4 rounded border-line text-forest focus:ring-forest" />
+            Ask for a department / association
+          </label>
+
+          <div v-if="form.formSettings.requireDepartment" class="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label class="label">Label</label>
+              <input v-model.trim="form.formSettings.departmentLabel" type="text" class="input !py-2.5" placeholder="Department" />
+            </div>
+            <div>
+              <label class="label">Options</label>
+              <input v-model="form.formSettings.departmentOptionsText" type="text" class="input !py-2.5" placeholder="EDM, TVESA, ULSESA" />
             </div>
           </div>
 
-          <div v-if="errorMsg" class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
-            {{ errorMsg }}
-          </div>
+          <div class="divider" />
 
-          <div class="pt-4 flex justify-end">
-            <button type="submit" :disabled="submitting" class="w-full sm:w-auto btn-primary py-3 px-8 text-sm">
-              <Send v-if="!submitting" class="w-4 h-4" />
-              <span>{{ submitting ? 'Publishing Event...' : 'Publish Event' }}</span>
+          <div class="flex items-center justify-between">
+            <p class="text-[13px] font-semibold text-ink">Custom fields</p>
+            <button type="button" class="btn-ghost btn-sm" @click="form.formSettings.customFields.push({ name: '', label: '', type: 'text', required: false, optionsText: '' })">
+              <Plus class="w-3.5 h-3.5" /> Add field
             </button>
           </div>
-        </form>
+
+          <div v-for="(field, index) in form.formSettings.customFields" :key="index" class="rounded-xl border border-line p-3.5 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Field {{ index + 1 }}</span>
+              <button type="button" class="text-coral" @click="form.formSettings.customFields.splice(index, 1)"><Trash2 class="w-3.5 h-3.5" /></button>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-2.5">
+              <input v-model.trim="field.label" type="text" class="input !py-2.5" placeholder="Label (e.g. Meal preference)" />
+              <select v-model="field.type" class="input !py-2.5">
+                <option value="text">Short text</option>
+                <option value="select">Dropdown</option>
+              </select>
+            </div>
+            <input v-if="field.type === 'select'" v-model="field.optionsText" type="text" class="input !py-2.5" placeholder="Options, comma separated" />
+            <label class="flex items-center gap-2 text-[12px] text-muted">
+              <input v-model="field.required" type="checkbox" class="w-3.5 h-3.5 rounded border-line text-forest focus:ring-forest" /> Required
+            </label>
+          </div>
+        </section>
       </div>
-    </main>
-  </div>
+
+      <!-- Sidebar -->
+      <aside class="space-y-4 lg:sticky lg:top-[92px]">
+        <section class="surface p-5 space-y-3">
+          <h3 class="font-display text-lg font-semibold text-ink">Policies</h3>
+          <label class="flex items-start gap-2.5 text-[12.5px] text-ink cursor-pointer">
+            <input v-model="form.resaleEnabled" type="checkbox" class="mt-0.5 w-4 h-4 rounded border-line text-forest focus:ring-forest" />
+            <span>
+              Allow verified resale & transfers
+              <span class="block text-[11px] text-muted">Old QR codes are invalidated when a ticket changes hands.</span>
+            </span>
+          </label>
+          <div v-if="form.resaleEnabled">
+            <label class="label">Resale price cap (%)</label>
+            <input v-model.number="form.resalePriceCapPercent" type="number" min="0" max="100" class="input !py-2.5" />
+            <p class="field-hint">100 = never above face value. Most organizers keep this at 100.</p>
+          </div>
+          <div>
+            <label class="label">Transfer policy</label>
+            <textarea v-model.trim="form.transferPolicy" rows="2" class="input !py-2.5 resize-y text-[12.5px]" />
+          </div>
+          <div>
+            <label class="label">Refund policy</label>
+            <textarea v-model.trim="form.refundPolicy" rows="2" class="input !py-2.5 resize-y text-[12.5px]" />
+          </div>
+        </section>
+
+        <section class="surface p-5 space-y-3">
+          <h3 class="font-display text-lg font-semibold text-ink">Check-in window</h3>
+          <div>
+            <label class="label">Opens</label>
+            <input v-model="form.checkInStart" type="datetime-local" class="input !py-2.5" />
+          </div>
+          <div>
+            <label class="label">Closes</label>
+            <input v-model="form.checkInEnd" type="datetime-local" class="input !py-2.5" />
+          </div>
+          <p class="field-hint">Leave blank to allow scanning around the event time. Setting this prevents early or late entry.</p>
+        </section>
+
+        <section class="surface p-5">
+          <h3 class="font-display text-lg font-semibold text-ink">Publish checklist</h3>
+          <ul class="mt-3 space-y-2 text-[12px]">
+            <li v-for="item in checklist" :key="item.label" class="flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full flex items-center justify-center shrink-0" :class="item.ok ? 'bg-lime text-ink' : 'bg-paper border border-line text-muted'">
+                <Check v-if="item.ok" class="w-2.5 h-2.5" />
+              </span>
+              <span :class="item.ok ? 'text-ink' : 'text-muted'">{{ item.label }}</span>
+            </li>
+          </ul>
+          <button type="submit" class="btn-primary w-full mt-4" :disabled="submitting || !canPublish">
+            {{ submitting ? 'Publishing…' : 'Publish event' }}
+          </button>
+          <p class="text-[10.5px] text-muted text-center mt-2">You can edit most details after publishing.</p>
+        </section>
+      </aside>
+    </div>
+  </form>
 </template>
 
-<script setup>
-definePageMeta({ layout: 'admin' });
-
-
+<script setup lang="ts">
+import { Check, ImagePlus, Plus, Trash2, X } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
-import { ref } from 'vue';
-import { Send, Check, X } from 'lucide-vue-next';
+
+definePageMeta({ layout: 'admin' });
 
 const config = useRuntimeConfig();
 
-const submitting = ref(false);
-const errorMsg = ref('');
-const bannerFile = ref(null);
-
-const form = ref({
+const form = reactive({
   title: '',
   slug: '',
+  description: '',
   location: '',
+  isVirtual: false,
   startDate: '',
   endDate: '',
   checkInStart: '',
   checkInEnd: '',
-  description: '',
-  carouselImages: [],
+  tags: '',
+  resaleEnabled: true,
+  resalePriceCapPercent: 100,
+  transferPolicy: 'Tickets can be transferred once to a new attendee. Transfers are verified in-platform and rotate the QR code.',
+  refundPolicy: 'All sales are final. In-platform verified resale is available while the event is upcoming.',
   tiers: [
-    { name: 'Standard Ticket', price: 2500, capacity: 100, maxPerPurchase: 700, isCoupleTicket: false },
+    { name: 'Regular', description: '', price: 5000, capacity: 100, maxPerPurchase: 5, isCoupleTicket: false },
   ],
-  qrCodeDelivery: 'STAMP_ON_TICKET',
   formSettings: {
     requireDepartment: false,
-    departmentLabel: 'Department / Association Code',
-    departmentOptionsStr: '',
-    customFields: []
+    departmentLabel: 'Department / Association',
+    departmentOptionsText: '',
+    customFields: [] as Array<{ name: string; label: string; type: 'text' | 'select'; required: boolean; optionsText: string }>,
   },
 });
 
-const galleryOptions = [
-  "https://res.cloudinary.com/marquis/image/upload/v1786363972/ticketr/gallery/zuyju8e1lkqpeqdrngjk.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786363975/ticketr/gallery/pkyy7pq5hvclifbtp3y6.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786363981/ticketr/gallery/kkwastlxnxg0vk9ayeyk.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786363984/ticketr/gallery/rgw9y0reyvfglxji5sp9.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786363987/ticketr/gallery/qye7zi8pxmedxunhqpbe.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364008/ticketr/gallery/jgpqiq15mvsyzgdveggg.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364032/ticketr/gallery/rfuf483exlldszlsyrjd.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364035/ticketr/gallery/sx8bgrpgl9nbogpj0kgy.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364046/ticketr/gallery/wpvrm8ti8emamcuk2dml.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364049/ticketr/gallery/vmte98lxfd29xpcomsba.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364051/ticketr/gallery/l33vv0u4raeqjbpphby3.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364055/ticketr/gallery/gedlh0l03g0pkc8s6unx.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364057/ticketr/gallery/qtwkfzvwjmzaoomebkbg.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364060/ticketr/gallery/mecwrzea3uwxofbmbnks.jpg",
-  "https://res.cloudinary.com/marquis/image/upload/v1786364069/ticketr/gallery/fx3yh17e3r8fchtzmpb8.jpg"
-];
+const files = ref<File[]>([]);
+const imagePreviews = ref<string[]>([]);
+const submitting = ref(false);
+const error = ref('');
 
-function toggleCarouselImage(url) {
-  const idx = form.value.carouselImages.indexOf(url);
-  if (idx > -1) {
-    form.value.carouselImages.splice(idx, 1);
-  } else {
-    form.value.carouselImages.push(url);
+const fieldErrors = computed(() => {
+  const errors: Record<string, string> = {};
+  if (form.title.length < 3) errors.title = 'Give the event a title (at least 3 characters).';
+  if (form.description.length < 20) errors.description = 'Describe the event in at least 20 characters.';
+  if (!form.location) errors.location = 'Add a venue or online link.';
+  if (!form.startDate) errors.startDate = 'Choose a start date and time.';
+  if (!form.endDate) errors.endDate = 'Choose an end date and time.';
+  if (form.startDate && form.endDate && new Date(form.endDate) <= new Date(form.startDate)) {
+    errors.endDate = 'The event must end after it starts.';
   }
-}
-
-function generateSlug() {
-  if (form.value.title) {
-    form.value.slug = form.value.title
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-');
+  if (!form.tiers.length) errors.tiers = 'Add at least one ticket tier.';
+  else if (form.tiers.some((tier) => !tier.name || !(tier.capacity > 0) || tier.price === null)) {
+    errors.tiers = 'Every tier needs a name, a price and a capacity of at least 1.';
   }
+  return errors;
+});
+
+const canPublish = computed(() => Object.keys(fieldErrors.value).length === 0);
+
+const checklist = computed(() => [
+  { label: 'Title and description', ok: form.title.length >= 3 && form.description.length >= 20 },
+  { label: 'Date, time and venue', ok: !!form.startDate && !!form.endDate && !!form.location },
+  { label: 'At least one ticket tier', ok: form.tiers.length > 0 && form.tiers.every((tier) => tier.name && tier.capacity > 0) },
+  { label: 'Cover image (recommended)', ok: files.value.length > 0 },
+]);
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
 }
 
-function addCustomField() {
-  form.value.formSettings.customFields.push({
-    label: '',
-    type: 'text',
-    optionsStr: '',
-    required: false
-  });
-}
-
-function removeCustomField(idx) {
-  form.value.formSettings.customFields.splice(idx, 1);
+const slugEdited = ref(false);
+function onTitleInput() {
+  if (!slugEdited.value) form.slug = slugify(form.title);
 }
 
 function addTier() {
-  form.value.tiers.push({
-    name: 'VIP Pass',
-    price: 5000,
-    capacity: 50,
-    maxPerPurchase: 700,
-    isCoupleTicket: false,
-  });
+  form.tiers.push({ name: '', description: '', price: 0, capacity: 50, maxPerPurchase: 5, isCoupleTicket: false });
 }
 
-function removeTier(idx) {
-  if (form.value.tiers.length > 1) {
-    form.value.tiers.splice(idx, 1);
-  }
+function onFiles(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const selected = Array.from(input.files || []);
+  const valid = selected.filter((file) => /^image\/(png|jpe?g|webp)$/.test(file.type) && file.size <= 10 * 1024 * 1024);
+  if (valid.length !== selected.length) toast.error('Some files were skipped (images under 10MB only).');
+  files.value = [...files.value, ...valid].slice(0, 10);
+  imagePreviews.value = files.value.map((file) => URL.createObjectURL(file));
+  input.value = '';
 }
 
-async function submitForm() {
-  const token = localStorage.getItem('ticketr_admin_token');
-  if (!token) {
-    useRouter().push('/admin/login');
+function removeImage(index: number) {
+  files.value.splice(index, 1);
+  imagePreviews.value.splice(index, 1);
+}
+
+function iso(value: string) {
+  return value ? new Date(value).toISOString() : undefined;
+}
+
+async function submit() {
+  error.value = '';
+  if (!canPublish.value) {
+    error.value = Object.values(fieldErrors.value)[0] || 'Check the required fields.';
     return;
   }
 
   submitting.value = true;
-  errorMsg.value = '';
-
   try {
-    const formData = new FormData();
-    formData.append('title', form.value.title);
-    formData.append('slug', form.value.slug);
-    formData.append('location', form.value.location);
-    formData.append('startDate', form.value.startDate);
-    formData.append('endDate', form.value.endDate);
-    if (form.value.checkInStart) formData.append('checkInStart', form.value.checkInStart);
-    if (form.value.checkInEnd) formData.append('checkInEnd', form.value.checkInEnd);
-    formData.append('description', form.value.description);
-    formData.append('carouselImages', JSON.stringify(form.value.carouselImages));
-    formData.append('tiers', JSON.stringify(form.value.tiers));
-    
-    const processedFormSettings = {
-      requireDepartment: form.value.formSettings.requireDepartment,
-      departmentLabel: form.value.formSettings.departmentLabel,
-      departmentOptions: form.value.formSettings.departmentOptionsStr.split(',').map(s => s.trim()).filter(Boolean),
-      customFields: form.value.formSettings.customFields.map(cf => ({
-        name: cf.label.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(),
-        label: cf.label,
-        type: cf.type,
-        required: cf.required,
-        options: cf.optionsStr ? cf.optionsStr.split(',').map(s => s.trim()).filter(Boolean) : []
-      }))
-    };
-    formData.append('formSettings', JSON.stringify(processedFormSettings));
-    formData.append('qrCodeDelivery', form.value.qrCodeDelivery);
+    const payload = new FormData();
+    payload.append('title', form.title);
+    payload.append('slug', form.slug || slugify(form.title));
+    payload.append('description', form.description);
+    payload.append('location', form.location);
+    payload.append('isVirtual', String(form.isVirtual));
+    payload.append('startDate', iso(form.startDate) as string);
+    payload.append('endDate', iso(form.endDate) as string);
+    if (form.checkInStart) payload.append('checkInStart', iso(form.checkInStart) as string);
+    if (form.checkInEnd) payload.append('checkInEnd', iso(form.checkInEnd) as string);
+    payload.append('tags', form.tags);
+    payload.append('resaleEnabled', String(form.resaleEnabled));
+    payload.append('resalePriceCapPercent', String(form.resalePriceCapPercent));
+    payload.append('transferPolicy', form.transferPolicy);
+    payload.append('refundPolicy', form.refundPolicy);
 
-    const res = await fetch(`${config.public.apiBase}/events`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
+    payload.append(
+      'tiers',
+      JSON.stringify(
+        form.tiers.map((tier) => ({
+          name: tier.name,
+          description: tier.description,
+          price: Number(tier.price) || 0,
+          capacity: Number(tier.capacity) || 1,
+          maxPerPurchase: Number(tier.maxPerPurchase) || 5,
+          isCoupleTicket: !!tier.isCoupleTicket,
+        })),
+      ),
+    );
 
-    if (res.ok) {
-      toast.success('Event published successfully!');
-      useRouter().push('/admin/events');
-    } else {
-      const err = await res.json();
-      errorMsg.value = err.message || 'Failed to create event';
-    }
+    payload.append(
+      'formSettings',
+      JSON.stringify({
+        requireDepartment: form.formSettings.requireDepartment,
+        departmentLabel: form.formSettings.departmentLabel,
+        departmentOptions: form.formSettings.departmentOptionsText
+          .split(',')
+          .map((option) => option.trim())
+          .filter(Boolean),
+        customFields: form.formSettings.customFields
+          .filter((field) => field.label)
+          .map((field, index) => ({
+            name: field.name || slugify(field.label).replace(/-/g, '_') || `field_${index}`,
+            label: field.label,
+            type: field.type,
+            required: field.required,
+            options: field.optionsText.split(',').map((option) => option.trim()).filter(Boolean),
+          })),
+      }),
+    );
+
+    for (const file of files.value) payload.append('images', file);
+
+    const created = await apiRequest<any>('/events', { method: 'POST', body: payload });
+    toast.success('Event published');
+    await navigateTo(`/admin/events/${created._id}/edit`);
   } catch (err) {
-    errorMsg.value = 'Network error while publishing event';
+    error.value = errorMessage(err, 'We could not create this event.');
   } finally {
     submitting.value = false;
   }
 }
+
+useSeoMeta({ title: 'Create event', robots: 'noindex, nofollow' });
+void config;
 </script>

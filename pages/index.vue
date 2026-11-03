@@ -1,636 +1,544 @@
 <template>
-  <div>
-    <section class="relative h-[520px] md:h-[560px] overflow-hidden">
-      <!-- Carousel Slides -->
-      <div class="absolute inset-0">
-        <transition-group name="hero-fade">
-          <div
-            v-for="(slide, i) in heroSlides"
-            :key="slide.id"
-            v-show="currentSlide === i"
-            class="absolute inset-0"
-          >
-            <img
-              :src="slide.image"
-              :alt="slide.alt"
-              class="w-full h-full object-cover"
-            />
-            <div class="absolute inset-0 bg-gradient-to-r from-gray-900/85 via-gray-900/60 to-gray-900/30"></div>
-          </div>
-        </transition-group>
-      </div>
+  <div class="bg-paper">
+    <!-- ============================= HERO ============================= -->
+    <section class="relative overflow-hidden border-b border-line">
+      <div class="absolute inset-0 bg-grid opacity-70 pointer-events-none" />
+      <div class="absolute -top-40 -right-24 w-[520px] h-[520px] rounded-full bg-lime/25 blur-[120px] pointer-events-none" />
 
-      <!-- Hero Content -->
-      <div class="relative z-10 h-full flex items-center">
-        <div class="max-w-7xl mx-auto px-6 w-full">
-          <div class="max-w-xl">
-            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="text-white/90 text-xs font-medium tracking-wide">{{ tenantInfo?.name ? tenantInfo.name + ' Portal' : 'The #1 Choice for UNILAG, Yabatech & CMUL' }}</span>
-            </div>
+      <div class="shell relative pt-12 pb-14 sm:pt-16 sm:pb-20">
+        <div class="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 lg:gap-14 items-center">
+          <div class="animate-float-in">
+            <span class="chip-ink !py-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-lime animate-pulse" />
+              {{ tenant ? `${tenant.name} · Official storefront` : 'Verified ticketing' }}
+            </span>
 
-            <h1 class="font-display text-4xl md:text-5xl lg:text-[3.4rem] font-bold text-white leading-tight mb-5">
-              {{ heroSlides[currentSlide].heading }}
+            <h1 class="mt-5 font-display text-[2.6rem] leading-[0.98] sm:text-6xl lg:text-[4.2rem] font-semibold tracking-[-0.04em] text-ink">
+              <template v-if="tenant">
+                Get into<br />
+                <span class="italic text-forest">{{ tenant.name }}</span><br />
+                events.
+              </template>
+              <template v-else>
+                Live events,<br />
+                <span class="relative inline-block">
+                  honestly
+                  <span class="absolute left-0 -bottom-1.5 h-[7px] w-full bg-lime rounded-full -z-10" />
+                </span><br />
+                ticketed.
+              </template>
             </h1>
 
-            <p class="text-white/70 text-base md:text-lg leading-relaxed mb-8 max-w-md">
-              {{ heroSlides[currentSlide].subheading }}
+            <p class="mt-5 text-[15px] sm:text-base text-muted max-w-md leading-relaxed">
+              <template v-if="tenant">
+                Official tickets for {{ tenant.name }}. One QR per seat, face-value resale, and a private wallet that always has your pass.
+              </template>
+              <template v-else>
+                A ticketing platform where every pass is single-use, every price is transparent, and resale is capped at face value. No screenshots, no fake fees.
+              </template>
             </p>
 
-            <div class="flex flex-wrap items-center gap-3">
-              <a href="#events" class="inline-flex items-center gap-2 bg-primary hover:bg-primary-700 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
-                Browse Events
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </a>
-              <NuxtLink to="/my-tickets" class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
-                Find My Tickets
-              </NuxtLink>
-              <a v-if="!tenantInfo" :href="`${config.public.adminUrl}/register`" class="inline-flex items-center gap-2 bg-gray-900/40 backdrop-blur-sm hover:bg-gray-900/60 border border-gray-700/50 text-white font-semibold px-6 py-3 rounded-lg transition-all text-sm">
-                Sign Up as Organizer
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Slide Indicators -->
-      <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-        <button
-          v-for="(slide, i) in heroSlides"
-          :key="'dot-' + i"
-          @click="goToSlide(i)"
-          class="transition-all duration-300 rounded-full"
-          :class="currentSlide === i ? 'w-8 h-2 bg-white' : 'w-2 h-2 bg-white/40 hover:bg-white/60'"
-        ></button>
-      </div>
-
-      <!-- Slide Arrows -->
-      <button @click="prevSlide" class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition hidden md:flex">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
-      </button>
-      <button @click="nextSlide" class="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition hidden md:flex">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
-      </button>
-    </section>
-
-    <!-- Trust Bar -->
-    <div class="bg-white border-b border-gray-200 py-4 px-6">
-      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-        <div class="text-sm font-bold text-gray-400 uppercase tracking-widest text-center md:text-left">
-          Trusted across campuses
-        </div>
-        <div class="flex flex-wrap items-center justify-center md:justify-end gap-6 md:gap-12 text-sm text-gray-700 font-display font-extrabold text-xl md:text-2xl opacity-60 grayscale">
-          <span class="flex items-center gap-2">UNILAG <span class="text-[10px] bg-gray-200 px-2 py-0.5 rounded-full uppercase">Akoka</span></span>
-          <span>YABATECH</span>
-          <span class="flex items-center gap-2">CMUL <span class="text-[10px] bg-gray-200 px-2 py-0.5 rounded-full uppercase">Idi-Araba</span></span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Stats Section -->
-    <section class="bg-gray-900 text-white py-12 border-b border-gray-800" v-if="!tenantInfo">
-      <div class="max-w-7xl mx-auto px-6">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div>
-            <div class="text-3xl md:text-5xl font-black text-emerald-400 mb-2">15k+</div>
-            <div class="text-sm text-gray-400 font-medium uppercase tracking-wide">Tickets Sold</div>
-          </div>
-          <div>
-            <div class="text-3xl md:text-5xl font-black text-emerald-400 mb-2">3</div>
-            <div class="text-sm text-gray-400 font-medium uppercase tracking-wide">Major Campuses</div>
-          </div>
-          <div>
-            <div class="text-3xl md:text-5xl font-black text-emerald-400 mb-2">120+</div>
-            <div class="text-sm text-gray-400 font-medium uppercase tracking-wide">Events Hosted</div>
-          </div>
-          <div>
-            <div class="text-3xl md:text-5xl font-black text-emerald-400 mb-2">100%</div>
-            <div class="text-sm text-gray-400 font-medium uppercase tracking-wide">Secure Scans</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features Section -->
-    <section class="py-16 md:py-24 bg-gray-50 border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-6">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-          <div class="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-            <Sparkles class="w-4 h-4" /> Designed to Solve Problems
-          </div>
-          <h2 class="font-display text-3xl md:text-5xl font-extrabold text-gray-900 mb-6">Built to Help You Grow.</h2>
-          <p class="text-lg text-gray-600">We understand the chaos of managing and attending events. Ticketr is a complete system built to take away the stress, make your events seen, and make campus life effortlessly easy.</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-center mb-24">
-          <div class="space-y-8">
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                <Users class="w-6 h-6" />
+            <div class="mt-7 flex flex-col sm:flex-row gap-2.5 max-w-lg">
+              <div class="relative flex-1">
+                <Search class="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  v-model="searchInput"
+                  type="search"
+                  placeholder="Search events, venues, campuses"
+                  aria-label="Search events"
+                  class="input !rounded-full !pl-11 !py-3.5 shadow-card"
+                  @keyup.enter="applySearch"
+                />
               </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Squad Buy & Easy Claims</h3>
-                <p class="text-gray-600">Bring your people together. One person secures the group, and everyone claims their spot. Stop stressing about who paid who—our system manages it all.</p>
-              </div>
-            </div>
-            
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                <CreditCard class="w-6 h-6" />
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Buy Now, Pay Later</h3>
-                <p class="text-gray-600">Every penny counts. Don't let cashflow keep you in your room—stop being an introvert! Break down premium tickets into easy payments and step out into the culture.</p>
-              </div>
+              <button class="btn-primary !rounded-full px-6" type="button" @click="applySearch">
+                Find tickets
+              </button>
             </div>
 
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                <Share2 class="w-6 h-6" />
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Refer Friends, Earn Discounts</h3>
-                <p class="text-gray-600">Share the vibe, earn the reward. When you invite your network, we give back. Making events accessible, affordable, and rewarding for everyone.</p>
-              </div>
-            </div>
-          </div>
-          <div class="relative">
-            <div class="absolute -inset-4 bg-gradient-to-tr from-primary/20 to-purple-500/20 blur-2xl rounded-full opacity-70"></div>
-            <img src="/images/squad_buy.png" alt="Squad Having Fun" class="relative rounded-3xl shadow-2xl w-full object-cover aspect-[4/3]" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div class="relative order-2 md:order-1">
-            <div class="absolute -inset-4 bg-gradient-to-tr from-blue-500/20 to-emerald-500/20 blur-2xl rounded-full opacity-70"></div>
-            <img src="/images/digital_wallet.png" alt="Digital Wallet Ticket" class="relative rounded-3xl shadow-2xl w-full object-cover aspect-[4/3]" />
-          </div>
-          <div class="space-y-8 order-1 md:order-2">
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                <Wallet class="w-6 h-6" />
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Your Digital Ticket Wallet</h3>
-                <p class="text-gray-600">Life is chaotic enough. Keep your upcoming passes and past memories organized in one secure place. Just pull up your QR code and walk in.</p>
-              </div>
-            </div>
-            
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                <Ticket class="w-6 h-6" />
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Secure Ticket Transfers</h3>
-                <p class="text-gray-600">Plans change, and that's okay. Safely pass your ticket to a friend without the fear of scams. We regenerate the code to keep the system clean and secure.</p>
-              </div>
-            </div>
-
-            <div class="flex gap-4">
-              <div class="flex-shrink-0 w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                <ImageIcon class="w-6 h-6" />
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Relive the Memories</h3>
-                <p class="text-gray-600">The impact lasts longer than the night. Access high-quality photo galleries directly from the event page to celebrate the moments that matter and fuel your next outing.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Events List -->
-    <main id="events" class="max-w-7xl mx-auto px-6 py-12 flex-grow w-full">
-      <div class="flex items-center justify-between mb-8">
-        <div>
-          <h2 class="font-display text-2xl font-bold text-gray-900">Upcoming Events</h2>
-          <p class="text-sm text-gray-500 mt-1">{{ filteredEvents.length }} event{{ filteredEvents.length !== 1 ? 's' : '' }} available</p>
-        </div>
-
-        <!-- Mobile Search -->
-        <div class="relative sm:hidden">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search..."
-            class="bg-white border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-        </div>
-      </div>
-
-      <!-- Loading State -->
-      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="n in 3" :key="n" class="bg-white border border-gray-200 rounded-xl overflow-hidden animate-pulse">
-          <div class="bg-gray-100 h-48"></div>
-          <div class="p-5">
-            <div class="h-4 bg-gray-100 rounded w-1/3 mb-3"></div>
-            <div class="h-5 bg-gray-100 rounded w-3/4 mb-2"></div>
-            <div class="h-4 bg-gray-100 rounded w-full mb-4"></div>
-            <div class="h-10 bg-gray-100 rounded"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div v-else-if="filteredEvents.length === 0" class="bg-white border border-gray-200 rounded-xl p-12 text-center max-w-md mx-auto my-12">
-        <div class="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-          <svg class="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-          </svg>
-        </div>
-        <h3 class="font-display text-lg font-bold text-gray-900 mb-2">No Events Yet</h3>
-        <p class="text-gray-500 text-sm">There are currently no published events for this organization. Check back soon!</p>
-      </div>
-
-      <!-- Event Cards Grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <NuxtLink
-          v-for="event in filteredEvents"
-          :key="event._id"
-          :href="getEventLink(event)"
-          class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-primary/40 transition-all duration-300 group flex flex-col"
-        >
-          <!-- Event Banner -->
-          <div class="relative h-48 overflow-hidden">
-            <img
-              :src="event.bannerUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80'"
-              :alt="event.title"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-
-            <div class="mt-4 flex flex-col space-y-2 text-sm text-gray-500 font-medium px-5">
-              <div class="flex items-center gap-2">
-                <Calendar class="w-4 h-4 text-primary" />
-                <span>{{ new Date(event.startDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) }} • {{ event.startTime }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <Globe v-if="event.isVirtual" class="w-4 h-4 text-primary" />
-                <MapPin v-else class="w-4 h-4 text-primary" />
-                <span>{{ event.isVirtual ? 'Virtual' : event.location }}</span>
-              </div>
-            </div>
-
-            <div v-if="event.tiers && event.tiers.length" class="absolute bottom-3 right-3 bg-primary/90 backdrop-blur-sm px-2.5 py-1 rounded-md text-xs font-bold text-white">
-              From {{ getMinPrice(event.tiers) }}
+            <div class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] font-semibold text-ink/65">
+              <span class="flex items-center gap-1.5"><ShieldCheck class="w-4 h-4 text-forest" /> Single-use QR</span>
+              <span class="flex items-center gap-1.5"><RefreshCcw class="w-4 h-4 text-forest" /> Face-value resale</span>
+              <span class="flex items-center gap-1.5"><Wallet class="w-4 h-4 text-forest" /> Private wallet</span>
             </div>
           </div>
 
-          <!-- Content -->
-          <div class="p-5 flex flex-col flex-grow">
-            <h3 class="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors mb-2 line-clamp-1">
-              {{ event.title }}
-            </h3>
-            <p class="text-gray-500 text-sm line-clamp-2 mb-5 flex-grow">
-              {{ event.description }}
-            </p>
-
-            <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-              <div class="flex items-center gap-2 text-xs text-gray-400">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                {{ event.tiers ? event.tiers.reduce((sum, t) => sum + (t.capacity - t.soldCount), 0) : 0 }} spots left
+          <!-- Featured event card -->
+          <div v-if="featured" class="relative animate-float-in" style="animation-delay: 90ms">
+            <NuxtLink
+              :to="eventLink(featured)"
+              class="group block relative rounded-[26px] overflow-hidden border border-line bg-white shadow-pop"
+            >
+              <div class="relative aspect-[4/3] overflow-hidden bg-ink/5">
+                <img
+                  v-if="featured.bannerUrl || featured.carouselImages?.[0]"
+                  :src="featured.bannerUrl || featured.carouselImages[0]"
+                  :alt="featured.title"
+                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                />
+                <div v-else class="w-full h-full bg-grid bg-paper flex items-center justify-center">
+                  <Ticket class="w-12 h-12 text-ink/20" />
+                </div>
+                <div class="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/10 to-transparent" />
+                <div class="absolute inset-x-0 bottom-0 p-5 sm:p-6 text-paper">
+                  <div class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-paper/80">
+                    <CalendarDays class="w-3.5 h-3.5" />
+                    {{ formatDate(featured.startDate, { weekday: 'short', day: 'numeric', month: 'short' }) }}
+                    <span class="w-1 h-1 rounded-full bg-paper/40" />
+                    {{ formatTime(featured.startDate) }}
+                  </div>
+                  <h2 class="font-display text-2xl sm:text-3xl font-semibold leading-tight mt-2 line-clamp-2">
+                    {{ featured.title }}
+                  </h2>
+                  <div class="mt-3 flex items-center justify-between gap-3">
+                    <span class="text-[13px] text-paper/80 flex items-center gap-1.5 min-w-0">
+                      <MapPin class="w-3.5 h-3.5 shrink-0" />
+                      <span class="truncate">{{ featured.isVirtual ? 'Online' : featured.location }}</span>
+                    </span>
+                    <span class="chip-lime !text-[10px]">{{ fromPrice(featured) }}</span>
+                  </div>
+                </div>
               </div>
+            </NuxtLink>
 
-              <span class="inline-flex items-center gap-1.5 text-primary text-sm font-semibold group-hover:gap-2.5 transition-all">
-                Get Tickets
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            <div class="absolute -left-3 -bottom-4 sm:-left-5 sm:-bottom-5 bg-white border border-line rounded-2xl shadow-lift px-4 py-3 flex items-center gap-3 max-w-[240px]">
+              <span class="w-9 h-9 rounded-xl bg-lime flex items-center justify-center shrink-0">
+                <ScanLine class="w-4 h-4 text-ink" />
               </span>
+              <div class="min-w-0">
+                <p class="text-[11px] font-bold uppercase tracking-[0.1em] text-muted">Gate verified</p>
+                <p class="text-[13px] font-semibold text-ink leading-tight">
+                  {{ featured.remaining ?? 0 }} seats left
+                </p>
+              </div>
             </div>
           </div>
-        </NuxtLink>
+        </div>
       </div>
+    </section>
 
-      <!-- Pagination Controls for Public App -->
-      <div v-if="totalPages > 1" class="max-w-7xl mx-auto px-6 mt-12 flex justify-center items-center gap-4">
-        <button @click="changePage(page - 1)" :disabled="page <= 1" class="px-5 py-2 border border-gray-200 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition">Previous</button>
-        <span class="text-sm font-semibold text-gray-500">Page {{ page }} of {{ totalPages }}</span>
-        <button @click="changePage(page + 1)" :disabled="page >= totalPages" class="px-5 py-2 border border-gray-200 rounded-xl font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition">Next</button>
-      </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 py-8 px-6 mt-auto">
-      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-            <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-            </svg>
-          </div>
-          <span class="text-sm text-gray-500">© 2026 Ticketr. All rights reserved.</span>
-        </div>
-        <div class="flex items-center gap-6 text-sm text-gray-500">
-          <span class="hover:text-gray-900 transition cursor-pointer">Privacy</span>
-          <span class="hover:text-gray-900 transition cursor-pointer">Terms</span>
-          <span class="hover:text-gray-900 transition cursor-pointer">Support</span>
-        </div>
-      </div>
-    </footer>
-    
-    <!-- Live Social Proof Toast -->
-    <Transition
-      enter-active-class="transition duration-500 ease-out"
-      enter-from-class="transform translate-y-10 opacity-0 sm:translate-y-0 sm:translate-x-10"
-      enter-to-class="transform translate-y-0 opacity-100 sm:translate-x-0"
-      leave-active-class="transition duration-400 ease-in"
-      leave-from-class="transform translate-y-0 opacity-100 sm:translate-x-0"
-      leave-to-class="transform translate-y-10 opacity-0 sm:translate-y-0 sm:translate-x-10"
-    >
-      <div v-if="activeToast" class="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[100] flex items-center gap-3 bg-white border border-gray-100 p-3 rounded-2xl shadow-xl max-w-sm">
-        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 text-emerald-600">
-          <Ticket class="w-5 h-5" />
-        </div>
+    <!-- ============================= EVENTS ============================= -->
+    <section id="events" class="shell py-12 sm:py-16 scroll-mt-24">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-7">
         <div>
-          <p class="text-sm text-gray-900 leading-snug">
-            <span class="font-bold">{{ activeToast.name }}</span> from <span class="font-bold text-primary">{{ activeToast.campus }}</span> just bought
-            <span class="font-semibold">{{ activeToast.qty }}x {{ activeToast.tier }}</span> tickets!
+          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">Now on sale</p>
+          <h2 class="font-display text-3xl sm:text-4xl font-semibold text-ink mt-1.5">
+            {{ tenant ? 'Upcoming at ' + tenant.name : 'Upcoming events' }}
+          </h2>
+          <p class="text-sm text-muted mt-2">
+            {{ resultLabel }}
           </p>
-          <p class="text-xs text-gray-400 mt-0.5">{{ activeToast.time }} ago</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            v-for="tag in visibleTags"
+            :key="tag"
+            type="button"
+            class="chip transition"
+            :class="activeTag === tag ? '!bg-ink !text-paper !border-ink' : 'hover:!border-ink/30'"
+            @click="toggleTag(tag)"
+          >
+            {{ tag }}
+          </button>
+          <button
+            type="button"
+            class="chip transition"
+            :class="includePast ? '!bg-ink !text-paper !border-ink' : 'hover:!border-ink/30'"
+            @click="includePast = !includePast"
+          >
+            Include past
+          </button>
         </div>
       </div>
-    </Transition>
+
+      <div v-if="pending">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div v-for="n in 6" :key="n" class="surface overflow-hidden">
+            <div class="skeleton aspect-[16/10] !rounded-none" />
+            <div class="p-5 space-y-3">
+              <div class="skeleton h-3 w-1/3" />
+              <div class="skeleton h-5 w-4/5" />
+              <div class="skeleton h-3 w-2/3" />
+              <div class="skeleton h-10 w-full !rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="error" class="surface p-8 sm:p-12 text-center max-w-lg mx-auto">
+        <span class="w-12 h-12 rounded-2xl bg-coral/10 text-coral flex items-center justify-center mx-auto mb-4">
+          <WifiOff class="w-6 h-6" />
+        </span>
+        <h3 class="font-display text-xl font-semibold text-ink">We couldn’t load events</h3>
+        <p class="text-sm text-muted mt-2">{{ errorMessage(error?.value ?? error) }}</p>
+        <button class="btn-primary btn-sm mt-5" type="button" @click="refresh()">Try again</button>
+      </div>
+
+      <UiEmpty
+        v-else-if="!events.length"
+        :title="searchQuery ? 'No events match that search' : 'No events on sale yet'"
+        :message="searchQuery ? 'Try a different keyword or clear your filters.' : 'New events will appear here as soon as organizers publish them.'"
+      >
+        <template #icon><CalendarX class="w-6 h-6" /></template>
+        <template #action>
+          <button v-if="searchQuery || activeTag" class="btn-secondary btn-sm" type="button" @click="clearFilters">
+            Clear filters
+          </button>
+        </template>
+      </UiEmpty>
+
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <EventCard v-for="event in events" :key="event._id" :event="event" :tenant-slug="tenantSlug" />
+      </div>
+
+      <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 mt-10">
+        <button class="btn-secondary btn-sm" :disabled="page <= 1" type="button" @click="changePage(page - 1)">
+          <ArrowLeft class="w-4 h-4" /> Previous
+        </button>
+        <span class="px-3 text-[13px] font-semibold text-muted">Page {{ page }} of {{ totalPages }}</span>
+        <button class="btn-secondary btn-sm" :disabled="page >= totalPages" type="button" @click="changePage(page + 1)">
+          Next <ArrowRight class="w-4 h-4" />
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================= TRUST ============================= -->
+    <section id="trust" class="border-y border-line bg-white scroll-mt-24">
+      <div class="shell py-14 sm:py-20">
+        <div class="max-w-2xl">
+          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">The problem we fix</p>
+          <h2 class="font-display text-3xl sm:text-4xl font-semibold text-ink mt-2">
+            Ticketing leaks trust at four points. We close all four.
+          </h2>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-9">
+          <article v-for="(pillar, i) in pillars" :key="pillar.title" class="surface p-5 sm:p-6 flex flex-col">
+            <div class="flex items-center justify-between">
+              <span class="w-10 h-10 rounded-xl bg-paper border border-line flex items-center justify-center text-forest">
+                <component :is="pillar.icon" class="w-5 h-5" />
+              </span>
+              <span class="font-display text-3xl font-semibold text-line-strong">0{{ i + 1 }}</span>
+            </div>
+            <h3 class="font-display text-lg font-semibold text-ink mt-4">{{ pillar.title }}</h3>
+            <p class="text-[13.5px] leading-relaxed text-muted mt-2">{{ pillar.body }}</p>
+          </article>
+        </div>
+
+        <div class="mt-5 surface overflow-hidden">
+          <div class="grid sm:grid-cols-[1fr_auto_1fr_auto_1fr] items-stretch">
+            <div v-for="(step, i) in steps" :key="step.title" class="p-5 sm:p-6 relative">
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Step {{ i + 1 }}</p>
+              <h4 class="font-display text-base font-semibold text-ink mt-1">{{ step.title }}</h4>
+              <p class="text-[13px] text-muted mt-1.5 leading-relaxed">{{ step.body }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= HOW / PRICING ============================= -->
+    <section id="how-it-works" class="shell py-14 sm:py-20 scroll-mt-24">
+      <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-start">
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted">For organizers</p>
+          <h2 class="font-display text-3xl sm:text-4xl font-semibold text-ink mt-2 leading-tight">
+            Sell out the room.<br />Keep the record straight.
+          </h2>
+          <p class="text-[15px] text-muted mt-4 max-w-md leading-relaxed">
+            Live sales, honest inventory, an approval queue for bank transfers, and a gate scanner that refuses duplicates. Your revenue and your attendees, reconciled in one place.
+          </p>
+
+          <ul class="mt-6 space-y-3">
+            <li v-for="item in organizerPoints" :key="item" class="flex items-start gap-3">
+              <span class="w-5 h-5 rounded-full bg-lime flex items-center justify-center shrink-0 mt-0.5">
+                <Check class="w-3 h-3 text-ink" />
+              </span>
+              <span class="text-sm text-ink/80">{{ item }}</span>
+            </li>
+          </ul>
+
+          <div class="flex flex-wrap gap-2.5 mt-7">
+            <NuxtLink :to="`${adminUrl}/signup`" class="btn-primary">
+              Start selling <ArrowUpRight class="w-4 h-4" />
+            </NuxtLink>
+            <NuxtLink :to="adminUrl" class="btn-secondary">Open organizer console</NuxtLink>
+          </div>
+        </div>
+
+        <!-- Console preview -->
+        <div id="pricing" class="surface-ink p-4 sm:p-6 relative overflow-hidden scroll-mt-24">
+          <div class="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-lime/20 blur-[80px]" />
+          <div class="relative">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+              <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-lime flex items-center justify-center">
+                  <Ticket class="w-4 h-4 text-ink" />
+                </span>
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.16em] text-paper/50 font-bold">Live event pulse</p>
+                  <p class="text-sm font-semibold text-paper">Dinner & Awards Night</p>
+                </div>
+              </div>
+              <span class="chip-lime !text-[10px]">Selling now</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 mt-4">
+              <div class="rounded-xl bg-white/[0.06] border border-white/10 p-3">
+                <p class="text-[9px] uppercase tracking-[0.14em] text-paper/50 font-bold">Gross</p>
+                <p class="font-display text-lg font-semibold text-paper mt-1">₦4.82m</p>
+              </div>
+              <div class="rounded-xl bg-white/[0.06] border border-white/10 p-3">
+                <p class="text-[9px] uppercase tracking-[0.14em] text-paper/50 font-bold">Sold</p>
+                <p class="font-display text-lg font-semibold text-paper mt-1">612</p>
+              </div>
+              <div class="rounded-xl bg-white/[0.06] border border-white/10 p-3">
+                <p class="text-[9px] uppercase tracking-[0.14em] text-paper/50 font-bold">Checked in</p>
+                <p class="font-display text-lg font-semibold text-paper mt-1">78%</p>
+              </div>
+            </div>
+
+            <div class="mt-4 rounded-xl bg-white/[0.06] border border-white/10 p-4">
+              <div class="flex items-center justify-between text-[10px] uppercase tracking-[0.14em] text-paper/50 font-bold">
+                <span>Sell-through</span><span>88%</span>
+              </div>
+              <div class="mt-2 h-2 rounded-full bg-white/10 overflow-hidden">
+                <div class="h-full w-[88%] rounded-full bg-lime" />
+              </div>
+              <div class="grid grid-cols-2 gap-3 mt-4 text-[12px]">
+                <div class="flex items-center justify-between"><span class="text-paper/60">VVIP</span><span class="text-paper font-semibold">120/120</span></div>
+                <div class="flex items-center justify-between"><span class="text-paper/60">VIP</span><span class="text-paper font-semibold">340/400</span></div>
+                <div class="flex items-center justify-between"><span class="text-paper/60">Regular</span><span class="text-paper font-semibold">152/200</span></div>
+                <div class="flex items-center justify-between"><span class="text-paper/60">Tables</span><span class="text-paper font-semibold">18/24</span></div>
+              </div>
+            </div>
+
+            <div class="mt-4 flex items-center gap-2 text-[11px] text-paper/60">
+              <ShieldCheck class="w-4 h-4 text-lime" />
+              <span>Inventory reconciled · 0 double scans · 0 orphaned payments</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= CTA ============================= -->
+    <section class="shell pb-16 sm:pb-24">
+      <div class="relative overflow-hidden rounded-[26px] bg-lime px-6 py-10 sm:px-12 sm:py-14">
+        <div class="absolute inset-0 bg-grid opacity-40" />
+        <div class="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div>
+            <h2 class="font-display text-3xl sm:text-4xl font-semibold text-ink leading-tight max-w-lg">
+              Bring your next event to a platform that respects the ticket.
+            </h2>
+            <p class="text-sm text-ink/70 mt-3 max-w-md">
+              Set up in minutes. Transparent fees. Live reconciliation. No spreadsheet archaeology after the gate closes.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2.5">
+            <NuxtLink :to="`${adminUrl}/signup`" class="btn-primary">Create your event</NuxtLink>
+            <NuxtLink to="/my-tickets" class="btn-secondary !bg-white/60">Find my tickets</NuxtLink>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
-<script setup>
-definePageMeta({ layout: 'default' });
+<script setup lang="ts">
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  CalendarX,
+  Check,
+  MapPin,
+  RefreshCcw,
+  ScanLine,
+  Search,
+  ShieldCheck,
+  Ticket,
+  Wallet,
+  WifiOff,
+  LockKeyhole,
+  ReceiptText,
+  Users,
+} from 'lucide-vue-next';
 
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { Globe, MapPin, Calendar, Users, CreditCard, Wallet, Share2, Ticket, Image as ImageIcon, Sparkles } from 'lucide-vue-next';
+definePageMeta({ layout: 'default' });
 
 const config = useRuntimeConfig();
 const route = useRoute();
+const router = useRouter();
 const reqUrl = useRequestURL();
 
-const resolveSubdomain = () => {
-  if (route.query.tenant) return route.query.tenant;
+const adminUrl = computed(() => {
+  const configured = String(config.public.adminUrl || '');
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    if (isLocal && !configured.includes(host)) return '/admin';
+  }
+  return configured || '/admin';
+});
+
+const tenantSlug = computed(() => {
+  if (typeof route.query.tenant === 'string' && route.query.tenant) return route.query.tenant;
   const host = reqUrl.hostname;
-  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+  if (host && host !== 'localhost' && host !== '127.0.0.1' && !/^\d+\./.test(host)) {
     const parts = host.split('.');
-    if (parts.length > 2 && parts[0] !== 'www') {
+    if (parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'admin' && !parts[0].startsWith('admin-')) {
       return parts[0];
     }
   }
-  return null; // Return null for the main ticketr.org domain
-};
+  return null;
+});
 
-const activeSlug = ref(resolveSubdomain());
 const page = ref(1);
-const limit = ref(12);
+const limit = 12;
+const activeTag = ref('');
+const includePast = ref(false);
+const searchQuery = ref(typeof route.query.q === 'string' ? route.query.q : '');
+const searchInput = ref(searchQuery.value);
 
-const { data, pending: loading, refresh } = await useFetch(() => {
-  const query = new URLSearchParams({ page: page.value, limit: limit.value }).toString();
-  return activeSlug.value 
-    ? `${config.public.apiBase}/events/tenant/${activeSlug.value}?${query}` 
-    : `${config.public.apiBase}/events/public/all?${query}`;
+const apiUrl = computed(() => {
+  const params = new URLSearchParams({
+    page: String(page.value),
+    limit: String(limit),
+    includePast: String(includePast.value),
+  });
+  if (searchQuery.value) params.set('search', searchQuery.value);
+  if (activeTag.value) params.set('tag', activeTag.value);
+
+  return tenantSlug.value
+    ? `${config.public.apiBase}/events/tenant/${tenantSlug.value}?${params.toString()}`
+    : `${config.public.apiBase}/events/public/all?${params.toString()}`;
 });
 
-const getEventLink = (event) => {
-  if (activeSlug.value) {
-    return `/event/${event.slug}?tenant=${activeSlug.value}`;
-  }
-  
-  const tenantSlug = event.tenant?.slug || 'thebig5';
-  const host = reqUrl.hostname;
-  
-  if (host === 'localhost' || host === '127.0.0.1') {
-     return `/event/${event.slug}?tenant=${tenantSlug}`;
-  }
-  
-  return `https://${tenantSlug}.ticketr.org/event/${event.slug}`;
-};
-
-const tenantInfo = computed(() => data.value?.tenant || null);
-const events = computed(() => {
-  if (data.value?.events?.data) {
-    return data.value.events.data;
-  }
-  return data.value?.events || [];
+const { data, pending, error, refresh } = await useFetch<any>(apiUrl, {
+  key: `storefront-${tenantSlug.value || 'global'}`,
+  watch: [page, activeTag, includePast, searchQuery],
 });
 
-const totalPages = computed(() => data.value?.events?.metadata?.lastPage || 1);
+const tenant = computed(() => data.value?.tenant || null);
+const events = computed<any[]>(() => data.value?.events?.data || []);
+const metadata = computed(() => data.value?.events?.metadata || {});
+const totalPages = computed(() => Math.max(1, metadata.value.lastPage || 1));
+const featured = computed(() => events.value.find((event: any) => event.bannerUrl || event.carouselImages?.length) || events.value[0] || null);
 
-function changePage(newPage) {
-  if (newPage < 1 || newPage > totalPages.value) return;
-  page.value = newPage;
-  refresh();
-  window.scrollTo({ top: document.getElementById('events')?.offsetTop || 0, behavior: 'smooth' });
+const tags = computed<string[]>(() => {
+  const apiTags = metadata.value.tags || [];
+  if (apiTags.length) return apiTags.slice(0, 7);
+  const fromEvents = new Set<string>();
+  events.value.forEach((event: any) => (event.tags || []).forEach((tag: string) => fromEvents.add(tag)));
+  return Array.from(fromEvents).slice(0, 7);
+});
+
+const visibleTags = computed(() => tags.value);
+
+const resultLabel = computed(() => {
+  const total = metadata.value.total ?? events.value.length;
+  if (searchQuery.value) return `${total} result${total === 1 ? '' : 's'} for “${searchQuery.value}”`;
+  if (activeTag.value) return `${total} event${total === 1 ? '' : 's'} tagged ${activeTag.value}`;
+  return `${total} event${total === 1 ? '' : 's'} on sale${tenant.value ? ` at ${tenant.value.name}` : ''}`;
+});
+
+function eventLink(event: any) {
+  const slug = tenantSlug.value || event.tenant?.slug || event.organizer?.slug;
+  return slug ? `/event/${event.slug}?tenant=${slug}` : `/event/${event.slug}`;
 }
 
-const searchQuery = ref('');
+function fromPrice(event: any) {
+  const tiers = event.tiers || [];
+  if (!tiers.length) return 'See prices';
+  const lowest = Math.min(...tiers.map((t: any) => Number(t.price) || 0));
+  return lowest === 0 ? 'Free entry' : `From ${formatMoney(lowest)}`;
+}
 
-useSeoMeta({
-  title: computed(() => tenantInfo.value?.name ? `${tenantInfo.value.name} Tickets | Ticketr` : 'Ticketr - Modern Event Ticketing'),
-  ogTitle: computed(() => tenantInfo.value?.name ? `${tenantInfo.value.name} Tickets` : 'Ticketr'),
-  description: computed(() => tenantInfo.value?.name ? `Official ticketing portal for ${tenantInfo.value.name}. Book your event tickets securely.` : 'Book event tickets seamlessly.'),
-  ogDescription: computed(() => tenantInfo.value?.name ? `Official ticketing portal for ${tenantInfo.value.name}.` : 'Book event tickets seamlessly.'),
-  ogImage: computed(() => tenantInfo.value?.logoUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'),
-  twitterCard: 'summary_large_image',
-});
+function applySearch() {
+  searchQuery.value = searchInput.value.trim();
+  page.value = 1;
+}
 
-useHead({
-  link: [
-    {
-      rel: 'icon',
-      type: 'image/x-icon',
-      href: computed(() => tenantInfo.value?.logoUrl || '/favicon.ico')
+function toggleTag(tag: string) {
+  activeTag.value = activeTag.value === tag ? '' : tag;
+  page.value = 1;
+}
+
+function clearFilters() {
+  activeTag.value = '';
+  searchQuery.value = '';
+  searchInput.value = '';
+  includePast.value = false;
+  page.value = 1;
+}
+
+function changePage(next: number) {
+  if (next < 1 || next > totalPages.value) return;
+  page.value = next;
+  if (typeof document !== 'undefined') {
+    document.getElementById('events')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+watch(
+  () => route.query.q,
+  (q) => {
+    if (typeof q === 'string' && q !== searchQuery.value) {
+      searchQuery.value = q;
+      searchInput.value = q;
+      page.value = 1;
     }
-  ]
-});
+  },
+);
 
-const defaultSlides = [
+const pillars = [
   {
-    id: 1,
-    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Large event crowd with stage lighting',
-    heading: 'We Understand the Chaos of Events',
-    subheading: 'Our system is built to take away the stress. From gate scanning to instant payouts, we make managing your event easy so you can focus on making an impact.',
+    icon: ScanLine,
+    title: 'Counterfeit entry',
+    body: 'Every pass carries a unique server-signed QR. Check-in is atomic, so a screenshot can never be admitted twice.',
   },
   {
-    id: 2,
-    image: 'https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Conference and gala dinner setting',
-    heading: 'Stop Being an Introvert',
-    subheading: 'Every penny counts. With installment plans and referral rewards, stepping out to attend that big campus event has never been easier or more affordable.',
+    icon: RefreshCcw,
+    title: 'Scalped resale',
+    body: 'Transfers rotate the QR and invalidate the old one. Resale is listed in-platform and capped at face value.',
   },
   {
-    id: 3,
-    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Tech conference with audience',
-    heading: 'Grow Your Campus Community',
-    subheading: 'More than a ticketing platform. We help you build operational systems, recover lost sales, and make sure your events are seen by everyone.',
+    icon: ReceiptText,
+    title: 'Hidden fees',
+    body: 'The price you see is the price you pay. Platform fees are itemised before payment — never bolted on at the gateway.',
   },
   {
-    id: 4,
-    image: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Concert with lights and crowd',
-    heading: 'Your Campus Life, Managed',
-    subheading: 'All your tickets, memories, and photos in one place. We manage the logistics behind the scenes so you can just show up, connect, and have fun.',
+    icon: LockKeyhole,
+    title: 'Leaked tickets',
+    body: 'Tickets live behind a private wallet link sent only to the buyer. Public email lookups reveal nothing.',
   },
 ];
 
-const heroSlides = ref([...defaultSlides]);
+const steps = [
+  { title: 'Pick your seat', body: 'Live availability from issued tickets and active holds.' },
+  { title: 'Pay transparently', body: 'Card or verified bank transfer, with an itemised total.' },
+  { title: 'Scan once', body: 'One QR, one entry. Duplicates are refused at the gate.' },
+];
 
-const currentSlide = ref(0);
-let slideInterval = null;
+const organizerPoints = [
+  'Live inventory that accounts for holds, couples and tables',
+  'Manual-transfer approvals with duplicate bank-reference checks',
+  'A scanner that works offline and syncs when the network returns',
+  'Revenue, fees, payouts and attendance in one quiet dashboard',
+];
 
-function nextSlide() {
-  currentSlide.value = (currentSlide.value + 1) % heroSlides.value.length;
-}
-
-function prevSlide() {
-  currentSlide.value = (currentSlide.value - 1 + heroSlides.value.length) % heroSlides.value.length;
-}
-
-function goToSlide(i) {
-  currentSlide.value = i;
-  resetAutoSlide();
-}
-
-function resetAutoSlide() {
-  if (typeof window === 'undefined') return;
-  if (slideInterval) clearInterval(slideInterval);
-  slideInterval = setInterval(nextSlide, 5000);
-}
-
-import { watchEffect } from 'vue';
-
-watchEffect(() => {
-  if (activeSlug.value && events.value && events.value.length > 0) {
-    let newSlides = [];
-    events.value.forEach(ev => {
-      const subheading = ev.description ? (ev.description.length > 100 ? ev.description.substring(0, 100) + '...' : ev.description) : '';
-      if (ev.carouselImages && ev.carouselImages.length > 0) {
-         ev.carouselImages.forEach((img, idx) => {
-            newSlides.push({
-               id: `${ev._id}-carousel-${idx}`,
-               image: img,
-               alt: ev.title,
-               heading: ev.title,
-               subheading: subheading
-            });
-         });
-      } else if (ev.bannerUrl) {
-         newSlides.push({
-            id: `${ev._id}-banner`,
-            image: ev.bannerUrl,
-            alt: ev.title,
-            heading: ev.title,
-            subheading: subheading
-         });
-      }
-    });
-    
-    if (newSlides.length > 0) {
-       heroSlides.value = newSlides;
-    } else {
-       heroSlides.value = [...defaultSlides];
-    }
-  } else {
-    heroSlides.value = [...defaultSlides];
-  }
-  
-  // reset slide index and timer
-  currentSlide.value = 0;
-  resetAutoSlide();
+useSeoMeta({
+  title: computed(() => (tenant.value ? `${tenant.value.name} tickets | Ticketr` : 'Ticketr — live events, honestly ticketed')),
+  description: computed(() =>
+    tenant.value
+      ? `Official tickets for ${tenant.value.name}. Verified QR entry, transparent pricing and face-value resale.`
+      : 'Discover live events with verified single-use tickets, transparent fees and face-value resale.',
+  ),
+  ogTitle: computed(() => (tenant.value ? `${tenant.value.name} tickets` : 'Ticketr — live events, honestly ticketed')),
+  ogDescription: 'Verified QR entry, transparent pricing and face-value resale.',
+  ogImage: computed(() => featured.value?.bannerUrl || tenant.value?.logoUrl || undefined),
+  twitterCard: 'summary_large_image',
 });
-
-onMounted(() => {
-  resetAutoSlide();
-});
-
-onBeforeUnmount(() => {
-  if (slideInterval) clearInterval(slideInterval);
-});
-
-const filteredEvents = computed(() => {
-  if (!searchQuery.value) return events.value;
-  return events.value.filter(e =>
-    e.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    e.description.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
-});
-
-// Social Proof Logic
-const activeToast = ref(null);
-const campuses = ['UNILAG', 'YABATECH', 'College of Medicine (CMUL)', 'Medilag', 'Akoka'];
-const names = ['David', 'Sarah', 'Tobi', 'Amaka', 'Femi', 'Nneka', 'Daniel', 'Zainab', 'Emmanuel', 'Chika'];
-const tiers = ['VIP', 'Regular', 'VVIP', 'Early Bird', 'Table for 4'];
-
-function showRandomToast() {
-  if (typeof window === 'undefined') return;
-  
-  const randomName = names[Math.floor(Math.random() * names.length)];
-  const randomCampus = campuses[Math.floor(Math.random() * campuses.length)];
-  const randomTier = tiers[Math.floor(Math.random() * tiers.length)];
-  const randomQty = Math.floor(Math.random() * 4) + 1;
-  const randomTime = Math.floor(Math.random() * 10) + 1 + ' mins';
-  
-  activeToast.value = {
-    name: randomName,
-    campus: randomCampus,
-    tier: randomTier,
-    qty: randomQty,
-    time: randomTime
-  };
-  
-  setTimeout(() => {
-    activeToast.value = null;
-  }, 5000); // Hide after 5 seconds
-}
-
-let toastInterval = null;
-
-onMounted(() => {
-  resetAutoSlide();
-  
-  // Show first toast after 3 seconds, then randomly every 12-25 seconds
-  if (typeof window !== 'undefined' && !tenantInfo.value) {
-    setTimeout(() => {
-      showRandomToast();
-      toastInterval = setInterval(() => {
-        showRandomToast();
-      }, Math.floor(Math.random() * 13000) + 12000);
-    }, 3000);
-  }
-});
-
-onBeforeUnmount(() => {
-  if (slideInterval) clearInterval(slideInterval);
-  if (toastInterval) clearInterval(toastInterval);
-});
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function getMinPrice(tiers) {
-  if (!tiers || tiers.length === 0) return 'Free';
-  const prices = tiers.map(t => t.price);
-  const min = Math.min(...prices);
-  return min === 0 ? 'Free' : `₦${min.toLocaleString()}`;
-}
 </script>
-
-<style scoped>
-.hero-fade-enter-active,
-.hero-fade-leave-active {
-  transition: opacity 0.8s ease;
-}
-.hero-fade-enter-from,
-.hero-fade-leave-to {
-  opacity: 0;
-}
-</style>

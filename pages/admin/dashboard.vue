@@ -1,251 +1,379 @@
 <template>
-  <div >
-    <!-- Navbar -->
-    
-
-    <!-- Content Area -->
-    <main v-if="loading" class="w-full max-w-7xl mx-auto space-y-8">
-      <TableLoadingState message="Loading dashboard..." />
-    </main>
-
-    <main v-else class="w-full max-w-7xl mx-auto space-y-8">
-      <!-- KPI Cards Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-        <div class="glass-card rounded-2xl p-6 border-primary/20">
-          <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">Total Revenue</span>
-          <div class="text-3xl font-extrabold text-gray-900">
-            ₦{{ (analytics?.totalRevenue || 0).toLocaleString() }}
-          </div>
-          <span class="text-[11px] text-emerald-400 font-medium block mt-2">↑ 100% Verified via Paystack</span>
-        </div>
-
-        <div class="glass-card rounded-2xl p-6 border-primary/20">
-          <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">Tickets Sold</span>
-          <div class="text-3xl font-extrabold text-gray-900">
-            {{ analytics?.totalTicketsSold || 0 }}
-          </div>
-          <span class="text-[11px] text-primary font-medium block mt-2">Across all published events</span>
-        </div>
-
-        <div class="glass-card rounded-2xl p-6 border-primary/20">
-          <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">Check-in Rate</span>
-          <div class="text-3xl font-extrabold text-gray-900">
-            {{ analytics?.checkInRate || 0 }}%
-          </div>
-          <span class="text-[11px] text-purple-400 font-medium block mt-2">{{ analytics?.checkedInTickets || 0 }} Checked In</span>
-        </div>
-
-        <div class="glass-card rounded-2xl p-6 border-primary/20">
-          <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1">Active Events</span>
-          <div class="text-3xl font-extrabold text-gray-900">
-            {{ events.length }}
-          </div>
-          <span class="text-[11px] text-gray-600 font-medium block mt-2">Published Events</span>
-        </div>
+  <div class="space-y-5">
+    <!-- Header -->
+    <section class="surface p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{{ todayLabel }}</p>
+        <h2 class="font-display text-2xl sm:text-3xl font-semibold text-ink mt-1">
+          {{ greeting }}, {{ firstName }}.
+        </h2>
+        <p class="text-[13px] text-muted mt-1">
+          <template v-if="pendingPayments.count">
+            {{ pendingPayments.count }} payment{{ pendingPayments.count === 1 ? '' : 's' }} waiting for review.
+          </template>
+          <template v-else-if="upcomingEvents.length">
+            Next up: {{ upcomingEvents[0].title }} — {{ countdownLabel(upcomingEvents[0].startDate) }}.
+          </template>
+          <template v-else>
+            Publish an event to start selling tickets.
+          </template>
+        </p>
       </div>
-
-      <!-- Analytics Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" v-if="analytics">
-        <div class="glass-card rounded-2xl p-6 border-primary/20">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">Revenue Trend (30 Days)</h3>
-          <div class="h-64 relative">
-            <Line v-if="analytics?.salesOverTime?.length" :data="revenueChartData" :options="chartOptions" />
-            <div v-else class="h-full flex items-center justify-center text-sm text-gray-400">Not enough sales data yet</div>
-          </div>
-        </div>
-        <div class="glass-card rounded-2xl p-6 border-primary/20">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">Top Events by Ticket Sales</h3>
-          <div class="h-64 relative">
-            <Bar v-if="analytics?.ticketsByEvent?.length" :data="ticketsChartData" :options="chartOptions" />
-            <div v-else class="h-full flex items-center justify-center text-sm text-gray-400">Not enough ticket data yet</div>
-          </div>
-        </div>
+      <div class="flex flex-wrap gap-2">
+        <NuxtLink to="/admin/events/create" class="btn-primary btn-sm">
+          <Plus class="w-4 h-4" /> Create event
+        </NuxtLink>
+        <NuxtLink to="/admin/orders?tab=review" class="btn-secondary btn-sm">
+          <ClipboardCheck class="w-4 h-4" /> Review queue
+          <span v-if="pendingPayments.count" class="ml-1 rounded-full bg-coral text-white text-[10px] px-1.5 py-0.5 font-bold">
+            {{ pendingPayments.count }}
+          </span>
+        </NuxtLink>
       </div>
+    </section>
 
-      <!-- Events List Table / Cards -->
-      <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
-          <h2 class="text-xl font-bold text-gray-900">My Events</h2>
-          <NuxtLink to="/admin/events/create" class="text-xs font-semibold text-primary hover:text-primary">
-            + Add New Event
+    <!-- Error -->
+    <div v-if="error" class="surface p-4 border-coral/30 bg-coral/5 flex items-start gap-3">
+      <AlertTriangle class="w-5 h-5 text-coral shrink-0 mt-0.5" />
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-ink">Dashboard could not fully load</p>
+        <p class="text-xs text-muted mt-0.5">{{ error }}</p>
+      </div>
+      <button class="btn-secondary btn-sm shrink-0 ml-auto" type="button" @click="load">Retry</button>
+    </div>
+
+    <!-- KPIs -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <template v-if="loading">
+        <div v-for="n in 4" :key="n" class="stat">
+          <div class="skeleton h-3 w-20" />
+          <div class="skeleton h-8 w-28 mt-2" />
+          <div class="skeleton h-3 w-24 mt-2" />
+        </div>
+      </template>
+      <template v-else>
+        <div class="stat">
+          <p class="stat-label">Gross revenue</p>
+          <p class="stat-value">{{ formatCompactMoney(analytics?.totalRevenue) }}</p>
+          <p class="text-[11px] text-muted">{{ formatMoney(analytics?.totalRevenue) }} collected</p>
+          <p v-if="analytics?.refundedAmount" class="text-[10.5px] text-coral">{{ formatMoney(analytics.refundedAmount) }} refunded</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Net payout</p>
+          <p class="stat-value">{{ formatCompactMoney(analytics?.netPayout) }}</p>
+          <p class="text-[11px] text-muted">After {{ formatMoney(analytics?.platformFees) }} platform fees</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Tickets issued</p>
+          <p class="stat-value">{{ analytics?.totalTicketsSold || 0 }}</p>
+          <p class="text-[11px] text-muted">{{ analytics?.checkedInTickets || 0 }} checked in · {{ analytics?.checkInRate || 0 }}%</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Needs review</p>
+          <p class="stat-value" :class="pendingPayments.count ? '!text-coral' : ''">{{ pendingPayments.count || 0 }}</p>
+          <p class="text-[11px] text-muted">{{ formatMoney(pendingPayments.amount) }} pending</p>
+        </div>
+      </template>
+    </section>
+
+    <div class="grid lg:grid-cols-[1.6fr_1fr] gap-4 sm:gap-5">
+      <!-- Revenue chart -->
+      <section class="surface p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Last 30 days</p>
+            <h3 class="font-display text-xl font-semibold text-ink mt-0.5">Revenue trend</h3>
+          </div>
+          <div class="text-right">
+            <p class="font-display text-xl font-semibold text-ink">{{ formatCompactMoney(last30Revenue) }}</p>
+            <p class="text-[10px] text-muted">{{ last30Orders }} paid order{{ last30Orders === 1 ? '' : 's' }}</p>
+          </div>
+        </div>
+
+        <div v-if="loading" class="skeleton h-48 mt-5" />
+        <div v-else-if="!salesSeries.length" class="h-48 mt-5 rounded-xl border border-dashed border-line flex flex-col items-center justify-center text-center px-4">
+          <TrendingUp class="w-6 h-6 text-muted/50" />
+          <p class="text-sm font-semibold text-ink mt-2">No paid orders in this window</p>
+          <p class="text-xs text-muted">Your revenue trend appears after the first sale.</p>
+        </div>
+        <div v-else class="mt-5">
+          <svg viewBox="0 0 640 180" class="w-full h-44" role="img" aria-label="Revenue over the last 30 days">
+            <defs>
+              <linearGradient id="revenue-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#11483A" stop-opacity="0.22" />
+                <stop offset="100%" stop-color="#11483A" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <line v-for="(tick, i) in 4" :key="i" x1="0" :y1="20 + i * 40" x2="640" :y2="20 + i * 40" stroke="#E4E4DA" stroke-dasharray="3 5" />
+            <path :d="areaPath" fill="url(#revenue-fill)" />
+            <path :d="linePath" fill="none" stroke="#11483A" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+            <circle
+              v-for="(point, index) in chartPoints"
+              :key="index"
+              :cx="point.x"
+              :cy="point.y"
+              r="3"
+              fill="#F6F5EF"
+              stroke="#11483A"
+              stroke-width="2"
+            >
+              <title>{{ formatDate(salesSeries[index]?.date) }} — {{ formatMoney(salesSeries[index]?.revenue) }}</title>
+            </circle>
+          </svg>
+          <div class="flex justify-between text-[10px] font-semibold text-muted mt-1">
+            <span>{{ formatDate(salesSeries[0]?.date, { day: 'numeric', month: 'short' }) }}</span>
+            <span>{{ formatDate(salesSeries[salesSeries.length - 1]?.date, { day: 'numeric', month: 'short' }) }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Action queue -->
+      <section class="surface p-5 sm:p-6 flex flex-col">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Action queue</p>
+            <h3 class="font-display text-xl font-semibold text-ink mt-0.5">Payments to verify</h3>
+          </div>
+          <NuxtLink to="/admin/orders?tab=review" class="text-[11px] font-semibold text-forest hover:underline">View all</NuxtLink>
+        </div>
+
+        <div v-if="loading" class="mt-4 space-y-2">
+          <div v-for="n in 3" :key="n" class="skeleton h-16" />
+        </div>
+        <div v-else-if="!reviewOrders.length" class="mt-4 flex-1 rounded-xl border border-dashed border-line flex flex-col items-center justify-center py-8 text-center">
+          <CheckCircle2 class="w-6 h-6 text-forest/60" />
+          <p class="text-sm font-semibold text-ink mt-2">Queue is clear</p>
+          <p class="text-xs text-muted px-4">No bank transfers are waiting for review.</p>
+        </div>
+        <div v-else class="mt-4 space-y-2">
+          <NuxtLink
+            v-for="order in reviewOrders"
+            :key="order._id"
+            to="/admin/orders?tab=review"
+            class="block rounded-xl border border-line p-3 hover:border-ink/25 transition"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-[13px] font-semibold text-ink truncate">{{ order.customerName }}</p>
+              <span class="text-[13px] font-bold text-ink shrink-0">{{ formatMoney(order.totalAmount) }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-2 mt-1">
+              <p class="text-[11px] text-muted truncate">{{ order.eventId?.title || 'Event' }}</p>
+              <span class="mono text-[10px] text-muted shrink-0">{{ relativeTime(order.createdAt) }}</span>
+            </div>
           </NuxtLink>
         </div>
 
-        <TableEmptyState v-if="events.length === 0" title="No Events Yet" message="No events created yet. Click '+ Add New Event' to publish your first ticketed event." />
-
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-left border-collapse whitespace-nowrap">
-            <thead class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase tracking-wider">
-              <tr>
-                <th class="px-6 py-4">Event Title</th>
-                <th class="px-6 py-4">Date</th>
-                <th class="px-6 py-4">Location</th>
-                <th class="px-6 py-4">Tickets Sold</th>
-                <th class="px-6 py-4">Status</th>
-                <th class="px-6 py-4 text-right">Roster</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 bg-white">
-              <tr v-for="ev in events" :key="ev._id" class="hover:bg-gray-50 transition-colors duration-150">
-                <td class="px-6 py-4 font-semibold text-gray-900">
-                  {{ ev.title }}
-                </td>
-                <td class="px-6 py-4 text-xs text-gray-600">
-                  {{ new Date(ev.startDate).toLocaleDateString() }}
-                </td>
-                <td class="px-6 py-4 text-xs text-gray-600">
-                  {{ ev.location }}
-                </td>
-                <td class="px-6 py-4 font-semibold text-primary">
-                  {{ ev.totalSold || 0 }} / {{ ev.totalCapacity || 0 }}
-                </td>
-                <td class="px-6 py-4">
-                  <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    {{ ev.status }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-right">
-                  <NuxtLink :to="`/admin/events/${ev._id}/attendees`" class="btn-secondary text-xs !py-1 !px-3 flex items-center gap-1 justify-end">
-                    Attendees <ClipboardList class="w-3 h-3" />
-                  </NuxtLink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="mt-4 pt-4 border-t border-line">
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="text-muted">Check-in rate</span>
+            <span class="font-semibold text-ink">{{ analytics?.checkInRate || 0 }}%</span>
+          </div>
+          <div class="mt-2 h-2 rounded-full bg-paper overflow-hidden">
+            <div class="h-full rounded-full bg-forest" :style="{ width: `${Math.min(100, analytics?.checkInRate || 0)}%` }" />
+          </div>
+          <div class="flex items-center justify-between text-[11px] mt-3">
+            <span class="text-muted">Sell-through</span>
+            <span class="font-semibold text-ink">{{ analytics?.sellThrough || 0 }}%</span>
+          </div>
+          <div class="mt-2 h-2 rounded-full bg-paper overflow-hidden">
+            <div class="h-full rounded-full bg-lime" :style="{ width: `${Math.min(100, analytics?.sellThrough || 0)}%` }" />
+          </div>
         </div>
-      </div>
-    </main>
+      </section>
+    </div>
+
+    <div class="grid lg:grid-cols-[1.5fr_1fr] gap-4 sm:gap-5">
+      <!-- Recent orders -->
+      <section class="surface overflow-hidden">
+        <div class="px-5 py-4 border-b border-line flex items-center justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Money in</p>
+            <h3 class="font-display text-xl font-semibold text-ink mt-0.5">Recent orders</h3>
+          </div>
+          <NuxtLink to="/admin/orders" class="btn-ghost btn-sm">All orders <ArrowRight class="w-3.5 h-3.5" /></NuxtLink>
+        </div>
+
+        <div v-if="loading" class="p-5 space-y-2">
+          <div v-for="n in 4" :key="n" class="skeleton h-12" />
+        </div>
+        <UiEmpty
+          v-else-if="!recentOrders.length"
+          title="No orders yet"
+          message="Paid and pending orders will show up here in real time."
+          class="!py-10"
+        >
+          <template #icon><ReceiptText class="w-6 h-6" /></template>
+        </UiEmpty>
+        <div v-else class="divide-y divide-line">
+          <div v-for="order in recentOrders" :key="order.id" class="px-5 py-3 flex items-center gap-3">
+            <span class="w-8 h-8 rounded-full bg-ink text-lime flex items-center justify-center text-[10px] font-bold shrink-0">
+              {{ initials(order.customerName) }}
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13px] font-semibold text-ink truncate">{{ order.customerName }}</p>
+              <p class="text-[11px] text-muted truncate">{{ order.event?.title || 'Event' }} · {{ relativeTime(order.createdAt) }}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-[13px] font-semibold text-ink">{{ formatMoney(order.totalAmount) }}</p>
+              <UiBadge :value="order.status" class="!text-[9px] !px-2 !py-0.5 mt-0.5" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Upcoming events -->
+      <section class="surface p-5 sm:p-6">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Pipeline</p>
+            <h3 class="font-display text-xl font-semibold text-ink mt-0.5">Upcoming events</h3>
+          </div>
+          <NuxtLink to="/admin/events" class="text-[11px] font-semibold text-forest hover:underline">Manage</NuxtLink>
+        </div>
+
+        <div v-if="loading" class="mt-4 space-y-2">
+          <div v-for="n in 3" :key="n" class="skeleton h-16" />
+        </div>
+        <UiEmpty
+          v-else-if="!upcomingEvents.length"
+          title="Nothing on the calendar"
+          message="Create an event and publish it to start selling."
+          class="!py-8"
+        >
+          <template #icon><CalendarDays class="w-6 h-6" /></template>
+          <template #action>
+            <NuxtLink to="/admin/events/create" class="btn-primary btn-sm">Create event</NuxtLink>
+          </template>
+        </UiEmpty>
+        <div v-else class="mt-4 space-y-2.5">
+          <NuxtLink
+            v-for="event in upcomingEvents"
+            :key="event._id"
+            :to="`/admin/events/${event._id}/edit`"
+            class="flex items-center gap-3 rounded-xl border border-line p-2.5 hover:border-ink/25 transition group"
+          >
+            <img v-if="event.bannerUrl" :src="event.bannerUrl" alt="" class="w-11 h-11 rounded-lg object-cover border border-line shrink-0" />
+            <span v-else class="w-11 h-11 rounded-lg bg-paper border border-line flex items-center justify-center shrink-0">
+              <Ticket class="w-4 h-4 text-muted" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13px] font-semibold text-ink truncate group-hover:text-forest transition">{{ event.title }}</p>
+              <p class="text-[11px] text-muted truncate">{{ formatDate(event.startDate, { day: 'numeric', month: 'short' }) }} · {{ event.location }}</p>
+            </div>
+            <ArrowUpRight class="w-4 h-4 text-muted shrink-0" />
+          </NuxtLink>
+        </div>
+      </section>
+    </div>
   </div>
+</template>
 
-    </template>
-<script setup>
-definePageMeta({ layout: 'admin' });
+<script setup lang="ts">
+import {
+  AlertTriangle,
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardCheck,
+  Plus,
+  ReceiptText,
+  Ticket,
+  TrendingUp,
+} from 'lucide-vue-next';
 
+definePageMeta({ layout: 'admin', middleware: [] });
 
-import { ref, onMounted, computed } from 'vue';
-import { Zap, Search, ClipboardList } from 'lucide-vue-next';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
-import { Line, Bar } from 'vue-chartjs';
+const { state, hydrate } = useAuth();
+const pendingBadge = useState<number>('pending-approvals', () => 0);
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
-
-const config = useRuntimeConfig();
-const user = ref(null);
 const loading = ref(true);
-const analytics = ref(null);
-const events = ref([]);
-const revenueChartData = computed(() => {
-  if (!analytics.value?.salesOverTime) return { labels: [], datasets: [] };
-  return {
-    labels: analytics.value.salesOverTime.map(d => new Date(d.date).toLocaleDateString()),
-    datasets: [{
-      label: 'Revenue (₦)',
-      data: analytics.value.salesOverTime.map(d => d.revenue),
-      borderColor: '#4f46e5',
-      backgroundColor: 'rgba(79, 70, 229, 0.15)',
-      borderWidth: 2,
-      pointBackgroundColor: '#ffffff',
-      pointBorderColor: '#4f46e5',
-      pointBorderWidth: 2,
-      pointRadius: 4,
-      pointHoverRadius: 6,
-      tension: 0.4,
-      fill: true
-    }]
-  };
+const error = ref('');
+const analytics = ref<any>(null);
+const eventsData = ref<any[]>([]);
+const reviewOrders = ref<any[]>([]);
+
+const todayLabel = computed(() =>
+  new Date().toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+);
+const firstName = computed(() => (state.user?.name || 'there').split(' ')[0]);
+const greeting = computed(() => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
 });
 
-const ticketsChartData = computed(() => {
-  if (!analytics.value?.ticketsByEvent) return { labels: [], datasets: [] };
-  return {
-    labels: analytics.value.ticketsByEvent.map(d => d.eventName),
-    datasets: [{
-      label: 'Tickets Sold',
-      data: analytics.value.ticketsByEvent.map(d => d.ticketsSold),
-      backgroundColor: 'rgba(16, 185, 129, 0.8)',
-      hoverBackgroundColor: 'rgba(16, 185, 129, 1)',
-      borderRadius: 6,
-      maxBarThickness: 40,
-    }]
-  };
+const pendingPayments = computed(() => analytics.value?.pendingPayments || { count: 0, amount: 0 });
+const recentOrders = computed(() => analytics.value?.recentOrders || []);
+const salesSeries = computed<any[]>(() => analytics.value?.salesOverTime || []);
+const upcomingEvents = computed<any[]>(() => analytics.value?.upcomingEvents || []);
+
+const last30Revenue = computed(() => salesSeries.value.reduce((sum, d) => sum + (d.revenue || 0), 0));
+const last30Orders = computed(() => salesSeries.value.reduce((sum, d) => sum + (d.orders || 0), 0));
+
+const chartPoints = computed(() => {
+  const series = salesSeries.value;
+  if (!series.length) return [];
+  const max = Math.max(...series.map((d) => Number(d.revenue) || 0), 1);
+  const width = 640;
+  const height = 160;
+  const step = series.length > 1 ? width / (series.length - 1) : width;
+  return series.map((point, index) => ({
+    x: series.length > 1 ? index * step : width / 2,
+    y: 20 + height - ((Number(point.revenue) || 0) / max) * height,
+  }));
 });
 
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: {
-    intersect: false,
-    mode: 'index',
-  },
-  plugins: {
-    legend: {
-      display: false
-    },
-    tooltip: {
-      backgroundColor: '#1f2937',
-      padding: 12,
-      titleFont: { size: 13, family: "'Inter', sans-serif" },
-      bodyFont: { size: 13, family: "'Inter', sans-serif" },
-      cornerRadius: 8,
-      displayColors: false,
-    }
-  },
-  scales: {
-    x: {
-      grid: { display: false, drawBorder: false },
-      ticks: { color: '#6b7280', font: { size: 12, family: "'Inter', sans-serif" } }
-    },
-    y: {
-      beginAtZero: true,
-      grid: {
-        color: '#f3f4f6',
-        drawBorder: false,
-        borderDash: [5, 5]
-      },
-      ticks: {
-        color: '#6b7280',
-        font: { size: 12, family: "'Inter', sans-serif" },
-        padding: 10,
-        callback: function(value) {
-          if (value >= 1000) return (value / 1000) + 'k';
-          return value;
-        }
-      }
-    }
-  }
-};
-async function loadDashboardData() {
-  const token = localStorage.getItem('ticketr_admin_token');
-  if (!token) {
-    useRouter().push('/admin/login');
-    return;
-  }
+const linePath = computed(() => {
+  const points = chartPoints.value;
+  if (!points.length) return '';
+  return points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+});
 
+const areaPath = computed(() => {
+  const points = chartPoints.value;
+  if (!points.length) return '';
+  return `${linePath.value} L${points[points.length - 1].x.toFixed(1)},180 L${points[0].x.toFixed(1)},180 Z`;
+});
+
+async function load() {
+  loading.value = true;
+  error.value = '';
   try {
-    user.value = JSON.parse(localStorage.getItem('ticketr_admin_user') || '{}');
-
-    const [analyticsRes, eventsRes] = await Promise.all([
-      fetch(`${config.public.apiBase}/analytics/tenant`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`${config.public.apiBase}/events/admin/my-events`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+    const [analyticsRes, eventsRes, ordersRes] = await Promise.allSettled([
+      apiRequest<any>('/analytics/tenant'),
+      apiRequest<any>('/events/admin/my-events?limit=5&page=1'),
+      apiRequest<any>('/orders/tenant?status=AWAITING_APPROVAL&limit=3&page=1'),
     ]);
 
-    if (analyticsRes.ok) analytics.value = await analyticsRes.json();
-    if (eventsRes.ok) {
-      const eData = await eventsRes.json();
-      events.value = eData.data || eData;
+    if (analyticsRes.status === 'fulfilled') {
+      analytics.value = analyticsRes.value;
+    } else {
+      error.value = errorMessage(analyticsRes.reason);
     }
-  } catch (err) {
-    console.error('Error loading organizer data:', err);
+
+    if (eventsRes.status === 'fulfilled') {
+      eventsData.value = eventsRes.value?.data || [];
+    }
+
+    if (ordersRes.status === 'fulfilled') {
+      reviewOrders.value = ordersRes.value?.data || [];
+      const stats = ordersRes.value?.metadata?.statistics || {};
+      pendingBadge.value = stats.totalPending || reviewOrders.value.length || 0;
+      if (!analytics.value) {
+        analytics.value = { pendingPayments: { count: stats.totalPending || 0, amount: 0 } };
+      }
+    }
   } finally {
     loading.value = false;
   }
 }
 
 onMounted(() => {
-  loadDashboardData();
+  hydrate();
+  load();
 });
+
+useSeoMeta({ title: 'Overview', robots: 'noindex, nofollow' });
 </script>

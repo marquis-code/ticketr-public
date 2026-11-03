@@ -1,87 +1,217 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-gray-50">
-    <!-- Navbar -->
-    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <NuxtLink to="/" class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-            </svg>
-          </div>
-          <span class="font-display font-bold text-lg text-gray-900 tracking-tight">Ticketr</span>
+  <div class="min-h-screen flex flex-col bg-paper">
+    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-ink focus:text-paper focus:px-4 focus:py-2 focus:rounded-lg">
+      Skip to content
+    </a>
+
+    <!-- Trust ticker -->
+    <div class="bg-ink text-paper/85 text-[11px] font-semibold tracking-[0.08em] uppercase overflow-hidden">
+      <div class="shell-wide flex items-center justify-between gap-4 h-9">
+        <p class="flex items-center gap-2 truncate">
+          <ShieldCheck class="w-3.5 h-3.5 text-lime shrink-0" />
+          <span class="truncate">Every pass is single-use and verified at the gate</span>
+        </p>
+        <NuxtLink :to="adminUrl" class="hidden sm:inline-flex items-center gap-1.5 hover:text-lime transition shrink-0">
+          Organizer console <ArrowUpRight class="w-3 h-3" />
+        </NuxtLink>
+      </div>
+    </div>
+
+    <header class="sticky top-0 z-50 border-b border-line bg-paper/90 backdrop-blur-md">
+      <div class="shell-wide h-[68px] flex items-center justify-between gap-4">
+        <NuxtLink to="/" class="flex items-center gap-2.5 shrink-0" aria-label="Ticketr home">
+          <span class="w-9 h-9 rounded-xl bg-ink flex items-center justify-center">
+            <Ticket class="w-[18px] h-[18px] text-lime" />
+          </span>
+          <span class="font-display text-[22px] font-semibold tracking-[-0.04em] text-ink leading-none">
+            ticketr<span class="text-forest">.</span>
+          </span>
         </NuxtLink>
 
-        <div class="flex items-center gap-4">
-          <!-- Desktop Search -->
-          <div class="relative hidden md:block">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <!-- Note: Search query handled per-page if needed, otherwise this is cosmetic in layout -->
+        <nav class="hidden lg:flex items-center gap-1" aria-label="Primary">
+          <NuxtLink
+            v-for="item in navItems"
+            :key="item.label"
+            :to="item.to"
+            class="px-3.5 py-2 rounded-full text-[13.5px] font-semibold text-ink/70 hover:text-ink hover:bg-ink/[0.05] transition"
+            active-class="!text-ink !bg-ink/[0.06]"
+          >
+            {{ item.label }}
+          </NuxtLink>
+        </nav>
+
+        <div class="flex items-center gap-2">
+          <form class="hidden md:flex items-center relative" role="search" @submit.prevent="submitSearch">
+            <Search class="w-4 h-4 text-muted absolute left-3.5 pointer-events-none" />
             <input
-              type="text"
-              placeholder="Search events..."
-              class="bg-gray-50 border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all w-56"
+              v-model="search"
+              type="search"
+              placeholder="Search events"
+              aria-label="Search events"
+              class="w-44 xl:w-56 rounded-full border border-line bg-white/70 pl-10 pr-4 py-2 text-[13px] text-ink placeholder:text-muted/60 focus:bg-white focus:border-forest focus:ring-4 focus:ring-forest/10 outline-none transition-all"
             />
-          </div>
-          
-          <NuxtLink to="/my-tickets" class="text-sm font-medium text-gray-600 hover:text-primary transition hidden sm:inline-flex items-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-            </svg>
-            My Tickets
+          </form>
+
+          <NuxtLink to="/my-tickets" class="btn-secondary btn-sm hidden sm:inline-flex">
+            <TicketCheck class="w-4 h-4" />
+            My tickets
           </NuxtLink>
 
-          <a :href="`${config.public.adminUrl}/register`" class="text-sm font-semibold text-white bg-primary hover:bg-primary-700 px-4 py-2 rounded-lg transition hidden sm:inline-flex items-center gap-1.5 shadow-sm">
-            Host an Event
-          </a>
+          <NuxtLink :to="adminUrl" class="btn-primary btn-sm hidden sm:inline-flex">
+            Host an event
+            <ArrowUpRight class="w-4 h-4" />
+          </NuxtLink>
 
-          <!-- Mobile Menu Button -->
-          <button @click="isMenuOpen = !isMenuOpen" class="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-            <Menu v-if="!isMenuOpen" class="w-6 h-6" />
-            <X v-else class="w-6 h-6" />
+          <button
+            type="button"
+            class="lg:hidden p-2 rounded-full border border-line bg-white text-ink"
+            :aria-expanded="menuOpen"
+            aria-label="Open menu"
+            @click="menuOpen = !menuOpen"
+          >
+            <X v-if="menuOpen" class="w-5 h-5" />
+            <Menu v-else class="w-5 h-5" />
           </button>
         </div>
       </div>
-      
-      <!-- Mobile Menu Dropdown -->
-      <div v-if="isMenuOpen" class="md:hidden border-t border-gray-100 bg-white absolute w-full pb-4 shadow-lg">
-        <div class="px-4 pt-4 pb-2">
-          <div class="relative mb-4">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search events..."
-              class="w-full bg-gray-50 border border-gray-200 rounded-lg pl-9 pr-4 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-            />
-          </div>
-          <NuxtLink to="/my-tickets" class="flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:text-primary hover:bg-primary/5" @click="isMenuOpen = false">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-            </svg>
-            My Tickets
-          </NuxtLink>
 
-          <a :href="`${config.public.adminUrl}/register`" class="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-primary rounded-lg mt-2" @click="isMenuOpen = false">
-            Host an Event
-          </a>
+      <!-- Mobile menu -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="menuOpen" class="lg:hidden border-t border-line bg-paper px-5 pb-5 pt-3">
+          <form class="relative mb-3" role="search" @submit.prevent="submitSearch">
+            <Search class="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              v-model="search"
+              type="search"
+              placeholder="Search events"
+              class="input !pl-10 !py-2.5"
+            />
+          </form>
+          <NuxtLink
+            v-for="item in navItems"
+            :key="item.label"
+            :to="item.to"
+            class="flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold text-ink hover:bg-white transition"
+            @click="menuOpen = false"
+          >
+            {{ item.label }}
+            <ArrowUpRight class="w-4 h-4 text-muted" />
+          </NuxtLink>
+          <div class="grid grid-cols-2 gap-2 mt-3">
+            <NuxtLink to="/my-tickets" class="btn-secondary btn-sm" @click="menuOpen = false">My tickets</NuxtLink>
+            <NuxtLink :to="adminUrl" class="btn-primary btn-sm" @click="menuOpen = false">Host an event</NuxtLink>
+          </div>
         </div>
-      </div>
+      </Transition>
     </header>
 
-    <main class="flex-grow flex flex-col w-full">
+    <main id="main" class="flex-1 w-full">
       <slot />
     </main>
+
+    <footer class="mt-auto border-t border-line bg-white">
+      <div class="shell-wide py-12 sm:py-16">
+        <div class="grid grid-cols-2 lg:grid-cols-12 gap-10">
+          <div class="col-span-2 lg:col-span-5">
+            <NuxtLink to="/" class="flex items-center gap-2.5">
+              <span class="w-9 h-9 rounded-xl bg-ink flex items-center justify-center">
+                <Ticket class="w-[18px] h-[18px] text-lime" />
+              </span>
+              <span class="font-display text-[22px] font-semibold tracking-[-0.04em] text-ink">ticketr.</span>
+            </NuxtLink>
+            <p class="mt-4 text-sm text-muted max-w-xs leading-relaxed">
+              The trust layer for live events. Verifiable tickets, honest pricing and face-value resale — for organizers and the people who show up.
+            </p>
+            <div class="flex flex-wrap gap-2 mt-5">
+              <span class="chip !text-[10px]"><ShieldCheck class="w-3 h-3 text-forest" /> Single-use QR</span>
+              <span class="chip !text-[10px]"><RefreshCcw class="w-3 h-3 text-forest" /> Verified resale</span>
+              <span class="chip !text-[10px]"><Wallet class="w-3 h-3 text-forest" /> Private wallet</span>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-muted mb-4">Discover</p>
+            <ul class="space-y-2.5 text-sm text-ink/75">
+              <li><NuxtLink to="/" class="hover:text-forest transition">All events</NuxtLink></li>
+              <li><NuxtLink to="/my-tickets" class="hover:text-forest transition">My tickets</NuxtLink></li>
+              <li><NuxtLink to="/#how-it-works" class="hover:text-forest transition">How it works</NuxtLink></li>
+            </ul>
+          </div>
+
+          <div class="lg:col-span-2">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-muted mb-4">Organizers</p>
+            <ul class="space-y-2.5 text-sm text-ink/75">
+              <li><NuxtLink :to="adminUrl" class="hover:text-forest transition">Organizer console</NuxtLink></li>
+              <li><NuxtLink :to="`${adminUrl}/signup`" class="hover:text-forest transition">Create an event</NuxtLink></li>
+              <li><NuxtLink to="/#pricing" class="hover:text-forest transition">Pricing & fees</NuxtLink></li>
+            </ul>
+          </div>
+
+          <div class="lg:col-span-3">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-muted mb-4">Trust & support</p>
+            <ul class="space-y-2.5 text-sm text-ink/75">
+              <li><NuxtLink to="/#trust" class="hover:text-forest transition">How we prevent ticket fraud</NuxtLink></li>
+              <li><NuxtLink to="/#trust" class="hover:text-forest transition">Transfer & resale policy</NuxtLink></li>
+              <li><a href="mailto:support@ticketr.org" class="hover:text-forest transition">support@ticketr.org</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-10 pt-6 border-t border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <p class="text-xs text-muted">© {{ new Date().getFullYear() }} Ticketr. Built for trustworthy live events.</p>
+          <div class="flex items-center gap-4 text-xs text-muted">
+            <NuxtLink to="/legal/privacy" class="hover:text-ink transition">Privacy</NuxtLink>
+            <NuxtLink to="/legal/terms" class="hover:text-ink transition">Terms</NuxtLink>
+            <NuxtLink to="/legal/refunds" class="hover:text-ink transition">Refunds</NuxtLink>
+          </div>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-import { Menu, X } from 'lucide-vue-next';
+<script setup lang="ts">
+import { ArrowUpRight, Menu, RefreshCcw, Search, ShieldCheck, Ticket, TicketCheck, Wallet, X } from 'lucide-vue-next';
 
-const isMenuOpen = ref(false);
 const config = useRuntimeConfig();
+const route = useRoute();
+const router = useRouter();
+
+const adminUrl = computed(() => {
+  const configured = String(config.public.adminUrl || '');
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    if (isLocal && !configured.includes(host)) return '/admin';
+  }
+  return configured || '/admin';
+});
+const menuOpen = ref(false);
+const search = ref(typeof route.query.q === 'string' ? route.query.q : '');
+
+const navItems = computed(() => [
+  { label: 'Discover events', to: '/' },
+  { label: 'My tickets', to: '/my-tickets' },
+  { label: 'How it works', to: '/#how-it-works' },
+  { label: 'For organizers', to: `${adminUrl.value}/signup` },
+]);
+
+function submitSearch() {
+  menuOpen.value = false;
+  router.push({ path: '/', query: search.value.trim() ? { q: search.value.trim() } : {} });
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    menuOpen.value = false;
+  },
+);
 </script>
