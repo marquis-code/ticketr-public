@@ -1,4 +1,21 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+function normalizeApiBase(value?: string): string {
+  let raw = (value || 'https://api.ticketr.org/api/v1').trim();
+  if (raw.startsWith('//')) raw = `https:${raw}`;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = `https://${raw}`;
+  try {
+    const url = new URL(raw);
+    let path = url.pathname.replace(/\/+$/, '');
+    if (!path || path === '/') path = '/api/v1';
+    if (!/\/api\/v\d+$/.test(path)) {
+      path = path.endsWith('/api') ? `${path}/v1` : `${path}/api/v1`;
+    }
+    return `${url.origin}${path}`;
+  } catch {
+    return 'https://api.ticketr.org/api/v1';
+  }
+}
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false },
@@ -9,7 +26,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.ticketr.org/api/v1',
+      apiBase: normalizeApiBase(process.env.NUXT_PUBLIC_API_BASE),
       paystackPublicKey: process.env.NUXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
       adminUrl: process.env.NUXT_PUBLIC_ADMIN_URL || 'https://admin.ticketr.org',
       publicUrl: process.env.NUXT_PUBLIC_PUBLIC_URL || 'https://www.ticketr.org',

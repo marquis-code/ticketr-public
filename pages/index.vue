@@ -184,6 +184,14 @@
           <button v-if="searchQuery || activeTag" class="btn-secondary btn-sm" type="button" @click="clearFilters">
             Clear filters
           </button>
+          <button
+            v-else-if="!includePast"
+            class="btn-secondary btn-sm"
+            type="button"
+            @click="includePast = true"
+          >
+            View past events
+          </button>
         </template>
       </UiEmpty>
 
