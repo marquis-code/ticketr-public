@@ -373,15 +373,7 @@ const route = useRoute();
 const router = useRouter();
 const reqUrl = useRequestURL();
 
-const adminUrl = computed(() => {
-  const configured = String(config.public.adminUrl || '');
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    const isLocal = host === 'localhost' || host === '127.0.0.1';
-    if (isLocal && !configured.includes(host)) return '/admin';
-  }
-  return configured || '/admin';
-});
+const adminUrl = computed(() => appOrigin('admin'));
 
 const tenantSlug = computed(() => {
   if (typeof route.query.tenant === 'string' && route.query.tenant) return route.query.tenant;

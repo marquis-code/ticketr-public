@@ -42,6 +42,9 @@ export function clearAdminSession() {
   localStorage.removeItem('ticketr_admin_token');
   localStorage.removeItem('ticketr_admin_user');
   localStorage.removeItem('ticketr_admin_tenant');
+  if (typeof document !== 'undefined') {
+    document.cookie = 'ticketr_admin_session=; Path=/; Max-Age=0; SameSite=Lax';
+  }
 }
 
 export function clearSuperSession() {

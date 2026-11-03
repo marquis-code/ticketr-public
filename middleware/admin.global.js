@@ -19,14 +19,32 @@ function readToken() {
   }
 }
 
-export default defineNuxtRouteMiddleware((to) => {
-  if (import.meta.server) return;
+function hostOf(url) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+}
 
+export default defineNuxtRouteMiddleware((to) => {
   const config = useRuntimeConfig();
-  const hostname = window.location.hostname;
-  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+  const url = useRequestURL();
+  const hostname = url.hostname;
+  const isServer = import.meta.server;
+  const isLocal =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
 
   const isAdminPath = to.path === '/admin' || to.path.startsWith('/admin/');
+  const configuredAdminUrl = String(config.public.adminUrl || '').replace(/\/+$/, '');
+  const configuredAdminHost = hostOf(configuredAdminUrl);
+
+  // A per-tenant admin host must not create a second console session.
+  if (hostname.startsWith('admin-') && configuredAdminHost && configuredAdminHost !== hostname) {
+    return navigateTo(`${configuredAdminUrl}${to.fullPath}`, { external: true, redirectCode: 302 });
+  }
 
   const isAdminHost =
     hostname.startsWith('admin-') ||
@@ -36,18 +54,55 @@ export default defineNuxtRouteMiddleware((to) => {
 
   // Public host: send console traffic to the dedicated admin deployment.
   if (isAdminPath && !isAdminHost) {
-    const adminUrl = String(config.public.adminUrl || '').replace(/\/+$/, '');
-    if (adminUrl && !adminUrl.includes(hostname)) {
-      return navigateTo(`${adminUrl}${to.fullPath}`, { external: true });
+    if (configuredAdminUrl && configuredAdminHost && configuredAdminHost !== hostname) {
+      return navigateTo(`${configuredAdminUrl}${to.fullPath}`, {
+        external: true,
+        redirectCode: 302,
+      });
     }
     return navigateTo('/', { redirectCode: 302 });
   }
 
   if (isAdminHost) {
+    const authRoutes = [
+      '/admin/login',
+      '/admin/signup',
+      '/admin/forgot-password',
+      '/admin/reset-password',
+    ];
+    const isAuthRoute = authRoutes.includes(to.path);
+    const cookieHeader = isServer
+      ? useRequestHeaders(['cookie']).cookie || ''
+      : typeof document !== 'undefined'
+        ? document.cookie
+        : '';
+    const sessionHint = /(?:^|;\s*)ticketr_admin_session=1(?:;|$)/.test(cookieHeader);
+
+    // SSR must never render the storefront chrome on an admin host, and should
+    // not guess between dashboard and login. The non-secret hint cookie lets it
+    // choose correctly without a public-home flash.
+    if (isServer) {
+      if (to.path === '/' || !isAdminPath) {
+        return navigateTo(sessionHint ? '/admin/dashboard' : '/admin/login', {
+          redirectCode: 302,
+        });
+      }
+      if (isAuthRoute && sessionHint) {
+        return navigateTo('/admin/dashboard', { redirectCode: 302 });
+      }
+      if (!isAuthRoute && !sessionHint) {
+        return navigateTo(`/admin/login?redirect=${encodeURIComponent(to.fullPath)}`, {
+          redirectCode: 302,
+        });
+      }
+      return;
+    }
+
     const { token, role, expired } = readToken();
     if (expired && token) {
       localStorage.removeItem('ticketr_admin_token');
       localStorage.removeItem('ticketr_admin_user');
+      document.cookie = 'ticketr_admin_session=; Path=/; Max-Age=0; SameSite=Lax';
     }
     const authed = !!token && !expired;
 
@@ -60,18 +115,25 @@ export default defineNuxtRouteMiddleware((to) => {
       return navigateTo(authed ? '/admin/dashboard' : '/admin/login', { redirectCode: 302 });
     }
 
-    const authRoutes = ['/admin/login', '/admin/signup', '/admin/forgot-password', '/admin/reset-password'];
-    const isAuthRoute = authRoutes.includes(to.path);
-
     if (authed && isAuthRoute) {
-      return navigateTo(role === 'STAFF' ? '/admin/scanner' : '/admin/dashboard', { redirectCode: 302 });
+      return navigateTo(role === 'STAFF' ? '/admin/scanner' : '/admin/dashboard', {
+        redirectCode: 302,
+      });
     }
     if (!authed && !isAuthRoute && to.path !== '/admin/verify') {
-      return navigateTo(`/admin/login?redirect=${encodeURIComponent(to.fullPath)}`, { redirectCode: 302 });
+      return navigateTo(`/admin/login?redirect=${encodeURIComponent(to.fullPath)}`, {
+        redirectCode: 302,
+      });
     }
 
     // Gate staff only need the scanner and attendee lookup.
-    if (authed && role === 'STAFF' && !['/admin/scanner', '/admin/attendees', '/admin/verify'].some((path) => to.path.startsWith(path))) {
+    if (
+      authed &&
+      role === 'STAFF' &&
+      !['/admin/scanner', '/admin/attendees', '/admin/verify'].some((path) =>
+        to.path.startsWith(path),
+      )
+    ) {
       return navigateTo('/admin/scanner', { redirectCode: 302 });
     }
   }

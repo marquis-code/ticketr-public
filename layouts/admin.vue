@@ -247,9 +247,8 @@ const sectionLabel = computed(() => {
 
 const storefrontUrl = computed(() => {
   const slug = tenant.value?.slug;
-  const base = String(config.public.publicUrl || '').replace(/\/+$/, '');
-  if (base) return slug ? `${base}?tenant=${slug}` : base;
-  return '/';
+  const base = appOrigin('public');
+  return slug ? `${base}?tenant=${slug}` : base;
 });
 
 const navGroups = computed(() => [

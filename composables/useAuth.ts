@@ -68,6 +68,11 @@ export function useAuth() {
       localStorage.setItem('ticketr_admin_user', JSON.stringify(data.user));
       if (data.user?.tenantId) localStorage.setItem('ticketr_admin_tenant', data.user.tenantId);
     }
+    if (typeof document !== 'undefined') {
+      // Non-secret hint only. Lets SSR choose the console shell instead of
+      // flashing the login page for an already-authenticated organizer.
+      document.cookie = `ticketr_admin_session=1; Path=/; Max-Age=604800; SameSite=Lax`;
+    }
     return data.user;
   }
 

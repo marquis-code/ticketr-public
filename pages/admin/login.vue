@@ -175,7 +175,7 @@ function redirectTarget(role: string): string {
     return requested;
   }
   if (role === 'STAFF') return '/admin/scanner';
-  if (role === 'SUPER_ADMIN') return `${(config.public as any).superAdminUrl || '/admin/dashboard'}`;
+  if (role === 'SUPER_ADMIN') return appOrigin('superadmin');
   return '/admin/dashboard';
 }
 
