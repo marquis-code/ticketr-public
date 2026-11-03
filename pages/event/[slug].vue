@@ -660,10 +660,11 @@ const tenantSlug = computed(() => {
 
 const eventSlug = route.params.slug as string;
 
+const base = apiBase();
 const { data, pending, error } = await useFetch<any>(
   tenantSlug.value
-    ? `${config.public.apiBase}/events/tenant/${tenantSlug.value}/${eventSlug}`
-    : `${config.public.apiBase}/events/public/slug/${encodeURIComponent(eventSlug)}`,
+    ? `${base}/events/tenant/${tenantSlug.value}/${eventSlug}`
+    : `${base}/events/public/slug/${encodeURIComponent(eventSlug)}`,
   { key: `event-${tenantSlug.value || 'global'}-${eventSlug}` },
 );
 

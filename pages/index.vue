@@ -403,9 +403,10 @@ const apiUrl = computed(() => {
   if (searchQuery.value) params.set('search', searchQuery.value);
   if (activeTag.value) params.set('tag', activeTag.value);
 
+  const base = apiBase();
   return tenantSlug.value
-    ? `${config.public.apiBase}/events/tenant/${tenantSlug.value}?${params.toString()}`
-    : `${config.public.apiBase}/events/public/all?${params.toString()}`;
+    ? `${base}/events/tenant/${tenantSlug.value}?${params.toString()}`
+    : `${base}/events/public/all?${params.toString()}`;
 });
 
 const { data, pending, error, refresh } = await useFetch<any>(apiUrl, {

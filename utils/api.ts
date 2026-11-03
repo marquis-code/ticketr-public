@@ -16,11 +16,31 @@ export class ApiError extends Error {
 }
 
 export function apiBase(): string {
+  let raw = '';
   try {
     const config = useRuntimeConfig();
-    return (config.public.apiBase as string) || '';
+    raw = String(config.public.apiBase || '').trim();
   } catch {
-    return '';
+    raw = '';
+  }
+
+  // A deployed env value is often `api.ticketr.org/api/v1` without a scheme.
+  // Node/browser fetch reject that before making a request, which looks like
+  // "no endpoint is called" in the UI.
+  if (!raw) raw = 'https://api.ticketr.org/api/v1';
+  if (raw.startsWith('//')) raw = `https:${raw}`;
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = `https://${raw}`;
+
+  try {
+    const url = new URL(raw);
+    let path = url.pathname.replace(/\/+$/, '');
+    if (!path || path === '/') path = '/api/v1';
+    if (!/\/api\/v\d+$/.test(path)) {
+      path = path.endsWith('/api') ? `${path}/v1` : `${path}/api/v1`;
+    }
+    return `${url.origin}${path}`;
+  } catch {
+    return 'https://api.ticketr.org/api/v1';
   }
 }
 
